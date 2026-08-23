@@ -55,8 +55,13 @@ async def test_alerts_and_notify():
 
         # Test notification sending
         r2 = await client.post(
-            "/api/v1/notify/send?channel=SMS&message=Test%20Alert&alert_type=HEAVY_RAIN",
-            json=["+919876543210"]
+            "/api/v1/notify/send",
+            json={
+                "channel": "SMS",
+                "recipients": ["+919876543210"],
+                "message": "Test Alert",
+                "alert_type": "HEAVY_RAIN"
+            }
         )
         assert r2.status_code == 200
         assert "status" in r2.json()
