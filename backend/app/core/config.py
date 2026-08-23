@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
-    DATABASE_URL: str = "sqlite:///./varshanetra.db"
+    # Use writable /tmp in Vercel/serverless environments, local relative in dev
+    DATABASE_URL: str = "sqlite:////tmp/varshanetra.db" if os.getenv("VERCEL") else "sqlite:///./varshanetra.db"
 
     OPEN_METEO_BASE_URL: str = "https://api.open-meteo.com/v1/forecast"
     OPEN_METEO_ARCHIVE_URL: str = "https://archive-api.open-meteo.com/v1/archive"
