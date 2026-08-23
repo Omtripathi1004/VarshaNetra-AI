@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { INDIA_LOCATIONS, DEFAULT_DISTRICT_VILLAGES } from '../data/indiaLocations';
 
-const BASE = '/api/v1';
+const BASE = '/api';
 const OPEN_METEO_BASE = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_GEO = 'https://geocoding-api.open-meteo.com/v1/search';
 
