@@ -117,13 +117,13 @@ export default function FloatingChatWidget() {
         aria-label="Toggle AI Chatbot"
         style={{
           position: 'fixed',
-          bottom: '24px',
-          right: '24px',
+          top: '76px',
+          right: '20px',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          padding: isOpen ? '12px 18px' : '14px 22px',
+          padding: isOpen ? '10px 16px' : '12px 18px',
           background: 'linear-gradient(135deg, #059669 0%, #0284c7 100%)',
           color: '#fff',
           border: '1px solid rgba(255,255,255,0.4)',
@@ -132,13 +132,13 @@ export default function FloatingChatWidget() {
           cursor: 'pointer',
           fontFamily: 'Outfit, sans-serif',
           fontWeight: 700,
-          fontSize: '0.92rem',
+          fontSize: '0.86rem',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'}
         onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
       >
-        <span style={{ fontSize: '1.3rem' }}>{isOpen ? '✕' : '🤖'}</span>
+        <span style={{ fontSize: '1.2rem' }}>{isOpen ? '✕' : '🤖'}</span>
         <span>{isOpen ? (lang === 'hi' ? 'सलाहकार बंद करें' : 'Close AI') : (lang === 'hi' ? 'VarshaNetra AI सलाह' : 'Ask Crop Advisor')}</span>
         {!isOpen && (
           <span style={{
@@ -148,15 +148,15 @@ export default function FloatingChatWidget() {
         )}
       </button>
 
-      {/* Floating Chat Modal Panel */}
+      {/* Floating Chat Modal Panel at TOP RIGHT */}
       {isOpen && (
         <div
           style={{
             position: 'fixed',
-            bottom: '88px',
-            right: '24px',
+            top: '128px',
+            right: '20px',
             width: 'min(440px, calc(100vw - 32px))',
-            height: 'min(600px, calc(100vh - 120px))',
+            height: 'min(620px, calc(100vh - 150px))',
             zIndex: 9998,
             background: '#ffffff',
             border: '1px solid #cbd5e1',

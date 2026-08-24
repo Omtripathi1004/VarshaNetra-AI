@@ -581,17 +581,21 @@ def compute_crop_stage_advisory(
             rationale_en = "Favorable clear conditions for harvesting, sun drying, and storage."
             rationale_hi = "कटाई, सुखाने और भंडारण के लिए मौसम पूरी तरह अनुकूल और साफ है।"
 
-    # Tailored crop-specific agronomic notes
+    # Tailored crop-specific agronomic notes for all 11 crops
     pest_notes = {
-        "rice": ("Watch for Stem Borer & Blast in high humidity (>80%).", "अधिक आर्द्रता (>80%) में तना छेदक व झुलसा रोग पर नज़र रखें।"),
-        "cotton": ("Install yellow sticky traps for Whitefly & monitor Pink Bollworm.", "सफेद मक्खी के लिए पीले चिपचिपे ट्रैप लगाएं व गुलाबी सुंडी की निगरानी करें।"),
-        "soybean": ("Check for Yellow Mosaic Virus and Semilooper caterpillars.", "पीला मोज़ेक वायरस और सेमीलूपर इल्ली की जांच करें।"),
-        "maize": ("Scout for Fall Armyworm (FAW) in the central whorl of leaves.", "पत्तियों के बीच फॉल आर्मीवर्म (FAW) कीट की जांच करें।"),
-        "wheat": ("Monitor for Yellow Rust (Puccinia striiformis) during cool humid spells.", "ठंडे नम मौसम में पीले रतुआ रोग की रोकथाम हेतु निगरानी रखें।"),
-        "mustard": ("Watch for Aphid (Chepa) infestation on flowering branches.", "फूल आने के समय माहू (चेपा) कीट के प्रकोप पर नज़र रखें।"),
-        "vegetables": ("Apply Trichoderma spray to prevent damping-off and fruit rot.", "सड़न व फल गलन रोकने हेतु ट्राइकोडर्मा का छिड़काव करें।"),
+        "rice": ("Watch for Stem Borer (Scirpophaga incertulas) & Blast in high humidity (>80%).", "अधिक आर्द्रता (>80%) में तना छेदक व झुलसा रोग पर नज़र रखें।"),
+        "cotton": ("Install yellow sticky traps for Whitefly & monitor Pink Bollworm (Pectinophora gossypiella). Prepare drainage.", "सफेद मक्खी के लिए पीले चिपचिपे ट्रैप लगाएं व गुलाबी सुंडी की निगरानी करें। जल निकासी सुनिश्चित करें।"),
+        "soybean": ("Check for Yellow Mosaic Virus, Semilooper caterpillars, and Rust under humid spells.", "पीला मोज़ेक वायरस, सेमीलूपर इल्ली और आर्द्र मौसम में गेरुई रोग की जांच करें।"),
+        "maize": ("Scout for Fall Armyworm (Spodoptera frugiperda) in central leaf whorls. Apply Emamectin Benzoate if needed.", "पत्तियों के बीच फॉल आर्मीवर्म (FAW) कीट की जांच करें। आवश्यकतानुसार इमामेक्टिन बेंजोएट का छिड़काव करें।"),
+        "groundnut": ("Watch for Tikka leaf spot (Cercospora) and Collar rot in soggy soil conditions.", "जलभराव की स्थिति में टिक्का रोग (पत्ती धब्बा) व कॉलर रॉट पर विशेष ध्यान दें।"),
+        "bajra": ("Monitor for Ergot and Downy Mildew during cloudy humid weather. Maintain furrow aeration.", "बादल छाए रहने व उमस में अर्गट व डाउनी मिल्ड्यू की रोकथाम हेतु खेत में हवा व जल निकासी रखें।"),
+        "sugarcane": ("Inspect for Early Shoot Borer (Chilo infuscatellus) and Red Rot. Trench drainage essential in heavy rains.", "कंसुआ (सूट बोरर) और लाल सड़न रोग की निगरानी करें। भारी वर्षा में नालियों द्वारा जल निकासी करें।"),
+        "pulses": ("Scout for Pod Borer (Helicoverpa armigera) and Wilt / Phytophthora blight in Arhar / Moong.", "अरहर व मूंग में फली छेदक सुंडी और उकठा / फाइटोफ्थोरा झुलसा रोग पर नज़र रखें।"),
+        "wheat": ("Monitor for Yellow Rust (Puccinia striiformis) and Termite damage during cool humid spells.", "ठंडे नम मौसम में पीले रतुआ रोग (Puccinia) व दीमक की रोकथाम हेतु नियमित निगरानी रखें।"),
+        "mustard": ("Watch for Aphid (Chepa / Lipaphis erysimi) infestation on flowering twigs and White Rust.", "फूल व फली बनते समय माहू (चेपा) और सफेद रतुआ कीट के प्रकोप पर नज़र रखें।"),
+        "vegetables": ("Apply Trichoderma spray to prevent damping-off, Fruit Borer in Tomato/Chilli, and Leaf Curl.", "टमाटर व मिर्च में फल छेदक, पत्ती मरोड़ और गलन रोकने हेतु ट्राइकोडर्मा का छिड़काव करें।"),
     }
-    pest_en, pest_hi = pest_notes.get(crop_id, ("Monitor crops regularly for pests and nutrient deficiencies.", "फसल में कीट व पोषक तत्वों की नियमित जांच करें।"))
+    pest_en, pest_hi = pest_notes.get(crop_id, ("Monitor crops regularly for pests, root rot, and nutrient deficiencies.", "फसल में कीट, जड़ गलन व पोषक तत्वों की नियमित जांच करें।"))
 
     return {
         "crop_id": crop["id"],
