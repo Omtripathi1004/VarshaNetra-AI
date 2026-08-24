@@ -920,5 +920,29 @@ export const api = {
       };
     }
   },
+
+  // Interactive What-If Simulation Lab
+  runSimulation: async (params) => {
+    try {
+      return await axios.post(`${BASE}/simulation/what-if`, null, { params, timeout: 3000 });
+    } catch {
+      const rainChg = Number(params?.rainfall_change_pct || 0);
+      const dryDays = Number(params?.dry_days || 0);
+      const tempChg = Number(params?.temperature_change_c || 0);
+      const stress = Math.min(100, Math.max(5, Math.abs(rainChg) * 0.6 + dryDays * 3.5 + tempChg * 5));
+      const yieldImpact = Number((-stress * 0.65).toFixed(1));
+      const soilMoisture = Number(Math.max(0.12, 0.32 + rainChg / 250 - dryDays * 0.012).toFixed(3));
+      return {
+        data: {
+          crop_stress_index_pct: Math.round(stress),
+          yield_impact_pct: yieldImpact,
+          soil_moisture_projected: soilMoisture,
+          recommended_contingency_en: dryDays > 7 ? 'Initiate emergency protective irrigation. Mulch with straw to preserve moisture.' : rainChg < -25 ? 'Deficit moisture scenario. Apply organic mulching and anti-transpirant spray.' : 'Normal agronomic monitoring.',
+          recommended_contingency_hi: dryDays > 7 ? 'आपातकालीन सुरक्षात्मक सिंचाई शुरू करें। पुआल की मल्चिंग करें।' : 'सामान्य कृषि निगरानी बनाए रखें।',
+          scenario_summary: `Rainfall ${rainChg >= 0 ? '+' : ''}${rainChg}%, ${dryDays} dry days, Temp ${tempChg >= 0 ? '+' : ''}${tempChg}°C`,
+        }
+      };
+    }
+  },
 };
 
