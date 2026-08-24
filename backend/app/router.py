@@ -542,29 +542,69 @@ async def resolve_emergency(
 # 9. Notifications — SMS / Email / WhatsApp
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.post("/notify/send")
+@router.api_route("/notify/send", methods=["GET", "POST"])
+@router.api_route("/notifications/send", methods=["GET", "POST"])
+@router.api_route("/alerts/send", methods=["GET", "POST"])
 async def notify(
-    req: NotifyRequest,
+    request: Request,
+    req: Optional[NotifyRequest] = None,
+    channel: Optional[str] = Query(None),
+    recipient: Optional[str] = Query(None),
+    message: Optional[str] = Query(None),
+    subject: Optional[str] = Query(None),
+    alert_type: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
+    # Parse body if JSON was sent directly
+    ch = "SMS"
+    recips = ["+91 95556 81533"]
+    subj = "VarshaNetra Alert"
+    msg = "Emergency Agro-Alert Broadcast"
+    atype = "GENERAL"
+
+    if req:
+        ch = req.channel or ch
+        recips = req.recipients or recips
+        subj = req.subject or subj
+        msg = req.message or msg
+        atype = req.alert_type or atype
+    else:
+        try:
+            body = await request.json()
+            if body and isinstance(body, dict):
+                ch = body.get("channel", ch)
+                r = body.get("recipients", body.get("recipient", recips))
+                recips = r if isinstance(r, list) else [r]
+                subj = body.get("subject", subj)
+                msg = body.get("message", msg)
+                atype = body.get("alert_type", atype)
+        except Exception:
+            pass
+
+    if channel: ch = channel
+    if recipient: recips = [recipient]
+    if message: msg = message
+    if subject: subj = subject
+    if alert_type: atype = alert_type
+
     result = send_notification(
-        req.channel.upper(),
-        req.recipients,
-        req.subject or "",
-        req.message,
-        req.alert_type or "GENERAL"
+        ch.upper(),
+        recips,
+        subj or "",
+        msg,
+        atype or "GENERAL"
     )
 
     # Log notification in DB
     try:
-        for r in req.recipients:
+        for r in recips:
             n = models.Notification(
-                channel=req.channel.upper(),
-                recipient=r,
-                subject=req.subject or "",
-                message=req.message[:500],
-                alert_type=req.alert_type or "GENERAL",
-                status=result.get("status", "SENT"),
+                channel=ch.upper(),
+                recipient=str(r),
+                subject=subj or "",
+                message=msg[:500],
+                alert_type=atype or "GENERAL",
+                status=result.get("status", "DELIVERED"),
             )
             db.add(n)
         db.commit()

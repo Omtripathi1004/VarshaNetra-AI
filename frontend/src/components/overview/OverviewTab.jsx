@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, BarElement, RadialLinearScale, Filler, Tooltip, Legend,
+  Chart as ChartJS, registerables
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, RadialLinearScale, Filler, Tooltip, Legend);
+ChartJS.register(...registerables);
 
 // 5 Key Indian Agricultural Hubs with real situation telemetry
 const AGRI_HUBS = [

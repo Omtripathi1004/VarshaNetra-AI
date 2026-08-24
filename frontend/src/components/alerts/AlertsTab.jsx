@@ -168,15 +168,55 @@ function NotifyPanel({ lang }) {
           <textarea className="textarea" value={message} onChange={e => setMessage(e.target.value)}
             placeholder={lang === 'hi' ? 'संदेश यहाँ लिखें...' : 'Type your alert message here...'} />
         </div>
-        <button className="btn btn-primary" onClick={handleSend} disabled={sending || !recipients.trim()}>
-          {sending ? '⏳ Sending...' : `📤 ${tr('send')} via ${channel}`}
+        {/* Direct Device Forwarding Buttons */}
+        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const cleanPhone = recipients.replace(/[^0-9]/g, '') || '919555681533';
+              const effectiveMsg = message.trim() || (lang === 'hi' ? HI_TEMPLATES[alertType] || TEMPLATES[alertType] : TEMPLATES[alertType]);
+              window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(effectiveMsg)}`, '_blank');
+            }}
+            className="btn btn-sm"
+            style={{ flex: 1, background: '#25D366', color: '#ffffff', fontSize: '0.74rem', border: 'none', fontWeight: 700 }}
+          >
+            💬 Forward on WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const cleanPhone = recipients.replace(/[^0-9+]/g, '') || '+919555681533';
+              const effectiveMsg = message.trim() || (lang === 'hi' ? HI_TEMPLATES[alertType] || TEMPLATES[alertType] : TEMPLATES[alertType]);
+              window.open(`sms:${cleanPhone}?body=${encodeURIComponent(effectiveMsg)}`, '_blank');
+            }}
+            className="btn btn-sm"
+            style={{ flex: 1, background: '#0284c7', color: '#ffffff', fontSize: '0.74rem', border: 'none', fontWeight: 700 }}
+          >
+            📱 Direct Device SMS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const emailTarget = recipients.includes('@') ? recipients : 'harshsih30@gmail.com';
+              const effectiveMsg = message.trim() || (lang === 'hi' ? HI_TEMPLATES[alertType] || TEMPLATES[alertType] : TEMPLATES[alertType]);
+              window.open(`mailto:${emailTarget}?subject=${encodeURIComponent(subject || 'VarshaNetra Agro-Alert')}&body=${encodeURIComponent(effectiveMsg)}`, '_blank');
+            }}
+            className="btn btn-sm"
+            style={{ flex: 1, background: '#475569', color: '#ffffff', fontSize: '0.74rem', border: 'none', fontWeight: 700 }}
+          >
+            ✉️ Direct Email
+          </button>
+        </div>
+
+        <button className="btn btn-primary" onClick={handleSend} disabled={sending || !recipients.trim()} style={{ marginTop: '0.5rem' }}>
+          {sending ? '⏳ Relaying to Network...' : `📤 ${tr('send')} via ${channel} Gateway`}
         </button>
         {result && (
-          <div style={{ padding: '0.75rem', background: result.status.includes('SENT') ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
-            border: `1px solid ${result.status.includes('SENT') ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
+          <div style={{ padding: '0.75rem', marginTop: '0.6rem', background: result.status.includes('DELIVERED') || result.status.includes('SENT') ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
+            border: `1px solid ${result.status.includes('DELIVERED') || result.status.includes('SENT') ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
             borderRadius: 'var(--radius-md)' }}>
-            <p className={result.status.includes('SENT') ? 'text-green' : 'text-red'}>
-              {result.status.includes('SENT') ? '✅' : '❌'} {result.message}
+            <p className={result.status.includes('DELIVERED') || result.status.includes('SENT') ? 'text-green' : 'text-red'}>
+              {result.status.includes('DELIVERED') || result.status.includes('SENT') ? '✅' : '❌'} {result.message}
             </p>
             <p className="text-xs text-muted">{result.sent_at}</p>
           </div>
