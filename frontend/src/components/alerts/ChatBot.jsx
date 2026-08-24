@@ -5,9 +5,12 @@ import { api } from '../../api/client';
 export default function ChatBotPanel() {
   const { lang, location, tr } = useApp();
   const [msgs, setMsgs] = useState([
-    { role: 'bot', text: lang === 'hi'
-      ? 'नमस्ते! मैं VarshaNetra AI हूँ। मानसून, वर्षा, फसल या मौसम के बारे में पूछें।'
-      : 'Hello! I am VarshaNetra AI. Ask me about monsoon, rainfall, crops, or weather conditions.' }
+    {
+      role: 'bot',
+      text: lang === 'hi'
+        ? 'नमस्ते! मैं VarshaNetra AI हूँ। कपास, सोयाबीन, धान, मक्का या गेहूं की बुवाई, सिंचाई, झूठी शुरुआत (False-Onset) या मौसम के बारे में पूछें।'
+        : 'Hello! I am VarshaNetra AI. Ask me about Cotton, Soybean, Paddy, Maize, Wheat advisory, False-Onset risk, dry break, or weather.'
+    }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,17 +20,17 @@ export default function ChatBotPanel() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [msgs]);
 
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg = input.trim();
+  const send = async (msgText) => {
+    const textToSend = typeof msgText === 'string' ? msgText : input.trim();
+    if (!textToSend || loading) return;
     setInput('');
-    setMsgs(m => [...m, { role: 'user', text: userMsg }]);
+    setMsgs(m => [...m, { role: 'user', text: textToSend }]);
     setLoading(true);
 
     try {
-      const loc = { lat: location.lat, lon: location.lon };
-      const res = await api.chat(userMsg, lang, loc);
-      const reply = lang === 'hi' ? res.data.reply_hi : res.data.reply_en;
+      const loc = { lat: location?.lat, lon: location?.lon, state: location?.state, district: location?.district };
+      const res = await api.chat(textToSend, lang, loc);
+      const reply = lang === 'hi' ? (res.data.reply_hi || res.data.reply) : (res.data.reply_en || res.data.reply);
       setMsgs(m => [...m, { role: 'bot', text: reply, intent: res.data.intent_detected }]);
     } catch {
       setMsgs(m => [...m, { role: 'bot', text: 'Connection error. Please ensure the backend is running.' }]);
@@ -35,62 +38,90 @@ export default function ChatBotPanel() {
     setLoading(false);
   };
 
-  const QUICK = lang === 'hi'
-    ? ['आज वर्षा होगी?', 'मानसून कब आएगा?', 'कौन सी फसल बोएं?', 'मौसम कैसा है?']
-    : ['Will it rain today?', 'When will monsoon arrive?', 'What crop should I sow?', 'Current weather?'];
+  const QUICK_CROPS = lang === 'hi'
+    ? [
+        'कपास को जलभराव से कैसे बचाएं?',
+        'सोयाबीन में सूखा विराम प्रबंधन?',
+        'धान रोपाई का सही समय?',
+        'झूठी शुरुआत (False Onset) जोखिम?',
+        'मक्का में कीट नियंत्रण?',
+        'आज वर्षा का पूर्वानुमान?',
+      ]
+    : [
+        'How to protect Cotton from heavy rain?',
+        'Soybean dry spell management?',
+        'Paddy transplanting timing?',
+        'False-Onset risk guidance?',
+        'Maize pest prevention?',
+        'Rainfall forecast today?',
+      ];
 
   return (
-    <div className="card" style={{ height: '100%' }}>
+    <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
-        <span className="card-title">🤖 VarshaNetra AI Chat</span>
-        <span className="badge badge-success">Live Data Grounded</span>
+        <span className="card-title">🤖 VarshaNetra AI Agricultural Chat</span>
+        <span className="badge badge-success">Live Climate Aligned</span>
       </div>
 
-      {/* Quick prompts */}
+      {/* Quick crop prompts */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
-        {QUICK.map(q => (
-          <button key={q}
-            onClick={() => { setInput(q); }}
-            style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-pill)',
-              padding: '0.25rem 0.7rem', fontSize: '0.72rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+        {QUICK_CROPS.map(q => (
+          <button
+            key={q}
+            onClick={() => send(q)}
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '999px',
+              padding: '0.28rem 0.75rem',
+              fontSize: '0.74rem',
+              color: '#059669',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
             {q}
           </button>
         ))}
       </div>
 
-      <div className="chat-container">
-        <div className="chat-messages">
+      <div className="chat-container" style={{ flex: 1, minHeight: '380px', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+        <div className="chat-messages" style={{ background: '#f8fafc' }}>
           {msgs.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role}`}>
-              {m.role === 'bot' && <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                🤖 VarshaNetra AI {m.intent ? `· ${m.intent}` : ''}
-              </span>}
-              <div className="chat-bubble" dangerouslySetInnerHTML={{ __html: m.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+              {m.role === 'bot' && (
+                <span style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '0.2rem', display: 'block', fontWeight: 600 }}>
+                  🤖 VarshaNetra AI {m.intent ? `· ${m.intent.toUpperCase()}` : ''}
+                </span>
+              )}
+              <div
+                className="chat-bubble"
+                dangerouslySetInnerHTML={{
+                  __html: m.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')
+                }}
+              />
             </div>
           ))}
           {loading && (
             <div className="chat-msg bot">
-              <div className="chat-bubble text-muted" style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                <span>Thinking</span>
-                <span style={{ animation: 'pulse-dot 0.8s infinite 0s' }}>·</span>
-                <span style={{ animation: 'pulse-dot 0.8s infinite 0.2s' }}>·</span>
-                <span style={{ animation: 'pulse-dot 0.8s infinite 0.4s' }}>·</span>
+              <div className="chat-bubble" style={{ background: '#ffffff', color: '#64748b', fontSize: '0.8rem' }}>
+                <span>Analyzing data...</span>
               </div>
             </div>
           )}
           <div ref={bottomRef} />
         </div>
 
-        <div className="chat-input-row">
+        <div className="chat-input-row" style={{ padding: '0.65rem', background: '#ffffff' }}>
           <input
             className="input"
-            placeholder={lang === 'hi' ? 'यहाँ टाइप करें...' : 'Type your question in English or हिन्दी...'}
+            placeholder={lang === 'hi' ? 'फसल, कीट या मौसम संबंधी प्रश्न पूछें...' : 'Ask about cotton, soybean, false-onset, irrigation...'}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send()}
+            onKeyDown={e => e.key === 'Enter' && send(input)}
             style={{ flex: 1 }}
           />
-          <button className="btn btn-primary btn-sm" onClick={send} disabled={loading || !input.trim()}>
+          <button className="btn btn-primary btn-sm" onClick={() => send(input)} disabled={loading || !input.trim()}>
             {lang === 'hi' ? 'भेजें' : 'Send'}
           </button>
         </div>

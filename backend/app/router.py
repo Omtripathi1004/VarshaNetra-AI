@@ -15,8 +15,11 @@ from .weather import fetch_current_weather, fetch_forecast, geocode_place
 from .services import (
     predict_rainfall, compute_monsoon_phase, compute_crop_suitability,
     compute_risk, generate_chat_response, send_notification, run_simulation,
-    load_ml_model,
+    load_ml_model, compute_multi_horizon_outlook, compute_crop_stage_advisory,
+    CROP_CATALOG, CROP_STAGES,
 )
+from .climate import get_all_climate_teleconnections, fetch_noaa_oni, fetch_noaa_dmi, fetch_noaa_mjo
+from .ml_engine import evaluate_10yr_models
 from . import models
 from .schemas import NotifyRequest
 
@@ -794,3 +797,110 @@ async def list_users(db: Session = Depends(get_db)):
          "role": u.role, "phone": u.phone, "is_active": u.is_active}
         for u in users
     ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 14. Climate Teleconnections (NOAA ENSO, IOD, MJO)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/climate/teleconnections")
+async def climate_teleconnections():
+    """Returns unified live NOAA climate teleconnections (ONI, DMI, MJO) with temporal alignment and last sync timestamp."""
+    return await get_all_climate_teleconnections()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 15. Monsoon False-Onset & Multi-Horizon 7–30 Day Probabilistic Outlook
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/monsoon/false-onset")
+async def monsoon_false_onset(
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    state: Optional[str] = Query(None),
+    district: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
+    village: Optional[str] = Query(None),
+):
+    """Hero Feature: Evaluates false-onset risk, expected dry spell window, and actionable sowing advice."""
+    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
+    w = await fetch_current_weather(rlat, rlon, label)
+    pred = predict_rainfall(w)
+    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
+    return {
+        "location_label": label,
+        "latitude": rlat,
+        "longitude": rlon,
+        "false_onset": monsoon["false_onset_engine"],
+        "break_watch": monsoon["break_watch_engine"],
+        "heavy_rain": monsoon["heavy_rain_engine"],
+        "onset_engine": monsoon["onset_engine"],
+        "current_phase": monsoon["phase"],
+        "current_phase_hi": monsoon["phase_hi"],
+    }
+
+
+@router.get("/forecast/monsoon-outlook")
+async def monsoon_outlook(
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    state: Optional[str] = Query(None),
+    district: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
+    village: Optional[str] = Query(None),
+):
+    """Returns 7, 14, 21, and 30-day probabilistic forecasts with quantified uncertainty intervals."""
+    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
+    w = await fetch_current_weather(rlat, rlon, label)
+    pred = predict_rainfall(w)
+    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
+    outlook = compute_multi_horizon_outlook(w, monsoon)
+    outlook["location_label"] = label
+    outlook["latitude"] = rlat
+    outlook["longitude"] = rlon
+    return outlook
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 16. Crop + Crop Stage Contingency Advisory
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/crops/catalog")
+async def crops_catalog():
+    """Returns catalog of supported major crops and agricultural stages."""
+    return {
+        "crops": CROP_CATALOG,
+        "stages": CROP_STAGES,
+    }
+
+
+@router.post("/advisory/crop-stage")
+async def crop_stage_advisory(
+    crop_id: str = Query("rice", description="Crop identifier, e.g. rice, cotton, soybean, wheat"),
+    stage_id: str = Query("sowing", description="Stage identifier, e.g. land_prep, sowing, vegetative, flowering, grain_fill, harvesting"),
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    state: Optional[str] = Query(None),
+    district: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
+    village: Optional[str] = Query(None),
+):
+    """Converts weather and monsoon risk forecast into crop + stage specific actionable decisions (SOW, WAIT, IRRIGATE, DRAIN, MONITOR)."""
+    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
+    w = await fetch_current_weather(rlat, rlon, label)
+    pred = predict_rainfall(w)
+    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
+    advisory = compute_crop_stage_advisory(crop_id, stage_id, w, monsoon)
+    advisory["location_label"] = label
+    return advisory
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 17. 10-Year ML Backtesting & Baseline vs Hybrid Model Validation
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/model/10yr-validation")
+async def model_10yr_validation():
+    """Returns real empirical validation metrics on 100% unseen test data (Year 2024), Baseline vs Hybrid comparison, and Observed vs Predicted charts."""
+    return evaluate_10yr_models()
+

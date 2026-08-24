@@ -62,14 +62,16 @@ function AppInner() {
   const ActiveComponent = TABS.find(t => t.id === activeTab)?.Component || OverviewTab;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at top, #0d1225 0%, #04060e 100%)', color: '#f0f4ff' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* Navbar */}
       <nav className="navbar">
         <div className="navbar-brand">
-          <span className="logo">🌧️</span>
-          <span>{tr ? tr('app_name') : 'VarshaNetra'}</span>
+          <span className="logo">🌾</span>
+          <span>{tr ? tr('app_name') : 'VarshaNetra AI'}</span>
         </div>
-        <span className="navbar-tagline">{tr ? tr('app_tagline') : 'AI Hydro-Meteorological Platform'}</span>
+        <span className="navbar-tagline">
+          {lang === 'hi' ? 'अति-स्थानीय मानसूनी निर्णय समर्थन प्रणाली' : 'Hyperlocal Monsoon Decision-Support System'}
+        </span>
         <div className="navbar-spacer" />
         <div className="navbar-status">
           <span className="status-dot" />
