@@ -589,18 +589,34 @@ async def notification_log(limit: int = Query(50, ge=1, le=200), db: Session = D
 # 10. Chatbot — grounded on live data
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.post("/chat")
+@router.api_route("/chat", methods=["GET", "POST"])
+@router.api_route("/chat/message", methods=["GET", "POST"])
 async def chatbot(
-    message: str,
-    language: str = "en",
+    message: Optional[str] = Query(None),
+    language: Optional[str] = Query(None),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     state: Optional[str] = Query(None),
     district: Optional[str] = Query(None),
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
+    payload: Optional[Dict[str, Any]] = Body(None),
 ):
-    # Resolve location if any coordinates provided
+    # Extract from body if JSON sent
+    if payload:
+        message = payload.get("message") or message
+        language = payload.get("language") or payload.get("lang") or language
+        lat = payload.get("lat") if lat is None else lat
+        lon = payload.get("lon") if lon is None else lon
+        state = payload.get("state") or state
+        district = payload.get("district") or district
+        city = payload.get("city") or city
+        village = payload.get("village") or village
+
+    target_msg = message or "What is the current weather?"
+    target_lang = language or "en"
+
+    # Resolve location if coordinates provided
     w, monsoon_data, crops_data, pred_data = None, None, None, None
     try:
         rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
@@ -611,7 +627,7 @@ async def chatbot(
     except Exception:
         pass
 
-    return generate_chat_response(message, language, w, monsoon_data, crops_data, pred_data)
+    return generate_chat_response(target_msg, target_lang, w, monsoon_data, crops_data, pred_data)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -874,23 +890,38 @@ async def crops_catalog():
     }
 
 
-@router.post("/advisory/crop-stage")
+@router.api_route("/advisory/crop-stage", methods=["GET", "POST"])
 async def crop_stage_advisory(
-    crop_id: str = Query("rice", description="Crop identifier, e.g. rice, cotton, soybean, wheat"),
-    stage_id: str = Query("sowing", description="Stage identifier, e.g. land_prep, sowing, vegetative, flowering, grain_fill, harvesting"),
+    crop_id: Optional[str] = Query(None),
+    stage_id: Optional[str] = Query(None),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     state: Optional[str] = Query(None),
     district: Optional[str] = Query(None),
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
+    payload: Optional[Dict[str, Any]] = Body(None),
 ):
     """Converts weather and monsoon risk forecast into crop + stage specific actionable decisions (SOW, WAIT, IRRIGATE, DRAIN, MONITOR)."""
+    # Extract from body if provided
+    if payload:
+        crop_id = payload.get("crop") or payload.get("crop_id") or crop_id
+        stage_id = payload.get("stage") or payload.get("stage_id") or stage_id
+        lat = payload.get("lat") if lat is None else lat
+        lon = payload.get("lon") if lon is None else lon
+        state = payload.get("state") or state
+        district = payload.get("district") or district
+        city = payload.get("city") or city
+        village = payload.get("village") or village
+
+    target_crop = crop_id or "rice"
+    target_stage = stage_id or "sowing"
+
     rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
     w = await fetch_current_weather(rlat, rlon, label)
     pred = predict_rainfall(w)
     monsoon = compute_monsoon_phase(w, pred["probability_pct"])
-    advisory = compute_crop_stage_advisory(crop_id, stage_id, w, monsoon)
+    advisory = compute_crop_stage_advisory(target_crop, target_stage, w, monsoon)
     advisory["location_label"] = label
     return advisory
 
