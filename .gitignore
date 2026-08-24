@@ -7,9 +7,6 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Build artifacts (keeping frontend/dist tracked for direct Vercel static deployment)
-build/
-
 # Local databases & logs
 *.db
 *.sqlite
