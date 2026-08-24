@@ -1,0 +1,11 @@
+{
+  "name": "varshanetra-ai",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix frontend"
+  },
+  "dependencies": {
+    "varshanetra-frontend": "file:frontend"
+  }
+}
