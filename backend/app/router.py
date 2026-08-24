@@ -2,33 +2,53 @@
 All API routes — weather, prediction, monsoon, crops, risk, alerts,
 chatbot, simulation, notifications, emergency.
 """
-from __future__ import annotations
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from __future__ import annotations
+
+from datetime import datetime, timezone, date, timedelta
+from typing import Any, Dict, Optional
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Body,
+    Request,
+)
 from sqlalchemy.orm import Session
 
 from .core.database import get_db
 from .core.config import settings
 from .weather import fetch_current_weather, fetch_forecast, geocode_place
+
 from .services import (
-    predict_rainfall, compute_monsoon_phase, compute_crop_suitability,
-    compute_risk, generate_chat_response, send_notification, run_simulation,
-    load_ml_model, compute_multi_horizon_outlook, compute_crop_stage_advisory,
-    CROP_CATALOG, CROP_STAGES,
+    predict_rainfall,
+    compute_monsoon_phase,
+    compute_crop_suitability,
+    compute_risk,
+    generate_chat_response,
+    send_notification,
+    run_simulation,
+    load_ml_model,
+    compute_multi_horizon_outlook,
+    compute_crop_stage_advisory,
+    CROP_CATALOG,
+    CROP_STAGES,
 )
-from .climate import get_all_climate_teleconnections, fetch_noaa_oni, fetch_noaa_dmi, fetch_noaa_mjo
+
+from .climate import get_all_climate_teleconnections
 from .ml_engine import evaluate_10yr_models
 from . import models
 from .schemas import NotifyRequest
 
+
 router = APIRouter()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 0. Helper — resolve location from GPS or manual input to lat/lon
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 0. HELPER — LOCATION RESOLUTION
+# =============================================================================
 
 async def _resolve_latlon(
     lat: Optional[float] = None,
@@ -38,43 +58,75 @@ async def _resolve_latlon(
     city: Optional[str] = None,
     village: Optional[str] = None,
 ) -> tuple[float, float, str]:
-    """
-    Both GPS (lat/lon) and manual (state/district/city/village) inputs
-    resolve to the same (lat, lon, label) tuple before hitting any API.
-    """
-    label_parts = []
 
     if lat is not None and lon is not None:
-        # GPS mode
-        label = " ".join(filter(None, [village, city, district, state])) or f"{lat:.4f},{lon:.4f}"
+        label = ", ".join(
+            [
+                value
+                for value in [village, city, district, state]
+                if value
+            ]
+        )
+
+        if not label:
+            label = f"{lat:.4f}, {lon:.4f}"
+
         return lat, lon, label
 
-    # Manual cascade mode — use Open-Meteo Geocoding API
     search_name = village or city or district or state
+
     if not search_name:
-        raise HTTPException(400, "Provide lat/lon or at least one of: village, city, district, state")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Provide latitude/longitude or at least one location "
+                "field: village, city, district, or state."
+            ),
+        )
 
-    result = await geocode_place(search_name, state=state or "", district=district or "")
+    result = await geocode_place(
+        search_name,
+        state=state or "",
+        district=district or "",
+    )
+
     if not result:
-        raise HTTPException(404, f"Location '{search_name}' not found. Try a more specific name.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Location '{search_name}' not found.",
+        )
 
-    label_parts = [p for p in [village, city, district, state] if p]
-    label = ", ".join(label_parts)
-    return result["latitude"], result["longitude"], label
+    label_parts = [
+        part
+        for part in [village, city, district, state]
+        if part
+    ]
+
+    label = ", ".join(label_parts) or search_name
+
+    return (
+        result["latitude"],
+        result["longitude"],
+        label,
+    )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. Health
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 1. HEALTH
+# =============================================================================
 
 @router.get("/health")
 async def health():
-    return {"status": "HEALTHY", "service": settings.PROJECT_NAME, "version": settings.VERSION}
+    return {
+        "status": "HEALTHY",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+    }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. Location — geocoding via Open-Meteo
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 2. LOCATION
+# =============================================================================
 
 @router.get("/location/resolve")
 async def resolve_location(
@@ -85,42 +137,69 @@ async def resolve_location(
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
     return {
-        "latitude": rlat, "longitude": rlon,
+        "latitude": rlat,
+        "longitude": rlon,
         "display_name": label,
-        "state": state or "", "district": district or "",
-        "city": city or "", "village": village or "",
+        "state": state or "",
+        "district": district or "",
+        "city": city or "",
+        "village": village or "",
     }
 
 
 @router.get("/location/search")
-async def search_location(q: str = Query(..., description="City, village or district name")):
-    """Autocomplete — returns top 5 matching places from Open-Meteo geocoding."""
+async def search_location(
+    q: str = Query(
+        ...,
+        description="City, village or district name",
+    )
+):
     import httpx
+
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(
+        response = await client.get(
             settings.OPEN_METEO_GEO_URL,
-            params={"name": f"{q} India", "count": 5, "language": "en", "format": "json"}
+            params={
+                "name": f"{q} India",
+                "count": 5,
+                "language": "en",
+                "format": "json",
+            },
         )
-        data = r.json()
+
+        response.raise_for_status()
+        data = response.json()
+
     results = []
+
     for item in data.get("results", []):
-        results.append({
-            "name": item.get("name", ""),
-            "district": item.get("admin2", ""),
-            "state": item.get("admin1", ""),
-            "country": item.get("country", "India"),
-            "latitude": item["latitude"],
-            "longitude": item["longitude"],
-        })
+        results.append(
+            {
+                "name": item.get("name", ""),
+                "district": item.get("admin2", ""),
+                "state": item.get("admin1", ""),
+                "country": item.get("country", "India"),
+                "latitude": item.get("latitude"),
+                "longitude": item.get("longitude"),
+            }
+        )
+
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. Weather — live current + 7-day forecast
-#    Works for BOTH GPS and manual location inputs
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 3. WEATHER
+# =============================================================================
 
 @router.get("/weather/current")
 async def current_weather(
@@ -132,25 +211,47 @@ async def current_weather(
     village: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
 
-    # Persist observation
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
     try:
-        obs = models.WeatherObservation(
-            latitude=rlat, longitude=rlon, location_label=label,
-            temperature_c=w.get("temperature_c"), humidity_pct=w.get("humidity_pct"),
-            precipitation_mm=w.get("precipitation_mm"), rain_mm=w.get("rain_mm"),
-            cloud_cover_pct=w.get("cloud_cover_pct"), pressure_msl_hpa=w.get("pressure_msl_hpa"),
-            wind_speed_kmh=w.get("wind_speed_kmh"), wind_direction_deg=w.get("wind_direction_deg"),
-            soil_moisture_0_1cm=w.get("soil_moisture_0_1cm"), weather_code=w.get("weather_code"),
+        observation = models.WeatherObservation(
+            latitude=rlat,
+            longitude=rlon,
+            location_label=label,
+            temperature_c=weather.get("temperature_c"),
+            humidity_pct=weather.get("humidity_pct"),
+            precipitation_mm=weather.get("precipitation_mm"),
+            rain_mm=weather.get("rain_mm"),
+            cloud_cover_pct=weather.get("cloud_cover_pct"),
+            pressure_msl_hpa=weather.get("pressure_msl_hpa"),
+            wind_speed_kmh=weather.get("wind_speed_kmh"),
+            wind_direction_deg=weather.get("wind_direction_deg"),
+            soil_moisture_0_1cm=weather.get(
+                "soil_moisture_0_1cm"
+            ),
+            weather_code=weather.get("weather_code"),
         )
-        db.add(obs)
+
+        db.add(observation)
         db.commit()
+
     except Exception:
         db.rollback()
 
-    return w
+    return weather
 
 
 @router.get("/weather/forecast")
@@ -163,13 +264,26 @@ async def weather_forecast(
     village: Optional[str] = Query(None),
     days: int = Query(7, ge=1, le=35),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    return await fetch_forecast(rlat, rlon, days, label)
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    return await fetch_forecast(
+        rlat,
+        rlon,
+        days,
+        label,
+    )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 4. ML Prediction + SHAP XAI
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 4. RAINFALL PREDICTION
+# =============================================================================
 
 @router.get("/prediction/rainfall")
 async def rainfall_prediction(
@@ -181,39 +295,64 @@ async def rainfall_prediction(
     village: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
 
-    # Persist
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    monsoon = compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
+
     try:
-        p = models.Prediction(
-            latitude=rlat, longitude=rlon, location_label=label,
-            model_version=pred["model_version"],
-            probability_pct=pred["probability_pct"],
-            expected_mm=pred["expected_mm"],
-            category=pred["category"],
-            confidence_pct=pred["confidence_pct"],
-            shap_values=pred["shap_features"],
-            feature_values={f["feature"]: f["value"] for f in pred["shap_features"]},
-            hourly_trend=pred["hourly_trend"],
+        prediction_record = models.Prediction(
+            latitude=rlat,
+            longitude=rlon,
+            location_label=label,
+            model_version=prediction["model_version"],
+            probability_pct=prediction["probability_pct"],
+            expected_mm=prediction["expected_mm"],
+            category=prediction["category"],
+            confidence_pct=prediction["confidence_pct"],
+            shap_values=prediction["shap_features"],
+            feature_values={
+                feature["feature"]: feature["value"]
+                for feature in prediction["shap_features"]
+            },
+            hourly_trend=prediction["hourly_trend"],
             monsoon_phase=monsoon["phase"],
         )
-        db.add(p)
+
+        db.add(prediction_record)
         db.commit()
-        db.refresh(p)
-        pred["id"] = p.id
+        db.refresh(prediction_record)
+
+        prediction["id"] = prediction_record.id
+
     except Exception:
         db.rollback()
-        pred["id"] = None
+        prediction["id"] = None
 
-    pred["latitude"] = rlat
-    pred["longitude"] = rlon
-    pred["location_label"] = label
-    pred["monsoon_phase"] = monsoon["phase"]
-    pred["monsoon_phase_hi"] = monsoon["phase_hi"]
-    return pred
+    prediction["latitude"] = rlat
+    prediction["longitude"] = rlon
+    prediction["location_label"] = label
+    prediction["monsoon_phase"] = monsoon["phase"]
+    prediction["monsoon_phase_hi"] = monsoon["phase_hi"]
+
+    return prediction
 
 
 @router.get("/prediction/explain")
@@ -225,34 +364,66 @@ async def explain_prediction(
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
 ):
-    """Full XAI breakdown for the current prediction at this location."""
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
     return {
         "location_label": label,
-        "probability_pct": pred["probability_pct"],
-        "xai_narrative_en": pred["xai_narrative_en"],
-        "xai_narrative_hi": pred["xai_narrative_hi"],
-        "shap_features": pred["shap_features"],
-        "model_version": pred["model_version"],
+        "probability_pct": prediction["probability_pct"],
+        "xai_narrative_en": prediction[
+            "xai_narrative_en"
+        ],
+        "xai_narrative_hi": prediction[
+            "xai_narrative_hi"
+        ],
+        "shap_features": prediction["shap_features"],
+        "model_version": prediction["model_version"],
     }
 
 
 @router.get("/prediction/history")
-async def prediction_history(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
-    records = db.query(models.Prediction).order_by(models.Prediction.created_at.desc()).limit(limit).all()
+async def prediction_history(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.Prediction)
+        .order_by(models.Prediction.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
     return [
-        {"id": r.id, "location": r.location_label, "probability_pct": r.probability_pct,
-         "expected_mm": r.expected_mm, "category": r.category,
-         "model_version": r.model_version, "created_at": str(r.created_at)}
-        for r in records
+        {
+            "id": record.id,
+            "location": record.location_label,
+            "probability_pct": record.probability_pct,
+            "expected_mm": record.expected_mm,
+            "category": record.category,
+            "model_version": record.model_version,
+            "created_at": str(record.created_at),
+        }
+        for record in records
     ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. Monsoon Phase Engine
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 5. MONSOON
+# =============================================================================
 
 @router.get("/monsoon/phase")
 async def monsoon_phase(
@@ -263,15 +434,32 @@ async def monsoon_phase(
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    return compute_monsoon_phase(w, pred["probability_pct"])
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    return compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 6. Crop Advisor (Season Control Center)
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 6. CROP ADVISOR
+# =============================================================================
 
 @router.get("/crops/advisor")
 async def crop_advisor(
@@ -281,43 +469,83 @@ async def crop_advisor(
     district: Optional[str] = Query(None),
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
-    season: Optional[str] = Query(None, description="KHARIF / RABI / ZAID / ALL"),
+    season: Optional[str] = Query(None),
     top_n: int = Query(5, ge=1, le=15),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    monsoon = compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
 
     season_filter = (season or "ALL").upper()
-    crops = compute_crop_suitability(w, monsoon["phase"], season_filter)
+
+    crops = compute_crop_suitability(
+        weather,
+        monsoon["phase"],
+        season_filter,
+    )
 
     return {
-        "latitude": rlat, "longitude": rlon, "location_label": label,
+        "latitude": rlat,
+        "longitude": rlon,
+        "location_label": label,
         "monsoon_phase": monsoon["phase"],
         "monsoon_phase_hi": monsoon["phase_hi"],
         "season_filter": season_filter,
         "current_conditions": {
-            "temperature_c": w.get("temperature_c"),
-            "humidity_pct": w.get("humidity_pct"),
-            "precipitation_mm": w.get("precipitation_mm"),
-            "soil_moisture": w.get("soil_moisture_0_1cm"),
+            "temperature_c": weather.get(
+                "temperature_c"
+            ),
+            "humidity_pct": weather.get(
+                "humidity_pct"
+            ),
+            "precipitation_mm": weather.get(
+                "precipitation_mm"
+            ),
+            "soil_moisture": weather.get(
+                "soil_moisture_0_1cm"
+            ),
         },
         "top_crops": crops[:top_n],
     }
 
 
 @router.get("/crops/all")
-async def all_crops(season: Optional[str] = Query(None)):
+async def all_crops(
+    season: Optional[str] = Query(None),
+):
     from .services import CROP_DB
+
     if season:
-        return [c for c in CROP_DB if c["season"] == season.upper()]
+        return [
+            crop
+            for crop in CROP_DB
+            if crop["season"] == season.upper()
+        ]
+
     return CROP_DB
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 7. Risk Map
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 7. RISK SUMMARY
+# =============================================================================
 
 @router.get("/risk/summary")
 async def risk_summary(
@@ -328,20 +556,44 @@ async def risk_summary(
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
 ):
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
-    risk = compute_risk(w, pred["probability_pct"], monsoon["phase"])
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    monsoon = compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
+
+    risk = compute_risk(
+        weather,
+        prediction["probability_pct"],
+        monsoon["phase"],
+    )
+
     risk["latitude"] = rlat
     risk["longitude"] = rlon
     risk["location_label"] = label
+
     return risk
 
 
 @router.get("/weather/showcase")
 async def weather_showcase():
-    """Returns real live weather snapshots for 4-5 diverse Indian cities and villages in parallel."""
+    """Returns real live weather snapshots for diverse Indian locations in parallel."""
     showcase_locations = [
         {"city": "Lucknow", "village": "Sarojini Nagar", "district": "Lucknow", "state": "Uttar Pradesh", "lat": 26.8467, "lon": 80.9462, "tag": "Active Crop Zone"},
         {"city": "Pune", "village": "Haveli", "district": "Pune", "state": "Maharashtra", "lat": 18.5204, "lon": 73.8567, "tag": "Western Ghats"},
@@ -349,7 +601,7 @@ async def weather_showcase():
         {"city": "Patna", "village": "Bihta", "district": "Patna", "state": "Bihar", "lat": 25.5941, "lon": 85.1376, "tag": "Flood Watch"},
         {"city": "Ahmedabad", "village": "Sanand", "district": "Ahmedabad", "state": "Gujarat", "lat": 23.0225, "lon": 72.5714, "tag": "Semi-Arid Zone"},
     ]
-    
+
     async def _fetch_one(loc):
         try:
             w = await fetch_current_weather(loc["lat"], loc["lon"], f"{loc['village']}, {loc['city']}")
@@ -398,7 +650,6 @@ async def risk_geojson(
 
     features = []
 
-    # 1. Real Indian macro risk regions
     REAL_REGIONS = [
         {"name": "Upper Gangetic Basin (Lucknow - Kanpur)", "lat": 26.85, "lon": 80.95, "radius": 0.45, "level": "HIGH", "hazard": "Heavy Rain & Waterlogging", "score": 78, "color": "#ef4444"},
         {"name": "Varanasi - Chandauli Agri Corridor", "lat": 25.32, "lon": 83.01, "radius": 0.35, "level": "MODERATE", "hazard": "Moderate Soil Saturation", "score": 52, "color": "#fbbf24"},
@@ -432,7 +683,6 @@ async def risk_geojson(
             }
         })
 
-    # 2. Add dynamic local polygon around current location
     for zone in risk["zones"]:
         score = zone["score"]
         color = "#10b981" if score < 25 else "#38bdf8" if score < 50 else "#f59e0b" if score < 75 else "#ef4444"
@@ -461,9 +711,9 @@ async def risk_geojson(
     return {"type": "FeatureCollection", "features": features}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 8. Alerts & Emergency
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 8. ALERTS
+# =============================================================================
 
 @router.get("/alerts")
 async def get_alerts(
@@ -471,19 +721,43 @@ async def get_alerts(
     district: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    q = db.query(models.Alert).filter(models.Alert.status == "ACTIVE")
+    query = (
+        db.query(models.Alert)
+        .filter(models.Alert.status == "ACTIVE")
+    )
+
     if state:
-        q = q.filter(models.Alert.state == state)
+        query = query.filter(
+            models.Alert.state == state
+        )
+
     if district:
-        q = q.filter(models.Alert.district == district)
-    alerts = q.order_by(models.Alert.created_at.desc()).limit(20).all()
+        query = query.filter(
+            models.Alert.district == district
+        )
+
+    alerts = (
+        query
+        .order_by(models.Alert.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
     return [
-        {"id": a.id, "alert_type": a.alert_type, "severity": a.severity,
-         "headline_en": a.headline_en, "headline_hi": a.headline_hi,
-         "message_en": a.message_en, "message_hi": a.message_hi,
-         "state": a.state, "district": a.district,
-         "status": a.status, "created_at": str(a.created_at)}
-        for a in alerts
+        {
+            "id": alert.id,
+            "alert_type": alert.alert_type,
+            "severity": alert.severity,
+            "headline_en": alert.headline_en,
+            "headline_hi": alert.headline_hi,
+            "message_en": alert.message_en,
+            "message_hi": alert.message_hi,
+            "state": alert.state,
+            "district": alert.district,
+            "status": alert.status,
+            "created_at": str(alert.created_at),
+        }
+        for alert in alerts
     ]
 
 
@@ -494,14 +768,28 @@ async def acknowledge_alert(
     action_taken: str,
     db: Session = Depends(get_db),
 ):
-    alert = db.query(models.Alert).filter(models.Alert.id == alert_id).first()
+    alert = (
+        db.query(models.Alert)
+        .filter(models.Alert.id == alert_id)
+        .first()
+    )
+
     if not alert:
-        raise HTTPException(404, "Alert not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found",
+        )
+
     alert.status = "ACKNOWLEDGED"
     alert.acknowledged_by = acknowledged_by
     alert.acknowledged_at = datetime.now(timezone.utc)
+
     db.commit()
-    return {"message": "Alert acknowledged", "id": alert_id}
+
+    return {
+        "message": "Alert acknowledged",
+        "id": alert_id,
+    }
 
 
 @router.get("/emergency/active")
@@ -538,99 +826,206 @@ async def resolve_emergency(
     return {"message": "Emergency updated", "id": event_id, "status": status_update}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 9. Notifications — SMS / Email / WhatsApp
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 9. NOTIFICATIONS — REAL EMAIL / SMS / WHATSAPP
+# =============================================================================
 
-@router.api_route("/notify/send", methods=["GET", "POST"])
-@router.api_route("/notifications/send", methods=["GET", "POST"])
-@router.api_route("/alerts/send", methods=["GET", "POST"])
+@router.post("/notify/send")
+@router.post("/notifications/send")
+@router.post("/alerts/send")
 async def notify(
-    request: Request,
-    req: Optional[NotifyRequest] = None,
-    channel: Optional[str] = Query(None),
-    recipient: Optional[str] = Query(None),
-    message: Optional[str] = Query(None),
-    subject: Optional[str] = Query(None),
-    alert_type: Optional[str] = Query(None),
+    req: NotifyRequest,
     db: Session = Depends(get_db),
 ):
-    # Parse body if JSON was sent directly
-    ch = "SMS"
-    recips = ["+91 95556 81533"]
-    subj = "VarshaNetra Alert"
-    msg = "Emergency Agro-Alert Broadcast"
-    atype = "GENERAL"
+    """
+    Sends notification using the configured provider.
 
-    if req:
-        ch = req.channel or ch
-        recips = req.recipients or recips
-        subj = req.subject or subj
-        msg = req.message or msg
-        atype = req.alert_type or atype
-    else:
-        try:
-            body = await request.json()
-            if body and isinstance(body, dict):
-                ch = body.get("channel", ch)
-                r = body.get("recipients", body.get("recipient", recips))
-                recips = r if isinstance(r, list) else [r]
-                subj = body.get("subject", subj)
-                msg = body.get("message", msg)
-                atype = body.get("alert_type", atype)
-        except Exception:
-            pass
+    IMPORTANT:
+    send_notification() must perform the actual SMTP/Twilio/API call.
+    This route does not fake a successful delivery.
+    """
 
-    if channel: ch = channel
-    if recipient: recips = [recipient]
-    if message: msg = message
-    if subject: subj = subject
-    if alert_type: atype = alert_type
+    channel = (req.channel or "SMS").upper()
 
-    result = send_notification(
-        ch.upper(),
-        recips,
-        subj or "",
-        msg,
-        atype or "GENERAL"
-    )
+    recipients = [
+        str(recipient).strip()
+        for recipient in (req.recipients or [])
+        if str(recipient).strip()
+    ]
 
-    # Log notification in DB
+    message = (req.message or "").strip()
+
+    subject = (
+        req.subject
+        or "⚠️ VarshaNetra Emergency Alert"
+    ).strip()
+
+    alert_type = (
+        req.alert_type
+        or "GENERAL"
+    ).upper()
+
+    valid_channels = {
+        "SMS",
+        "EMAIL",
+        "WHATSAPP",
+    }
+
+    if channel not in valid_channels:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid channel '{channel}'. "
+                "Allowed channels: SMS, EMAIL, WHATSAPP"
+            ),
+        )
+
+    if not recipients:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one recipient is required.",
+        )
+
+    if not message:
+        raise HTTPException(
+            status_code=400,
+            detail="Message cannot be empty.",
+        )
+
+    # ---------------------------------------------------------
+    # SEND REAL NOTIFICATION
+    # ---------------------------------------------------------
+
     try:
-        for r in recips:
-            n = models.Notification(
-                channel=ch.upper(),
-                recipient=str(r),
-                subject=subj or "",
-                message=msg[:500],
-                alert_type=atype or "GENERAL",
-                status=result.get("status", "DELIVERED"),
+        result = send_notification(
+            channel,
+            recipients,
+            subject,
+            message,
+            alert_type,
+        )
+
+    except Exception as exc:
+
+        # Save failed notification in database
+        try:
+            for recipient in recipients:
+                db.add(
+                    models.Notification(
+                        channel=channel,
+                        recipient=recipient,
+                        subject=subject,
+                        message=message[:500],
+                        alert_type=alert_type,
+                        status="FAILED",
+                    )
+                )
+
+            db.commit()
+
+        except Exception:
+            db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Notification delivery failed: {str(exc)}"
+            ),
+        )
+
+    # ---------------------------------------------------------
+    # DETERMINE REAL STATUS
+    # ---------------------------------------------------------
+
+    status = str(
+        result.get("status", "FAILED")
+    ).upper()
+
+    # ---------------------------------------------------------
+    # SAVE RESULT
+    # ---------------------------------------------------------
+
+    try:
+        for recipient in recipients:
+
+            db.add(
+                models.Notification(
+                    channel=channel,
+                    recipient=recipient,
+                    subject=subject,
+                    message=message[:500],
+                    alert_type=alert_type,
+                    status=status,
+                )
             )
-            db.add(n)
+
         db.commit()
+
     except Exception:
         db.rollback()
 
-    return result
+    return {
+        "status": status,
+        "channel": channel,
+        "recipients": recipients,
+        "message": result.get(
+            "message",
+            "Notification processed",
+        ),
+        "provider": result.get(
+            "provider",
+            "unknown",
+        ),
+        "sent_at": result.get(
+            "sent_at",
+            datetime.now(timezone.utc).isoformat(),
+        ),
+        "details": result,
+    }
 
+
+# =============================================================================
+# 10. NOTIFICATION LOG
+# =============================================================================
 
 @router.get("/notify/log")
-async def notification_log(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db)):
-    records = db.query(models.Notification).order_by(models.Notification.sent_at.desc()).limit(limit).all()
+async def notification_log(
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.Notification)
+        .order_by(models.Notification.sent_at.desc())
+        .limit(limit)
+        .all()
+    )
+
     return [
-        {"id": n.id, "channel": n.channel, "recipient": n.recipient,
-         "subject": n.subject, "alert_type": n.alert_type,
-         "status": n.status, "sent_at": str(n.sent_at)}
-        for n in records
+        {
+            "id": record.id,
+            "channel": record.channel,
+            "recipient": record.recipient,
+            "subject": record.subject,
+            "alert_type": record.alert_type,
+            "status": record.status,
+            "sent_at": str(record.sent_at),
+        }
+        for record in records
     ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 10. Chatbot — grounded on live data
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 11. CHATBOT
+# =============================================================================
 
-@router.api_route("/chat", methods=["GET", "POST"])
-@router.api_route("/chat/message", methods=["GET", "POST"])
+@router.api_route(
+    "/chat",
+    methods=["GET", "POST"],
+)
+@router.api_route(
+    "/chat/message",
+    methods=["GET", "POST"],
+)
 async def chatbot(
     message: Optional[str] = Query(None),
     language: Optional[str] = Query(None),
@@ -642,37 +1037,87 @@ async def chatbot(
     village: Optional[str] = Query(None),
     payload: Optional[Dict[str, Any]] = Body(None),
 ):
-    # Extract from body if JSON sent
     if payload:
-        message = payload.get("message") or message
-        language = payload.get("language") or payload.get("lang") or language
-        lat = payload.get("lat") if lat is None else lat
-        lon = payload.get("lon") if lon is None else lon
+        message = (
+            payload.get("message")
+            or message
+        )
+
+        language = (
+            payload.get("language")
+            or payload.get("lang")
+            or language
+        )
+
+        if lat is None:
+            lat = payload.get("lat")
+
+        if lon is None:
+            lon = payload.get("lon")
+
         state = payload.get("state") or state
         district = payload.get("district") or district
         city = payload.get("city") or city
         village = payload.get("village") or village
 
-    target_msg = message or "What is the current weather?"
-    target_lang = language or "en"
+    target_message = (
+        message
+        or "What is the current weather?"
+    )
 
-    # Resolve location if coordinates provided
-    w, monsoon_data, crops_data, pred_data = None, None, None, None
+    target_language = language or "en"
+
+    weather = None
+    monsoon_data = None
+    crops_data = None
+    prediction_data = None
+
     try:
-        rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-        w = await fetch_current_weather(rlat, rlon, label)
-        pred_data = predict_rainfall(w)
-        monsoon_data = compute_monsoon_phase(w, pred_data["probability_pct"])
-        crops_data = compute_crop_suitability(w, monsoon_data["phase"])[:5]
+        rlat, rlon, label = await _resolve_latlon(
+            lat,
+            lon,
+            state,
+            district,
+            city,
+            village,
+        )
+
+        weather = await fetch_current_weather(
+            rlat,
+            rlon,
+            label,
+        )
+
+        prediction_data = predict_rainfall(
+            weather
+        )
+
+        monsoon_data = compute_monsoon_phase(
+            weather,
+            prediction_data["probability_pct"],
+        )
+
+        crops_data = compute_crop_suitability(
+            weather,
+            monsoon_data["phase"],
+        )[:5]
+
     except Exception:
         pass
 
-    return generate_chat_response(target_msg, target_lang, w, monsoon_data, crops_data, pred_data)
+    return generate_chat_response(
+        target_message,
+        target_language,
+        weather,
+        monsoon_data,
+        crops_data,
+        prediction_data,
+    )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 11. Simulation — What-If (Analytics Lab)
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 12. SIMULATION
+# =============================================================================
 
 @router.post("/simulation/what-if")
 async def what_if_simulation(
@@ -684,12 +1129,16 @@ async def what_if_simulation(
     temperature_change_c: float = Query(0.0),
     duration_days: int = Query(14),
 ):
-    return run_simulation(lat, lon, crop_name, rainfall_change_pct, dry_days, temperature_change_c, duration_days)
+    return run_simulation(
+        lat,
+        lon,
+        crop_name,
+        rainfall_change_pct,
+        dry_days,
+        temperature_change_c,
+        duration_days,
+    )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 12. Analytics — Historical (Monsoon Analytics Lab)
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/analytics/historical")
 async def historical_analytics(
@@ -702,7 +1151,6 @@ async def historical_analytics(
 ):
     rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
 
-    # Try to pull from Open-Meteo archive for last 30 days
     import httpx
     from datetime import date, timedelta
     today = date.today()
@@ -729,7 +1177,7 @@ async def historical_analytics(
 
         total_rain = sum(r or 0 for r in rains)
         dry_spells = sum(1 for r in rains if (r or 0) < 1.0)
-        normal_30d = 150.0  # approximate normal for most Indian districts
+        normal_30d = 150.0
 
         trend = [
             {
@@ -749,7 +1197,7 @@ async def historical_analytics(
             "dry_spell_days": dry_spells,
             "trend": trend,
         }
-    except Exception as e:
+    except Exception:
         import math, random
         synthetic_trend = []
         total_r = 0.0
@@ -791,7 +1239,6 @@ async def model_performance(db: Session = Depends(get_db)):
         cat: sum(1 for p in preds if p.category == cat)
         for cat in ["NO_RAIN", "TRACE", "LIGHT", "MODERATE", "HEAVY", "VERY_HEAVY"]
     }
-    # Provide realistic baseline evaluation benchmarks
     if total_db_preds == 0:
         cat_dist = {
             "NO_RAIN": 14,
@@ -822,52 +1269,84 @@ async def model_performance(db: Session = Depends(get_db)):
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 13. System Control
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 13. SYSTEM STATUS
+# =============================================================================
 
 @router.get("/system/status")
-async def system_status(db: Session = Depends(get_db)):
+async def system_status(
+    db: Session = Depends(get_db),
+):
     import os
+
     model_exists = os.path.exists(
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml", "model.pkl")
+        os.path.join(
+            os.path.dirname(
+                os.path.dirname(__file__)
+            ),
+            "ml",
+            "model.pkl",
+        )
     )
+
     return {
         "database": "connected",
         "model_loaded": model_exists,
         "model_version": "lgbm_v1",
         "model_path": "ml/model.pkl",
-        "notification_mode": "MOCK" if settings.NOTIFICATION_MOCK else "LIVE",
+        "notification_mode": (
+            "MOCK"
+            if settings.NOTIFICATION_MOCK
+            else "LIVE"
+        ),
         "open_meteo_api": "connected",
-        "total_predictions": db.query(models.Prediction).count(),
-        "total_alerts": db.query(models.Alert).count(),
-        "total_notifications_sent": db.query(models.Notification).count(),
+        "total_predictions": (
+            db.query(models.Prediction).count()
+        ),
+        "total_alerts": (
+            db.query(models.Alert).count()
+        ),
+        "total_notifications_sent": (
+            db.query(models.Notification).count()
+        ),
     }
 
 
+# =============================================================================
+# 14. USERS
+# =============================================================================
+
 @router.get("/users")
-async def list_users(db: Session = Depends(get_db)):
+async def list_users(
+    db: Session = Depends(get_db),
+):
     users = db.query(models.User).all()
+
     return [
-        {"id": u.id, "email": u.email, "full_name": u.full_name,
-         "role": u.role, "phone": u.phone, "is_active": u.is_active}
-        for u in users
+        {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "phone": user.phone,
+            "is_active": user.is_active,
+        }
+        for user in users
     ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 14. Climate Teleconnections (NOAA ENSO, IOD, MJO)
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 15. CLIMATE TELECONNECTIONS
+# =============================================================================
 
 @router.get("/climate/teleconnections")
 async def climate_teleconnections():
-    """Returns unified live NOAA climate teleconnections (ONI, DMI, MJO) with temporal alignment and last sync timestamp."""
     return await get_all_climate_teleconnections()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 15. Monsoon False-Onset & Multi-Horizon 7–30 Day Probabilistic Outlook
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 16. MONSOON FALSE ONSET
+# =============================================================================
 
 @router.get("/monsoon/false-onset")
 async def monsoon_false_onset(
@@ -878,11 +1357,28 @@ async def monsoon_false_onset(
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
 ):
-    """Hero Feature: Evaluates false-onset risk, expected dry spell window, and actionable sowing advice."""
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    monsoon = compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
+
     return {
         "location_label": label,
         "latitude": rlat,
@@ -896,6 +1392,10 @@ async def monsoon_false_onset(
     }
 
 
+# =============================================================================
+# 17. MONSOON OUTLOOK
+# =============================================================================
+
 @router.get("/forecast/monsoon-outlook")
 async def monsoon_outlook(
     lat: Optional[float] = Query(None),
@@ -905,32 +1405,60 @@ async def monsoon_outlook(
     city: Optional[str] = Query(None),
     village: Optional[str] = Query(None),
 ):
-    """Returns 7, 14, 21, and 30-day probabilistic forecasts with quantified uncertainty intervals."""
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
-    outlook = compute_multi_horizon_outlook(w, monsoon)
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    monsoon = compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
+
+    outlook = compute_multi_horizon_outlook(
+        weather,
+        monsoon,
+    )
+
     outlook["location_label"] = label
     outlook["latitude"] = rlat
     outlook["longitude"] = rlon
+
     return outlook
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 16. Crop + Crop Stage Contingency Advisory
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 18. CROP CATALOG
+# =============================================================================
 
 @router.get("/crops/catalog")
 async def crops_catalog():
-    """Returns catalog of supported major crops and agricultural stages."""
     return {
         "crops": CROP_CATALOG,
         "stages": CROP_STAGES,
     }
 
 
-@router.api_route("/advisory/crop-stage", methods=["GET", "POST"])
+# =============================================================================
+# 19. CROP STAGE ADVISORY
+# =============================================================================
+
+@router.api_route(
+    "/advisory/crop-stage",
+    methods=["GET", "POST"],
+)
 async def crop_stage_advisory(
     crop_id: Optional[str] = Query(None),
     stage_id: Optional[str] = Query(None),
@@ -942,13 +1470,25 @@ async def crop_stage_advisory(
     village: Optional[str] = Query(None),
     payload: Optional[Dict[str, Any]] = Body(None),
 ):
-    """Converts weather and monsoon risk forecast into crop + stage specific actionable decisions (SOW, WAIT, IRRIGATE, DRAIN, MONITOR)."""
-    # Extract from body if provided
     if payload:
-        crop_id = payload.get("crop") or payload.get("crop_id") or crop_id
-        stage_id = payload.get("stage") or payload.get("stage_id") or stage_id
-        lat = payload.get("lat") if lat is None else lat
-        lon = payload.get("lon") if lon is None else lon
+        crop_id = (
+            payload.get("crop")
+            or payload.get("crop_id")
+            or crop_id
+        )
+
+        stage_id = (
+            payload.get("stage")
+            or payload.get("stage_id")
+            or stage_id
+        )
+
+        if lat is None:
+            lat = payload.get("lat")
+
+        if lon is None:
+            lon = payload.get("lon")
+
         state = payload.get("state") or state
         district = payload.get("district") or district
         city = payload.get("city") or city
@@ -957,21 +1497,44 @@ async def crop_stage_advisory(
     target_crop = crop_id or "rice"
     target_stage = stage_id or "sowing"
 
-    rlat, rlon, label = await _resolve_latlon(lat, lon, state, district, city, village)
-    w = await fetch_current_weather(rlat, rlon, label)
-    pred = predict_rainfall(w)
-    monsoon = compute_monsoon_phase(w, pred["probability_pct"])
-    advisory = compute_crop_stage_advisory(target_crop, target_stage, w, monsoon)
+    rlat, rlon, label = await _resolve_latlon(
+        lat,
+        lon,
+        state,
+        district,
+        city,
+        village,
+    )
+
+    weather = await fetch_current_weather(
+        rlat,
+        rlon,
+        label,
+    )
+
+    prediction = predict_rainfall(weather)
+
+    monsoon = compute_monsoon_phase(
+        weather,
+        prediction["probability_pct"],
+    )
+
+    advisory = compute_crop_stage_advisory(
+        target_crop,
+        target_stage,
+        weather,
+        monsoon,
+    )
+
     advisory["location_label"] = label
+
     return advisory
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 17. 10-Year ML Backtesting & Baseline vs Hybrid Model Validation
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# 20. MODEL VALIDATION
+# =============================================================================
 
 @router.get("/model/10yr-validation")
 async def model_10yr_validation():
-    """Returns real empirical validation metrics on 100% unseen test data (Year 2024), Baseline vs Hybrid comparison, and Observed vs Predicted charts."""
     return evaluate_10yr_models()
-

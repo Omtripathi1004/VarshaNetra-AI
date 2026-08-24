@@ -3,8 +3,7 @@ import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
 
 export default function FloatingChatWidget() {
-  const { lang, location, tr } = useApp();
-  const [isOpen, setIsOpen] = useState(false);
+  const { lang, location, tr, isChatOpen: isOpen, setIsChatOpen: setIsOpen } = useApp();
   const [activeCategory, setActiveCategory] = useState('crops');
   const [msgs, setMsgs] = useState([
     {
@@ -111,52 +110,15 @@ export default function FloatingChatWidget() {
 
   return (
     <>
-      {/* Floating Button / Toggle Trigger in Bottom-Right */}
-      <button
-        onClick={() => setIsOpen(o => !o)}
-        aria-label="Toggle AI Chatbot"
-        style={{
-          position: 'fixed',
-          top: '76px',
-          right: '20px',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: isOpen ? '10px 16px' : '12px 18px',
-          background: 'linear-gradient(135deg, #059669 0%, #0284c7 100%)',
-          color: '#fff',
-          border: '1px solid rgba(255,255,255,0.4)',
-          borderRadius: '999px',
-          boxShadow: '0 8px 24px rgba(5, 150, 105, 0.35)',
-          cursor: 'pointer',
-          fontFamily: 'Outfit, sans-serif',
-          fontWeight: 700,
-          fontSize: '0.86rem',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'}
-        onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
-      >
-        <span style={{ fontSize: '1.2rem' }}>{isOpen ? '✕' : '🤖'}</span>
-        <span>{isOpen ? (lang === 'hi' ? 'सलाहकार बंद करें' : 'Close AI') : (lang === 'hi' ? 'VarshaNetra AI सलाह' : 'Ask Crop Advisor')}</span>
-        {!isOpen && (
-          <span style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: '#34d399', boxShadow: '0 0 6px #34d399'
-          }} />
-        )}
-      </button>
-
-      {/* Floating Chat Modal Panel at TOP RIGHT */}
+      {/* Floating Chat Modal Panel at TOP RIGHT, positioning relative to the header */}
       {isOpen && (
         <div
           style={{
             position: 'fixed',
-            top: '128px',
+            top: '76px',
             right: '20px',
-            width: 'min(440px, calc(100vw - 32px))',
-            height: 'min(620px, calc(100vh - 150px))',
+            width: 'min(440px, calc(100vw - 40px))',
+            height: 'min(620px, calc(100vh - 100px))',
             zIndex: 9998,
             background: '#ffffff',
             border: '1px solid #cbd5e1',

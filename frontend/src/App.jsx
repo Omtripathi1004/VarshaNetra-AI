@@ -217,7 +217,7 @@ function LoginModal() {
 }
 
 function AppInner() {
-  const { tr, lang, toggleLang, user, setIsLoginModalOpen } = useApp();
+  const { tr, lang, toggleLang, user, setIsLoginModalOpen, isChatOpen, setIsChatOpen } = useApp();
   const [activeTab, setActiveTab] = useState('overview');
 
   const ActiveComponent = TABS.find(t => t.id === activeTab)?.Component || OverviewTab;
@@ -266,6 +266,37 @@ function AppInner() {
           </div>
           <span style={{ fontSize: '0.7rem', color: '#64748b' }}>▼</span>
         </div>
+
+        {/* Chatbot Header Button */}
+        <button
+          className={`btn-chat-toggle ${isChatOpen ? 'active' : ''}`}
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          title={lang === 'hi' ? 'VarshaNetra AI सलाहकार' : 'AI Crop Advisor'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.35rem 0.85rem',
+            background: isChatOpen ? 'linear-gradient(135deg, #059669 0%, #0284c7 100%)' : '#f1f5f9',
+            color: isChatOpen ? '#ffffff' : '#334155',
+            border: '1px solid #cbd5e1',
+            borderRadius: '999px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            transition: 'all 0.2s',
+          }}
+        >
+          <span style={{ fontSize: '1rem' }}>🤖</span>
+          <span>{lang === 'hi' ? 'AI चैट' : 'AI Chat'}</span>
+          {!isChatOpen && (
+            <span style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              background: '#10b981', boxShadow: '0 0 4px #10b981'
+            }} />
+          )}
+        </button>
 
         <button
           className={`btn-lang ${lang === 'hi' ? 'active' : ''}`}

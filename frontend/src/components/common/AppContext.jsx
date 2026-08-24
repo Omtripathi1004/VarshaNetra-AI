@@ -77,6 +77,8 @@ export function AppProvider({ children }) {
   // tr() shorthand
   const tr = (key) => t(lang, key);
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   return (
     <AppContext.Provider value={{
       lang,
@@ -90,6 +92,8 @@ export function AppProvider({ children }) {
       logout,
       isLoginModalOpen,
       setIsLoginModalOpen,
+      isChatOpen,
+      setIsChatOpen,
       DEMO_ACCOUNTS
     }}>
       {children}
