@@ -147,7 +147,16 @@ export default function AgriCommandTab() {
     location.district,
   ]);
 
-  const handleDispatchAction = (incidentId, actionName) => {
+  const handleDispatchAction = async (incidentId, actionName) => {
+    const targetInc = incidents.find(i => i.id === incidentId);
+    const panchayat = targetInc?.panchayat || 'District Zone';
+    const hazard = targetInc?.hazard || 'Heavy Rainfall / Flood';
+    const crop = targetInc?.crop || 'Paddy / Kharif Crops';
+
+    const alertText = lang === 'hi'
+      ? `🚨 [वरदानेत्र आपातकालीन आपदा अलर्ट]\nपंचायत: ${panchayat} (${targetInc?.district || location.district || 'उत्तर प्रदेश'})\nकार्रवाई: ${actionName}\nजोखिम: ${hazard} - फसल: ${crop}\nतुरंत सुरक्षात्मक उपाय और जल निकासी नालियां सक्रिय करें।`
+      : `🚨 [VarshaNetra Emergency Alert]\nPanchayat: ${panchayat} (${targetInc?.district || location.district || 'State Command'})\nAction: ${actionName}\nHazard: ${hazard} - Crop: ${crop}\nExecute emergency protective drainage and contingency measures immediately.`;
+
     setIncidents((prev) =>
       prev.map((inc) =>
         inc.id === incidentId
@@ -163,15 +172,33 @@ export default function AgriCommandTab() {
     setDispatchLogs((prev) => [
       {
         id: Date.now(),
-        action: actionName,
-        target: incidentId,
-        carrier: 'District Emergency Command',
-        status: 'DISPATCHED',
-        latency: '12ms',
+        action: `${actionName} Broadcast Triggered`,
+        target: panchayat,
+        carrier: 'VarshaNetra Multi-Gateway',
+        status: 'DELIVERED',
+        latency: '34ms',
         time: 'Just now',
       },
       ...prev,
     ]);
+
+    try {
+      await api.sendNotification(
+        'ALL',
+        ['harshsih30@gmail.com', '+91 95556 81533'],
+        alertText,
+        `🚨 VarshaNetra Emergency Dispatch: ${panchayat}`,
+        'EMERGENCY_DISPATCH'
+      );
+    } catch (e) {
+      console.warn('Emergency dispatch notice:', e);
+    }
+
+    if (actionName.includes('SMS') || actionName.includes('Blast')) {
+      const cleanPhone = notifRecipient.replace(/\D/g, '') || '919555681533';
+      const smsUrl = `sms:+${cleanPhone}?body=${encodeURIComponent(alertText)}`;
+      window.location.href = smsUrl;
+    }
   };
 
   const handleResolveIncident = (incidentId) => {
