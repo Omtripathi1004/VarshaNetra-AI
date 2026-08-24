@@ -1184,11 +1184,6 @@ def run_simulation(lat: float, lon: float, crop_name: str, rainfall_change_pct: 
     else:
         advice_en = f"Near-normal conditions for {crop_name}. Maintain scheduled fertilization and pest scouting."
         advice_hi = f"{crop_name} के लिए सामान्य परिस्थितियाँ। निर्धारित पोषण और कीट निगरानी जारी रखें।"
-        advice_en = "Excess rainfall risk. Ensure field drainage and monitor for root rot."
-        advice_hi = "अत्यधिक वर्षा का खतरा। खेत की जल निकासी सुनिश्चित करें और जड़ सड़न पर नज़र रखें।"
-    else:
-        advice_en = "Conditions are near-normal. Maintain scheduled irrigation and weed control."
-        advice_hi = "परिस्थितियाँ सामान्य के करीब हैं। निर्धारित सिंचाई और निराई-गुड़ाई जारी रखें।"
 
     return {
         "crop_stress_index_pct": round(stress, 1),
