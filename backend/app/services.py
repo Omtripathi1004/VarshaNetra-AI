@@ -1137,17 +1137,44 @@ def send_notification(channel: str, recipients: List[str], subject: str, message
 
 def run_simulation(lat: float, lon: float, crop_name: str, rainfall_change_pct: float,
                    dry_days: int, temp_change_c: float, duration_days: int = 14) -> Dict[str, Any]:
-    stress = min(100, abs(rainfall_change_pct) * 0.6 + dry_days * 3 + temp_change_c * 5)
-    yield_impact = round(-stress * 0.7 if rainfall_change_pct < 0 else stress * 0.3 - 10, 1)
-    soil_proj = round(max(0.1, 0.30 + rainfall_change_pct / 200 - dry_days * 0.01), 3)
+    """
+    Computes realistic agronomic yield response and crop stress based on simulated rainfall,
+    dry spell duration, and temperature anomalies.
+    """
+    # Base physiological stress
+    stress = min(100.0, max(0.0, abs(rainfall_change_pct) * 0.45 + dry_days * 3.2 + max(0.0, temp_change_c) * 4.5))
 
-    if dry_days > 10:
-        advice_en = "Initiate emergency protective irrigation. Check for moisture stress symptoms."
-        advice_hi = "आपातकालीन सुरक्षात्मक सिंचाई शुरू करें। पत्तियों पर नमी तनाव के लक्षण जांचें।"
+    # Realistic yield response curve:
+    # Favorable rain (+5% to +35%) with low dry days (<=4) and mild temp produces POSITIVE yield gains!
+    if rainfall_change_pct > 0 and dry_days <= 5 and temp_change_c <= 2.0:
+        # Favorable moisture boost
+        positive_gain = (rainfall_change_pct * 0.42) - (dry_days * 1.4) - (temp_change_c * 1.8)
+        yield_impact = round(max(-5.0, min(22.0, positive_gain)), 1)
+        stress = round(max(5.0, 15.0 - (rainfall_change_pct * 0.2) + (dry_days * 1.5)), 1)
+    elif rainfall_change_pct > 40:
+        # Waterlogging risk
+        yield_impact = round(-((rainfall_change_pct - 40) * 0.5 + 4.0), 1)
+    else:
+        # Deficit moisture / drought stress
+        yield_impact = round(-(stress * 0.58), 1)
+
+    soil_proj = round(max(0.12, min(0.48, 0.30 + (rainfall_change_pct / 220.0) - (dry_days * 0.012))), 3)
+
+    if yield_impact > 0:
+        advice_en = f"Optimal moisture scenario for {crop_name}. Favorable biomass accumulation and grain development expected (+{yield_impact}% yield gain)."
+        advice_hi = f"{crop_name} के लिए अनुकूल नमी परिदृश्य। फसल विकास व दाना भराव में सुधार संभव (+{yield_impact}% उत्पादन वृद्धि)।"
+    elif dry_days > 10:
+        advice_en = f"Severe dry spell risk in {crop_name}. Initiate emergency protective sprinkler irrigation immediately."
+        advice_hi = f"{crop_name} में गंभीर शुष्क विराम का खतरा। तुरंत स्प्रिंकलर से सुरक्षात्मक सिंचाई शुरू करें।"
     elif rainfall_change_pct < -30:
-        advice_en = "Deficit rainfall scenario. Apply organic mulching to conserve soil moisture."
-        advice_hi = "वर्षा की कमी का परिदृश्य। मिट्टी की नमी बचाने के लिए पुआल की मल्चिंग करें।"
-    elif rainfall_change_pct > 30:
+        advice_en = f"Deficit rainfall scenario. Apply organic straw mulching (5 t/ha) to conserve root zone moisture in {crop_name}."
+        advice_hi = f"वर्षा की कमी का परिदृश्य। {crop_name} की जड़ों में नमी बचाने के लिए पुआल की मल्चिंग करें।"
+    elif rainfall_change_pct > 35:
+        advice_en = f"Excess rainfall risk. Clear field drainage furrows to prevent root asphyxiation in {crop_name}."
+        advice_hi = f"अत्यधिक वर्षा का खतरा। {crop_name} की जड़ों को सड़न से बचाने के लिए नालियों द्वारा जल निकासी करें।"
+    else:
+        advice_en = f"Near-normal conditions for {crop_name}. Maintain scheduled fertilization and pest scouting."
+        advice_hi = f"{crop_name} के लिए सामान्य परिस्थितियाँ। निर्धारित पोषण और कीट निगरानी जारी रखें।"
         advice_en = "Excess rainfall risk. Ensure field drainage and monitor for root rot."
         advice_hi = "अत्यधिक वर्षा का खतरा। खेत की जल निकासी सुनिश्चित करें और जड़ सड़न पर नज़र रखें।"
     else:

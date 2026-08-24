@@ -689,21 +689,38 @@ export const api = {
         timeout: 4000,
       });
     } catch {
-      const stress = Math.min(100, Math.abs(rainfallChangePct) * 0.6 + dryDays * 3 + Math.abs(tempChangeC) * 5);
-      const yieldImpact = Number((rainfallChangePct < 0 ? -stress * 0.7 : stress * 0.3 - 10).toFixed(1));
-      const soilProj = Number(Math.max(0.1, 0.30 + rainfallChangePct / 200 - dryDays * 0.01).toFixed(3));
-      let advice_en = 'Conditions are near-normal. Maintain scheduled irrigation and pest monitoring.';
-      let advice_hi = 'परिस्थितियाँ सामान्य के करीब हैं। निर्धारित सिंचाई और कीट निगरानी जारी रखें।';
-      if (dryDays > 10) {
-        advice_en = 'Initiate emergency irrigation. Check for heat stress symptoms on leaves.';
-        advice_hi = 'आपातकालीन सिंचाई शुरू करें। पत्तियों पर गर्मी के तनाव के लक्षण जांचें।';
-      } else if (rainfallChangePct < -30) {
-        advice_en = 'Deficit rainfall scenario. Apply mulching to conserve soil moisture.';
-        advice_hi = 'वर्षा की कमी का परिदृश्य। मिट्टी की नमी बचाने के लिए मल्चिंग करें।';
-      } else if (rainfallChangePct > 30) {
-        advice_en = 'Excess rainfall risk. Ensure field drainage and watch for fungal diseases.';
-        advice_hi = 'अत्यधिक वर्षा का खतरा। खेत की जल निकासी सुनिश्चित करें और फंगल रोगों पर नज़र रखें।';
+      let stress = Math.min(100.0, Math.max(0.0, Math.abs(rainfallChangePct) * 0.45 + dryDays * 3.2 + Math.max(0.0, tempChangeC) * 4.5));
+      let yieldImpact = 0;
+
+      if (rainfallChangePct > 0 && dryDays <= 5 && tempChangeC <= 2.0) {
+        const positiveGain = (rainfallChangePct * 0.42) - (dryDays * 1.4) - (tempChangeC * 1.8);
+        yieldImpact = Number(Math.max(-5.0, Math.min(22.0, positiveGain)).toFixed(1));
+        stress = Number(Math.max(5.0, 15.0 - (rainfallChangePct * 0.2) + (dryDays * 1.5)).toFixed(1));
+      } else if (rainfallChangePct > 40) {
+        yieldImpact = Number((-((rainfallChangePct - 40) * 0.5 + 4.0)).toFixed(1));
+      } else {
+        yieldImpact = Number((-(stress * 0.58)).toFixed(1));
       }
+
+      const soilProj = Number(Math.max(0.12, Math.min(0.48, 0.30 + (rainfallChangePct / 220.0) - (dryDays * 0.012))).toFixed(3));
+
+      let advice_en = `Near-normal conditions for ${crop}. Maintain scheduled fertilization and pest scouting.`;
+      let advice_hi = `${crop} के लिए सामान्य परिस्थितियाँ। निर्धारित पोषण और कीट निगरानी जारी रखें।`;
+
+      if (yieldImpact > 0) {
+        advice_en = `Optimal moisture scenario for ${crop}. Favorable biomass accumulation and grain development expected (+${yieldImpact}% yield gain).`;
+        advice_hi = `${crop} के लिए अनुकूल नमी परिदृश्य। फसल विकास व दाना भराव में सुधार संभव (+${yieldImpact}% उत्पादन वृद्धि)।`;
+      } else if (dryDays > 10) {
+        advice_en = `Severe dry spell risk in ${crop}. Initiate emergency protective sprinkler irrigation immediately.`;
+        advice_hi = `${crop} में गंभीर शुष्क विराम का खतरा। तुरंत स्प्रिंकलर से सुरक्षात्मक सिंचाई शुरू करें।`;
+      } else if (rainfallChangePct < -30) {
+        advice_en = `Deficit rainfall scenario. Apply organic straw mulching (5 t/ha) to conserve root zone moisture in ${crop}.`;
+        advice_hi = `वर्षा की कमी का परिदृश्य। ${crop} की जड़ों में नमी बचाने के लिए पुआल की मल्चिंग करें।`;
+      } else if (rainfallChangePct > 35) {
+        advice_en = `Excess rainfall risk. Clear field drainage furrows to prevent root asphyxiation in ${crop}.`;
+        advice_hi = `अत्यधिक वर्षा का खतरा। ${crop} की जड़ों को सड़न से बचाने के लिए नालियों द्वारा जल निकासी करें।`;
+      }
+
       return {
         data: {
           crop_name: crop,

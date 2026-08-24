@@ -202,16 +202,30 @@ export default function AnalyticsTab() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <span className="text-xs text-muted">{lang === 'hi' ? 'अनुमानित उपज प्रभाव' : 'Estimated Yield Impact'}</span>
-                    <p style={{ fontSize: '1.4rem', fontWeight: 800, color: simResult.yield_impact_pct < -15 ? '#dc2626' : '#d97706', margin: '0.15rem 0' }}>
+                  <div style={{ padding: '0.65rem', background: simResult.yield_impact_pct > 0 ? '#f0fdf4' : '#f8fafc', borderRadius: '8px', border: simResult.yield_impact_pct > 0 ? '1.5px solid #86efac' : '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'अनुमानित उपज प्रभाव' : 'Estimated Yield Impact'}</span>
+                      {simResult.yield_impact_pct > 0 && (
+                        <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
+                          🎉 {lang === 'hi' ? 'उत्पादन वृद्धि' : 'Yield Gain'}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{
+                      fontSize: '1.4rem',
+                      fontWeight: 800,
+                      color: simResult.yield_impact_pct > 0 ? '#059669' : simResult.yield_impact_pct < -15 ? '#dc2626' : '#d97706',
+                      margin: '0.15rem 0'
+                    }}>
                       {simResult.yield_impact_pct > 0 ? `+${simResult.yield_impact_pct}` : simResult.yield_impact_pct}%
                     </p>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Relative to standard baseline</span>
+                    <span style={{ fontSize: '0.72rem', color: simResult.yield_impact_pct > 0 ? '#047857' : '#64748b', fontWeight: simResult.yield_impact_pct > 0 ? 600 : 400 }}>
+                      {simResult.yield_impact_pct > 0 ? (lang === 'hi' ? 'अनुकूल वर्षा से उत्पादकता में बढ़ोतरी' : 'Productivity boost from optimal moisture') : 'Relative to standard baseline'}
+                    </span>
                   </div>
 
                   <div style={{ padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <span className="text-xs text-muted">{lang === 'hi' ? 'प्रक्षेपित मृदा नमी' : 'Projected Soil Moisture'}</span>
+                    <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'प्रक्षेपित मृदा नमी' : 'Projected Soil Moisture'}</span>
                     <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', margin: '0.15rem 0' }}>
                       {simResult.soil_moisture_projected} m³/m³
                     </p>
@@ -219,7 +233,14 @@ export default function AnalyticsTab() {
                   </div>
                 </div>
 
-                <div style={{ padding: '0.6rem 0.8rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #059669', fontSize: '0.82rem', color: '#334155' }}>
+                <div style={{
+                  padding: '0.75rem 0.9rem',
+                  background: simResult.yield_impact_pct > 0 ? '#f0fdf4' : '#f8fafc',
+                  borderRadius: '8px',
+                  borderLeft: `4px solid ${simResult.yield_impact_pct > 0 ? '#059669' : '#ea580c'}`,
+                  fontSize: '0.84rem',
+                  color: '#1e293b'
+                }}>
                   <strong>{lang === 'hi' ? 'आकस्मिक कृषि सिफारिश:' : 'Recommended Agronomic Contingency:'}</strong>{' '}
                   {lang === 'hi' ? simResult.recommended_contingency_hi : simResult.recommended_contingency_en}
                 </div>
