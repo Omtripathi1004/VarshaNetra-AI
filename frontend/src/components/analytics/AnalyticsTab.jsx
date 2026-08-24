@@ -115,7 +115,13 @@ export default function AnalyticsTab() {
                   <option value="Cotton">☁️ Cotton / कपास</option>
                   <option value="Soybean">🫘 Soybean / सोयाबीन</option>
                   <option value="Maize">🌽 Maize / मक्का</option>
+                  <option value="Groundnut">🥜 Groundnut / मूँगफली</option>
+                  <option value="Bajra">🌿 Bajra (Pearl Millet) / बाजरा</option>
+                  <option value="Sugarcane">🎋 Sugarcane / गन्ना</option>
+                  <option value="Pulses">🥣 Pulses (Arhar / Moong) / दालें</option>
                   <option value="Wheat">🌾 Wheat / गेहूं</option>
+                  <option value="Mustard">🌼 Mustard / सरसों</option>
+                  <option value="Vegetables">🍅 Vegetables / सब्जियां</option>
                 </select>
               </div>
 

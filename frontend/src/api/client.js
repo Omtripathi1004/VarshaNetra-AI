@@ -673,10 +673,10 @@ export const api = {
   },
 
 
-  // Simulation
+  // Simulation — Crop-Specific Agronomic Physiology Engine
   runSimulation: async (loc, crop, rainfallChangePct, dryDays, tempChangeC, durationDays = 14) => {
     try {
-      return await axios.post(`${BASE}/simulation/what-if`, null, {
+      const res = await axios.post(`${BASE}/simulation/what-if`, null, {
         params: {
           lat: loc?.lat ?? 26.8467,
           lon: loc?.lon ?? 80.9462,
@@ -688,52 +688,154 @@ export const api = {
         },
         timeout: 4000,
       });
-    } catch {
-      let stress = Math.min(100.0, Math.max(0.0, Math.abs(rainfallChangePct) * 0.45 + dryDays * 3.2 + Math.max(0.0, tempChangeC) * 4.5));
-      let yieldImpact = 0;
+      if (res?.data?.yield_impact_pct !== undefined) return res;
+    } catch {}
 
-      if (rainfallChangePct > 0 && dryDays <= 5 && tempChangeC <= 2.0) {
-        const positiveGain = (rainfallChangePct * 0.42) - (dryDays * 1.4) - (tempChangeC * 1.8);
-        yieldImpact = Number(Math.max(-5.0, Math.min(22.0, positiveGain)).toFixed(1));
-        stress = Number(Math.max(5.0, 15.0 - (rainfallChangePct * 0.2) + (dryDays * 1.5)).toFixed(1));
-      } else if (rainfallChangePct > 40) {
-        yieldImpact = Number((-((rainfallChangePct - 40) * 0.5 + 4.0)).toFixed(1));
+    const c = (crop || '').toLowerCase();
+    let yieldImpact = 0;
+    let stress = 0;
+    let soilProj = 0.30;
+    let advice_en = '';
+    let advice_hi = '';
+
+    // 1. PADDY (RICE) - Water-loving wetland crop
+    if (c.includes('rice') || c.includes('paddy') || c.includes('धान')) {
+      if (rainfallChangePct >= 0 && rainfallChangePct <= 35 && dryDays <= 4 && tempChangeC <= 2.5) {
+        yieldImpact = Number((rainfallChangePct * 0.52 - dryDays * 1.2 - tempChangeC * 1.1 + 4.0).toFixed(1));
+        stress = Number(Math.max(5, 12 - rainfallChangePct * 0.2 + dryDays * 1.5).toFixed(1));
+        advice_en = `Optimal standing water & saturation for Paddy. Favorable tillering and panicle development (+${yieldImpact}% yield boost).`;
+        advice_hi = `धान के लिए अनुकूल जलभराव व नमी। कल्ले फूटने और बाली विकास में बेहतरीन सुधार (+${yieldImpact}% उत्पादन वृद्धि)।`;
+      } else if (rainfallChangePct < 0 || dryDays > 6) {
+        stress = Number(Math.min(95, Math.abs(rainfallChangePct) * 0.7 + dryDays * 4.5 + tempChangeC * 3).toFixed(1));
+        yieldImpact = Number((-stress * 0.62).toFixed(1));
+        advice_en = `Severe moisture deficit for Paddy. Standing water depleted. Provide emergency 5cm flood irrigation immediately.`;
+        advice_hi = `धान में गंभीर जल संकट। खेत का पानी सूखा। तुरंत 5 सेमी आपातकालीन सिंचाई सुनिश्चित करें।`;
       } else {
-        yieldImpact = Number((-(stress * 0.58)).toFixed(1));
+        stress = Number((rainfallChangePct * 0.4 + dryDays * 2).toFixed(1));
+        yieldImpact = Number((-stress * 0.35).toFixed(1));
+        advice_en = `Excessive rainfall overflow. Drain standing water to 5cm depth to prevent nursery submergence.`;
+        advice_hi = `अत्यधिक वर्षा। धान की नर्सरी को डूबने से बचाने के लिए पानी को 5 सेमी स्तर तक निकालें।`;
       }
-
-      const soilProj = Number(Math.max(0.12, Math.min(0.48, 0.30 + (rainfallChangePct / 220.0) - (dryDays * 0.012))).toFixed(3));
-
-      let advice_en = `Near-normal conditions for ${crop}. Maintain scheduled fertilization and pest scouting.`;
-      let advice_hi = `${crop} के लिए सामान्य परिस्थितियाँ। निर्धारित पोषण और कीट निगरानी जारी रखें।`;
-
-      if (yieldImpact > 0) {
-        advice_en = `Optimal moisture scenario for ${crop}. Favorable biomass accumulation and grain development expected (+${yieldImpact}% yield gain).`;
-        advice_hi = `${crop} के लिए अनुकूल नमी परिदृश्य। फसल विकास व दाना भराव में सुधार संभव (+${yieldImpact}% उत्पादन वृद्धि)।`;
-      } else if (dryDays > 10) {
-        advice_en = `Severe dry spell risk in ${crop}. Initiate emergency protective sprinkler irrigation immediately.`;
-        advice_hi = `${crop} में गंभीर शुष्क विराम का खतरा। तुरंत स्प्रिंकलर से सुरक्षात्मक सिंचाई शुरू करें।`;
-      } else if (rainfallChangePct < -30) {
-        advice_en = `Deficit rainfall scenario. Apply organic straw mulching (5 t/ha) to conserve root zone moisture in ${crop}.`;
-        advice_hi = `वर्षा की कमी का परिदृश्य। ${crop} की जड़ों में नमी बचाने के लिए पुआल की मल्चिंग करें।`;
-      } else if (rainfallChangePct > 35) {
-        advice_en = `Excess rainfall risk. Clear field drainage furrows to prevent root asphyxiation in ${crop}.`;
-        advice_hi = `अत्यधिक वर्षा का खतरा। ${crop} की जड़ों को सड़न से बचाने के लिए नालियों द्वारा जल निकासी करें।`;
-      }
-
-      return {
-        data: {
-          crop_name: crop,
-          crop_stress_index_pct: Number(stress.toFixed(1)),
-          yield_impact_pct: yieldImpact,
-          soil_moisture_projected: soilProj,
-          recommended_contingency_en: advice_en,
-          recommended_contingency_hi: advice_hi,
-          is_simulation_only: true,
-          scenario_summary: `Rainfall ${rainfallChangePct >= 0 ? '+' : ''}${rainfallChangePct}%, ${dryDays} dry days, temp ${tempChangeC >= 0 ? '+' : ''}${tempChangeC}°C for ${durationDays} days`,
-        }
-      };
+      soilProj = Number(Math.max(0.20, Math.min(0.50, 0.38 + rainfallChangePct / 200 - dryDays * 0.015)).toFixed(3));
     }
+
+    // 2. COTTON - Sensitive to waterlogging & boll rot
+    else if (c.includes('cotton') || c.includes('कपास')) {
+      if (rainfallChangePct > 20) {
+        stress = Number(Math.min(90, rainfallChangePct * 0.8 + tempChangeC * 3).toFixed(1));
+        yieldImpact = Number((-stress * 0.55).toFixed(1));
+        advice_en = `Waterlogging hazard in Cotton! Root asphyxiation and square drop risk. Clear 30cm furrow trenches immediately.`;
+        advice_hi = `कपास में जलभराव का खतरा! जड़ें गलने और फूल/टिंडे गिरने की संभावना। तुरंत 30 सेमी गहरी नालियां खोलें।`;
+      } else if (rainfallChangePct >= -10 && rainfallChangePct <= 20 && dryDays <= 6 && tempChangeC <= 3.5) {
+        yieldImpact = Number((rainfallChangePct * 0.45 - dryDays * 1.0 - tempChangeC * 0.8 + 5.5).toFixed(1));
+        stress = Number(Math.max(8, 15 - rainfallChangePct * 0.2 + dryDays * 1.2).toFixed(1));
+        advice_en = `Favorable thermal & moderate moisture window for Cotton (+${yieldImpact}% yield gain). Install yellow sticky traps.`;
+        advice_hi = `कपास के लिए अनुकूल तापमान व मध्यम नमी (+${yieldImpact}% उत्पादन वृद्धि)। पीले चिपचिपे ट्रैप लगाएं।`;
+      } else {
+        stress = Number(Math.min(90, Math.abs(rainfallChangePct) * 0.6 + dryDays * 4.0 + tempChangeC * 4).toFixed(1));
+        yieldImpact = Number((-stress * 0.58).toFixed(1));
+        advice_en = `Prolonged dry break in Cotton. Apply protective drip irrigation and foliar spray of 1% KNO3.`;
+        advice_hi = `कपास में लंबा सूखा विराम। ड्रिप से सुरक्षात्मक सिंचाई करें व 1% पोटैशियम नाइट्रेट का छिड़काव करें।`;
+      }
+      soilProj = Number(Math.max(0.12, Math.min(0.40, 0.26 + rainfallChangePct / 240 - dryDays * 0.012)).toFixed(3));
+    }
+
+    // 3. SOYBEAN - Highly vulnerable to dry spells during pod-fill
+    else if (c.includes('soybean') || c.includes('सोयाबीन')) {
+      if (dryDays > 6) {
+        stress = Number(Math.min(95, dryDays * 5.5 + Math.abs(rainfallChangePct) * 0.4 + tempChangeC * 3).toFixed(1));
+        yieldImpact = Number((-stress * 0.65).toFixed(1));
+        advice_en = `Critical dry break stress during Soybean pod filling. Apply 20mm protective sprinkler irrigation + straw mulch.`;
+        advice_hi = `सोयाबीन में फली बनते समय गंभीर सूखा तनाव। 20 मिमी स्प्रिंकलर सिंचाई और पुआल की मल्चिंग करें।`;
+      } else if (rainfallChangePct >= 0 && rainfallChangePct <= 25 && dryDays <= 5) {
+        yieldImpact = Number((rainfallChangePct * 0.48 - dryDays * 1.4 + 5.0).toFixed(1));
+        stress = Number(Math.max(6, 14 - rainfallChangePct * 0.2 + dryDays * 1.4).toFixed(1));
+        advice_en = `Optimal soil moisture for Soybean nodulation and pod development (+${yieldImpact}% yield boost).`;
+        advice_hi = `सोयाबीन में ग्रंथियों के विकास व फली भराव हेतु आदर्श नमी (+${yieldImpact}% उत्पादन वृद्धि)।`;
+      } else {
+        stress = Number((Math.abs(rainfallChangePct) * 0.6 + dryDays * 3.5).toFixed(1));
+        yieldImpact = Number((-stress * 0.52).toFixed(1));
+        advice_en = `Deficit moisture scenario for Soybean. Apply 2% Potassium Sulphate foliar spray for drought tolerance.`;
+        advice_hi = `सोयाबीन में नमी की कमी। सूखे से बचाव हेतु 2% पोटैशियम सल्फेट का छिड़काव करें।`;
+      }
+      soilProj = Number(Math.max(0.14, Math.min(0.42, 0.28 + rainfallChangePct / 230 - dryDays * 0.014)).toFixed(3));
+    }
+
+    // 4. WHEAT (RABI) - Cool season crop; extremely heat-sensitive
+    else if (c.includes('wheat') || c.includes('गेहूं')) {
+      if (tempChangeC > 1.5) {
+        stress = Number(Math.min(95, tempChangeC * 12.0 + dryDays * 3.0).toFixed(1));
+        yieldImpact = Number((-stress * 0.70).toFixed(1));
+        advice_en = `Terminal heat stress alert for Wheat (+${tempChangeC}°C)! Grain shriveling hazard. Apply light irrigation to cool canopy.`;
+        advice_hi = `गेहूं में तापमान बढ़ने का गंभीर खतरा (+${tempChangeC}°C)! दाना सिकुड़ने की आशंका। तापमान कम करने हेतु हल्की सिंचाई करें।`;
+      } else if (tempChangeC <= 1.0 && dryDays <= 7) {
+        yieldImpact = Number((10.5 - tempChangeC * 3.0 - dryDays * 0.6).toFixed(1));
+        stress = Number(Math.max(5, 10 + tempChangeC * 3).toFixed(1));
+        advice_en = `Cool, favorable thermal window for Wheat tillering and ear emergence (+${yieldImpact}% yield gain).`;
+        advice_hi = `गेहूं में कल्ले फूटने व बाली निकलने हेतु अनुकूल ठंडा मौसम (+${yieldImpact}% उत्पादन वृद्धि)।`;
+      } else {
+        stress = Number((Math.abs(rainfallChangePct) * 0.4 + dryDays * 3.5).toFixed(1));
+        yieldImpact = Number((-stress * 0.45).toFixed(1));
+        advice_en = `Provide scheduled crown root initiation (CRI) irrigation in Wheat.`;
+        advice_hi = `गेहूं में शीर्ष जड़ जमने (CRI) की अवस्था पर समय पर सिंचाई करें।`;
+      }
+      soilProj = Number(Math.max(0.12, Math.min(0.38, 0.27 + rainfallChangePct / 250 - dryDays * 0.01)).toFixed(3));
+    }
+
+    // 5. SUGARCANE - High water biomass builder
+    else if (c.includes('sugarcane') || c.includes('गन्ना')) {
+      if (rainfallChangePct >= 5 && rainfallChangePct <= 45 && dryDays <= 5) {
+        yieldImpact = Number((rainfallChangePct * 0.50 - dryDays * 0.8 + 6.0).toFixed(1));
+        stress = Number(Math.max(5, 10 - rainfallChangePct * 0.15).toFixed(1));
+        advice_en = `Abundant rainfall supports rapid stalk elongation and cane tonnage in Sugarcane (+${yieldImpact}% yield boost).`;
+        advice_hi = `प्रचुर वर्षा से गन्ने की लंबाई व वजन में तीव्र वृद्धि (+${yieldImpact}% उत्पादन वृद्धि)।`;
+      } else if (dryDays > 8 || rainfallChangePct < -20) {
+        stress = Number(Math.min(90, Math.abs(rainfallChangePct) * 0.6 + dryDays * 4.0).toFixed(1));
+        yieldImpact = Number((-stress * 0.58).toFixed(1));
+        advice_en = `Moisture stress in Sugarcane. Ridge furrows and provide trash mulching (5 cm) to conserve water.`;
+        advice_hi = `गन्ने में नमी की कमी। पानी बचाने हेतु गन्ने की सूखी पत्तियों की मल्चिंग करें।`;
+      } else {
+        yieldImpact = 3.5;
+        stress = 15.0;
+        advice_en = `Normal growth conditions for Sugarcane. Earth up roots against lodging.`;
+        advice_hi = `गन्ने के लिए सामान्य वृद्धि मौसम। तेज हवा में गिरने से बचाने के लिए मिट्टी चढ़ाएं।`;
+      }
+      soilProj = Number(Math.max(0.16, Math.min(0.48, 0.32 + rainfallChangePct / 210 - dryDays * 0.01)).toFixed(3));
+    }
+
+    // 6. MAIZE / GROUNDNUT / BAJRA / PULSES / MUSTARD / VEGETABLES
+    else {
+      if (rainfallChangePct >= 0 && rainfallChangePct <= 30 && dryDays <= 5 && tempChangeC <= 2.0) {
+        yieldImpact = Number((rainfallChangePct * 0.44 - dryDays * 1.3 - tempChangeC * 1.5 + 4.5).toFixed(1));
+        stress = Number(Math.max(6, 15 - rainfallChangePct * 0.2 + dryDays * 1.5).toFixed(1));
+        advice_en = `Optimal micro-climate for ${crop}. Strong vegetative vigor and reproductive development (+${yieldImpact}% yield gain).`;
+        advice_hi = `${crop} के लिए अनुकूल मौसम। वानस्पतिक वृद्धि और फलन में ठोस सुधार (+${yieldImpact}% उत्पादन वृद्धि)।`;
+      } else if (rainfallChangePct > 35) {
+        stress = Number(Math.min(85, rainfallChangePct * 0.7).toFixed(1));
+        yieldImpact = Number((-stress * 0.50).toFixed(1));
+        advice_en = `Excess moisture risk in ${crop}. Clear furrow runoff channels to prevent root rot and damping-off.`;
+        advice_hi = `${crop} में अधिक नमी का खतरा। जड़ सड़न रोकने हेतु खेत से पानी की निकासी करें।`;
+      } else {
+        stress = Number(Math.min(90, Math.abs(rainfallChangePct) * 0.6 + dryDays * 3.8 + tempChangeC * 3.5).toFixed(1));
+        yieldImpact = Number((-stress * 0.55).toFixed(1));
+        advice_en = `Moisture deficit in ${crop}. Provide protective life-saving irrigation and avoid urea top-dressing.`;
+        advice_hi = `${crop} में पानी की कमी। सुरक्षात्मक जीवनदायिनी सिंचाई करें व तेज धूप में यूरिया न डालें।`;
+      }
+      soilProj = Number(Math.max(0.12, Math.min(0.44, 0.28 + rainfallChangePct / 230 - dryDays * 0.012)).toFixed(3));
+    }
+
+    return {
+      data: {
+        crop_name: crop,
+        crop_stress_index_pct: stress,
+        yield_impact_pct: yieldImpact,
+        soil_moisture_projected: soilProj,
+        recommended_contingency_en: advice_en,
+        recommended_contingency_hi: advice_hi,
+        is_simulation_only: true,
+        scenario_summary: `Rainfall ${rainfallChangePct >= 0 ? '+' : ''}${rainfallChangePct}%, ${dryDays} dry days, temp ${tempChangeC >= 0 ? '+' : ''}${tempChangeC}°C for ${durationDays} days`,
+      }
+    };
   },
 
   // Analytics

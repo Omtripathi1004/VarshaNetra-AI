@@ -201,6 +201,23 @@ export default function AgricultureTab() {
         )}
       </div>
 
+      {/* 🌟 EMBEDDED CROP WHAT-IF SIMULATOR LAB */}
+      <div className="card" style={{ marginBottom: '1.5rem', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '16px', padding: '1.2rem' }}>
+        <div className="card-header" style={{ marginBottom: '0.8rem' }}>
+          <span className="card-title" style={{ color: '#047857' }}>
+            🧪 {lang === 'hi' ? `${activeDynamicCrop.name} जलवायु तनाव एवं उत्पादन वृद्धि सिमुलेटर` : `${activeDynamicCrop.name} — Climate Stress & Yield Gain Simulator`}
+          </span>
+          <span className="badge badge-success">Live Agronomic Physiology</span>
+        </div>
+        <p style={{ fontSize: '0.82rem', color: '#334155', margin: '0 0 1rem' }}>
+          {lang === 'hi'
+            ? 'वर्षा में बदलाव, सूखे दिनों की संख्या और तापमान के आधार पर इस फसल की अनुमानित पैदावार व आकस्मिक सलाह देखें:'
+            : `Test how rainfall anomalies, dry spells, and thermal shifts impact ${activeDynamicCrop.name} productivity and agronomic resilience:`}
+        </p>
+
+        <CropSimInline crop={activeDynamicCrop.name} lang={lang} location={location} />
+      </div>
+
       {/* CROP CARDS CATALOG WITH RADAR SENSITIVITY */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
@@ -252,6 +269,90 @@ export default function AgricultureTab() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CropSimInline({ crop, lang, location }) {
+  const [rainPct, setRainPct] = useState(15);
+  const [dryDays, setDryDays] = useState(2);
+  const [tempC, setTempC] = useState(0.5);
+  const [res, setRes] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSim = async () => {
+    setLoading(true);
+    const r = await api.runSimulation(location, crop, rainPct, dryDays, tempC, 14);
+    setRes(r.data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    handleSim();
+  }, [crop, rainPct, dryDays, tempC]);
+
+  return (
+    <div>
+      <div className="grid-3" style={{ gap: '0.8rem', marginBottom: '0.8rem' }}>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <label className="field-label">{lang === 'hi' ? 'वर्षा विचलन:' : 'Rainfall Anomaly:'}</label>
+            <strong style={{ fontSize: '0.8rem', color: rainPct >= 0 ? '#059669' : '#dc2626' }}>{rainPct >= 0 ? `+${rainPct}` : rainPct}%</strong>
+          </div>
+          <input type="range" min="-50" max="50" step="5" value={rainPct} onChange={e => setRainPct(Number(e.target.value))} style={{ width: '100%', accentColor: '#059669' }} />
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <label className="field-label">{lang === 'hi' ? 'शुष्क दिन:' : 'Consecutive Dry Days:'}</label>
+            <strong style={{ fontSize: '0.8rem', color: dryDays > 6 ? '#dc2626' : '#0284c7' }}>{dryDays} days</strong>
+          </div>
+          <input type="range" min="0" max="18" step="1" value={dryDays} onChange={e => setDryDays(Number(e.target.value))} style={{ width: '100%', accentColor: '#ea580c' }} />
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <label className="field-label">{lang === 'hi' ? 'तापमान वृद्धि:' : 'Temp Shift:'}</label>
+            <strong style={{ fontSize: '0.8rem', color: tempC > 2 ? '#dc2626' : '#d97706' }}>+{tempC}°C</strong>
+          </div>
+          <input type="range" min="0" max="5" step="0.5" value={tempC} onChange={e => setTempC(Number(e.target.value))} style={{ width: '100%', accentColor: '#d97706' }} />
+        </div>
+      </div>
+
+      {res && (
+        <div style={{ background: '#ffffff', padding: '0.9rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+          <div className="grid-3" style={{ gap: '0.6rem', marginBottom: '0.6rem' }}>
+            <div style={{ padding: '0.5rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'फसल तनाव' : 'Crop Stress'}</span>
+              <p style={{ fontSize: '1.2rem', fontWeight: 800, color: res.crop_stress_index_pct > 50 ? '#dc2626' : '#059669', margin: '0.1rem 0' }}>
+                {res.crop_stress_index_pct}%
+              </p>
+            </div>
+
+            <div style={{ padding: '0.5rem', background: res.yield_impact_pct > 0 ? '#f0fdf4' : '#fef2f2', borderRadius: '8px', border: res.yield_impact_pct > 0 ? '1.5px solid #86efac' : '1px solid #fca5a5' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'उपज प्रभाव' : 'Yield Impact'}</span>
+                {res.yield_impact_pct > 0 && <span className="badge badge-success" style={{ fontSize: '0.62rem' }}>🎉 {lang === 'hi' ? 'वृद्धि' : 'Gain'}</span>}
+              </div>
+              <p style={{ fontSize: '1.2rem', fontWeight: 800, color: res.yield_impact_pct > 0 ? '#059669' : '#dc2626', margin: '0.1rem 0' }}>
+                {res.yield_impact_pct > 0 ? `+${res.yield_impact_pct}` : res.yield_impact_pct}%
+              </p>
+            </div>
+
+            <div style={{ padding: '0.5rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'प्रक्षेपित नमी' : 'Soil Moisture'}</span>
+              <p style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0284c7', margin: '0.1rem 0' }}>
+                {res.soil_moisture_projected} m³/m³
+              </p>
+            </div>
+          </div>
+
+          <div style={{ padding: '0.6rem 0.8rem', background: res.yield_impact_pct > 0 ? '#f0fdf4' : '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${res.yield_impact_pct > 0 ? '#059669' : '#ea580c'}`, fontSize: '0.8rem', color: '#1e293b' }}>
+            <strong>{lang === 'hi' ? 'फसल आकस्मिक सलाह:' : 'Contingency Guidance:'}</strong>{' '}
+            {lang === 'hi' ? res.recommended_contingency_hi : res.recommended_contingency_en}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

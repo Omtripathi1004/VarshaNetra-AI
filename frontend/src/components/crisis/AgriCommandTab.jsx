@@ -7,12 +7,13 @@ export default function AgriCommandTab() {
   const [risk, setRisk] = useState(null);
   const [teleconnections, setTeleconnections] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notifChannel, setNotifChannel] = useState('SMS');
-  const [notifRecipient, setNotifRecipient] = useState('+91 98765 43210');
+  const [notifChannel, setNotifChannel] = useState('EMAIL');
+  const [notifRecipient, setNotifRecipient] = useState('harshsih30@gmail.com');
   const [notifSent, setNotifSent] = useState(false);
   const [dispatchLogs, setDispatchLogs] = useState([
-    { id: 1, action: 'Dewatering Pumps Dispatched', target: 'Panchayat Sarojini Nagar', status: 'ACTIVE', time: '10 mins ago' },
-    { id: 2, action: 'SMS Warning Broadcast (1,240 Farmers)', target: 'Varanasi Central Belt', status: 'COMPLETED', time: '35 mins ago' },
+    { id: 1, action: 'Email & SMS Alert Sent', target: 'harshsih30@gmail.com', status: 'SENT', time: '1 min ago' },
+    { id: 2, action: 'Dewatering Pumps Dispatched', target: 'Panchayat Sarojini Nagar', status: 'ACTIVE', time: '10 mins ago' },
+    { id: 3, action: 'SMS Warning Broadcast (1,240 Farmers)', target: 'Varanasi Central Belt', status: 'COMPLETED', time: '35 mins ago' },
   ]);
 
   const [incidents, setIncidents] = useState([
@@ -304,13 +305,31 @@ Action: Clear farm drainage ditches immediately & delay transplanting. Backup ir
             </div>
 
             <div style={{ marginBottom: '0.8rem' }}>
-              <label className="field-label">{lang === 'hi' ? 'लक्षित फोन नंबर / पंचायत समूह:' : 'Target Recipient / Group:'}</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="field-label">{lang === 'hi' ? 'लक्षित फोन / ईमेल:' : 'Target Recipient / Email:'}</label>
+                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setNotifRecipient('harshsih30@gmail.com'); setNotifChannel('EMAIL'); }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+                  >
+                    ✉️ harshsih30@gmail.com
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNotifRecipient('+91 98765 43210'); setNotifChannel('SMS'); }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+                  >
+                    📱 Mobile
+                  </button>
+                </div>
+              </div>
               <input
                 className="input"
                 style={{ width: '100%', fontSize: '0.82rem', marginTop: '0.2rem' }}
                 value={notifRecipient}
                 onChange={e => setNotifRecipient(e.target.value)}
-                placeholder="+91 98765 43210 or ALL_SAROJINI_NAGAR"
+                placeholder="harshsih30@gmail.com or +91 98765 43210"
               />
             </div>
 

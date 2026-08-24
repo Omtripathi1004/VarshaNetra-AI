@@ -50,7 +50,7 @@ function AlertCard({ alert, onAck, lang }) {
 function NotifyPanel({ lang }) {
   const { tr } = useApp();
   const [channel, setChannel] = useState('EMAIL');
-  const [recipients, setRecipients] = useState('');
+  const [recipients, setRecipients] = useState('harshsih30@gmail.com');
   const [subject, setSubject] = useState('⚠️ VarshaNetra Emergency Alert');
   const [message, setMessage] = useState('');
   const [alertType, setAlertType] = useState('HEAVY_RAIN');
