@@ -49,13 +49,22 @@ function AlertCard({ alert, onAck, lang }) {
 
 function NotifyPanel({ lang }) {
   const { tr } = useApp();
-  const [channel, setChannel] = useState('EMAIL');
-  const [recipients, setRecipients] = useState('harshsih30@gmail.com');
+  const [channel, setChannel] = useState('SMS');
+  const [recipients, setRecipients] = useState('+91 95556 81533');
   const [subject, setSubject] = useState('⚠️ VarshaNetra Emergency Alert');
   const [message, setMessage] = useState('');
   const [alertType, setAlertType] = useState('HEAVY_RAIN');
   const [result, setResult] = useState(null);
   const [sending, setSending] = useState(false);
+
+  const handleChannelChange = (newChannel) => {
+    setChannel(newChannel);
+    if (newChannel === 'EMAIL') {
+      setRecipients('harshsih30@gmail.com');
+    } else {
+      setRecipients('+91 95556 81533');
+    }
+  };
 
   const TEMPLATES = {
     HEAVY_RAIN: `Heavy rainfall (>64mm) expected in your district. Secure crops, avoid low-lying areas, activate drainage systems.`,
@@ -101,8 +110,8 @@ function NotifyPanel({ lang }) {
 
       {/* Channel Selector */}
       <div className="channel-tabs mb-2">
-        {['EMAIL', 'SMS', 'WHATSAPP'].map(ch => (
-          <button key={ch} className={`channel-tab ${channel === ch ? 'active' : ''}`} onClick={() => setChannel(ch)}>
+        {['SMS', 'EMAIL', 'WHATSAPP'].map(ch => (
+          <button key={ch} className={`channel-tab ${channel === ch ? 'active' : ''}`} onClick={() => handleChannelChange(ch)}>
             {ch === 'EMAIL' ? '📧' : ch === 'SMS' ? '📱' : '💬'} {ch}
           </button>
         ))}
@@ -126,8 +135,26 @@ function NotifyPanel({ lang }) {
 
       <div className="notify-panel">
         <div>
-          <label className="field-label">{tr('recipients')} ({channel === 'EMAIL' ? 'emails' : 'phone numbers'}, comma-separated)</label>
-          <input className="input" placeholder={channel === 'EMAIL' ? 'officer@district.gov.in, farmer@agri.gov.in' : '+91-9876543210, +91-9000000001'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+            <label className="field-label" style={{ margin: 0 }}>{tr('recipients')} ({channel === 'EMAIL' ? 'emails' : 'phone numbers'})</label>
+            <div style={{ display: 'flex', gap: '0.3rem' }}>
+              <button
+                type="button"
+                onClick={() => { setRecipients('+91 95556 81533'); setChannel('SMS'); }}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+              >
+                📱 +91 95556 81533
+              </button>
+              <button
+                type="button"
+                onClick={() => { setRecipients('harshsih30@gmail.com'); setChannel('EMAIL'); }}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+              >
+                ✉️ harshsih30@gmail.com
+              </button>
+            </div>
+          </div>
+          <input className="input" placeholder={channel === 'EMAIL' ? 'harshsih30@gmail.com' : '+91 95556 81533'}
             value={recipients} onChange={e => setRecipients(e.target.value)} />
         </div>
         {channel === 'EMAIL' && (

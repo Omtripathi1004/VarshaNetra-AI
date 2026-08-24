@@ -291,11 +291,18 @@ Action: Clear farm drainage ditches immediately & delay transplanting. Backup ir
             <div style={{ marginBottom: '0.8rem' }}>
               <label className="field-label">{lang === 'hi' ? 'प्रसारण माध्यम:' : 'Broadcast Channel:'}</label>
               <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem' }}>
-                {['SMS', 'WHATSAPP', 'VOICE_CALL', 'EMAIL'].map(ch => (
+                {['SMS', 'EMAIL', 'WHATSAPP', 'VOICE_CALL'].map(ch => (
                   <button
                     key={ch}
                     className={`channel-tab ${notifChannel === ch ? 'active' : ''}`}
-                    onClick={() => setNotifChannel(ch)}
+                    onClick={() => {
+                      setNotifChannel(ch);
+                      if (ch === 'EMAIL') {
+                        setNotifRecipient('harshsih30@gmail.com');
+                      } else {
+                        setNotifRecipient('+91 95556 81533');
+                      }
+                    }}
                     style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
                   >
                     {ch === 'SMS' ? '📱 SMS' : ch === 'WHATSAPP' ? '💬 WhatsApp' : ch === 'VOICE_CALL' ? '📞 Voice Call' : '✉️ Email'}
@@ -310,17 +317,17 @@ Action: Clear farm drainage ditches immediately & delay transplanting. Backup ir
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
                   <button
                     type="button"
+                    onClick={() => { setNotifRecipient('+91 95556 81533'); setNotifChannel('SMS'); }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+                  >
+                    📱 +91 95556 81533
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { setNotifRecipient('harshsih30@gmail.com'); setNotifChannel('EMAIL'); }}
                     style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
                   >
                     ✉️ harshsih30@gmail.com
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setNotifRecipient('+91 98765 43210'); setNotifChannel('SMS'); }}
-                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
-                  >
-                    📱 Mobile
                   </button>
                 </div>
               </div>
@@ -329,7 +336,7 @@ Action: Clear farm drainage ditches immediately & delay transplanting. Backup ir
                 style={{ width: '100%', fontSize: '0.82rem', marginTop: '0.2rem' }}
                 value={notifRecipient}
                 onChange={e => setNotifRecipient(e.target.value)}
-                placeholder="harshsih30@gmail.com or +91 98765 43210"
+                placeholder="+91 95556 81533 or harshsih30@gmail.com"
               />
             </div>
 
