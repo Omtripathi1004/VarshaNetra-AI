@@ -52,3 +52,5 @@ VarshaNetra AI has been transformed from a basic weather dashboard into a **Hype
 ## 🔍 Verification Results
 - **Python ML Backtesting & Climate Ingestion**: Executed with zero runtime errors.
 - **Frontend Build (`npm run build`)**: Transformed 945 modules and compiled successfully to `dist/` in 21.32s with 0 errors.
+
+ to save change in vercel run this in terminal :- npx vercel --prod
