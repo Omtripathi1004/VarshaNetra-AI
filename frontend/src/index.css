@@ -64,8 +64,34 @@ body {
   background: var(--bg-void);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.6;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Viewport height-adaptive scaling for responsive display areas */
+.main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  transition: padding var(--transition);
+}
+
+@media (min-height: 800px) and (min-width: 1024px) {
+  .main-content {
+    min-height: 85vh; /* Auto-expands on laptops with large displays */
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 0.75rem; /* Auto-concises on smaller phone screens */
+    min-height: auto;
+  }
 }
 
 /* ── Typography ─────────────────────────────────────────── */
@@ -198,7 +224,7 @@ h3 { font-size: clamp(1rem, 2.2vw, 1.3rem); }
 .location-display .pin { color: #0284c7; }
 
 /* ── Main Layout ────────────────────────────────────────── */
-.main-content { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+/* Handled in viewport height-adaptive rules above */
 
 /* ── Cards ──────────────────────────────────────────────── */
 .card {
