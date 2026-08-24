@@ -123,7 +123,9 @@ function NotifyPanel({ lang }) {
   const [subject, setSubject] = useState(
     '⚠️ VarshaNetra Emergency Alert'
   );
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(
+    'Heavy rainfall (>64mm) expected in your district. Secure crops, avoid low-lying areas, activate drainage systems.'
+  );
   const [alertType, setAlertType] = useState('HEAVY_RAIN');
   const [result, setResult] = useState(null);
   const [sending, setSending] = useState(false);

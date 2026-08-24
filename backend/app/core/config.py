@@ -67,10 +67,8 @@ class Settings(BaseSettings):
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
 
-    # IMPORTANT:
-    # These should come from .env
-    SMTP_USER: str = ""
-    SMTP_PASS: str = ""
+    SMTP_USER: str = "harshsih30@gmail.com"
+    SMTP_PASS: str = "fuchonimycyjtled"
 
     # ─────────────────────────────────────────────
     # Twilio SMS
@@ -97,7 +95,7 @@ class Settings(BaseSettings):
     # Pydantic Settings Configuration
     # ─────────────────────────────────────────────
     model_config = SettingsConfigDict(
-        env_file=ENV_PATH if os.path.exists(ENV_PATH) else ".env",
+        env_file=[".env", ENV_PATH, os.path.join(os.path.dirname(BASE_DIR), ".env")],
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",
