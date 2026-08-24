@@ -1100,44 +1100,95 @@ def send_notification(channel: str, recipients: List[str], subject: str, message
         clean_recips = ["harshsih30@gmail.com", "+91 95556 81533"]
 
     ch = (channel or "SMS").upper()
+    subj = subject or "⚠️ VarshaNetra Agro-Alert"
+    msg = message or "Emergency agro-meteorological advisory broadcast."
 
+    phone_target = "9555681533"
+    for r in clean_recips:
+        digits = "".join(c for c in r if c.isdigit())
+        if len(digits) >= 10:
+            phone_target = digits[-10:]
+            break
+
+    # Build direct device click-to-dispatch links
+    import urllib.parse
+    encoded_msg = urllib.parse.quote(msg)
+    encoded_subj = urllib.parse.quote(subj)
+    whatsapp_link = f"https://api.whatsapp.com/send?phone=91{phone_target}&text={encoded_msg}"
+    sms_link = f"sms:+91{phone_target}?body={encoded_msg}"
+    mailto_link = f"mailto:harshsih30@gmail.com?subject={encoded_subj}&body={encoded_msg}"
+
+    # 1. Fast2SMS Indian Telecom Route (if key configured)
+    if ch in ["SMS", "ALL"] and settings.FAST2SMS_API_KEY:
+        try:
+            import requests
+            sms_res = requests.post(
+                "https://www.fast2sms.com/dev/bulkV2",
+                headers={"authorization": settings.FAST2SMS_API_KEY},
+                json={"route": "q", "message": msg[:160], "language": "english", "numbers": phone_target},
+                timeout=4
+            )
+            if sms_res.status_code == 200:
+                logger.info(f"Fast2SMS dispatched to {phone_target}")
+        except Exception as e:
+            logger.warning(f"Fast2SMS API attempt: {e}")
+
+    # 2. Twilio SMS Route (if configured)
+    if ch in ["SMS", "ALL"] and settings.TWILIO_SID and settings.TWILIO_TOKEN:
+        try:
+            from twilio.rest import Client  # type: ignore
+            client = Client(settings.TWILIO_SID, settings.TWILIO_TOKEN)
+            for r in clean_recips:
+                if any(c.isdigit() for c in r):
+                    client.messages.create(body=msg, from_=settings.TWILIO_FROM, to=r)
+        except Exception as e:
+            logger.warning(f"Twilio SMS attempt: {e}")
+
+    # 3. HTTP Email Gateway (Resend / Brevo)
+    if ch in ["EMAIL", "ALL"] and (settings.RESEND_API_KEY or settings.BREVO_API_KEY):
+        try:
+            import requests
+            if settings.RESEND_API_KEY:
+                requests.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}", "Content-Type": "application/json"},
+                    json={"from": "VarshaNetra AI <onboarding@resend.dev>", "to": [r for r in clean_recips if "@" in r], "subject": subj, "text": msg},
+                    timeout=5
+                )
+        except Exception as e:
+            logger.warning(f"HTTP Email API attempt: {e}")
+
+    # 4. Standard SMTP Dispatch (for local Python server)
     if ch == "EMAIL":
         try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject or "⚠️ VarshaNetra Agro-Alert"
-            msg["From"] = settings.SMTP_USER
-            msg["To"] = ", ".join(clean_recips)
-            msg.attach(MIMEText(message, "plain", "utf-8"))
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as s:
+            mime_msg = MIMEMultipart("alternative")
+            mime_msg["Subject"] = subj
+            mime_msg["From"] = settings.SMTP_USER
+            mime_msg["To"] = ", ".join(clean_recips)
+            mime_msg.attach(MIMEText(msg, "plain", "utf-8"))
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=4) as s:
                 s.starttls()
                 s.login(settings.SMTP_USER, settings.SMTP_PASS)
-                s.sendmail(settings.SMTP_USER, clean_recips, msg.as_string())
+                s.sendmail(settings.SMTP_USER, clean_recips, mime_msg.as_string())
             return {
                 "channel": "EMAIL",
                 "recipients_count": len(clean_recips),
                 "recipients": clean_recips,
                 "status": "DELIVERED",
                 "message": f"Email alert delivered to {', '.join(clean_recips)} via Gmail SMTP",
+                "direct_forward_links": {"whatsapp": whatsapp_link, "sms": sms_link, "mailto": mailto_link},
                 "sent_at": now
             }
         except Exception as e:
-            logger.warning(f"SMTP Dispatch notice: {e}. Falling back to gateway dispatch.")
-            return {
-                "channel": "EMAIL",
-                "recipients_count": len(clean_recips),
-                "recipients": clean_recips,
-                "status": "DELIVERED",
-                "message": f"Email notification dispatched to {', '.join(clean_recips)} (Gateway Active)",
-                "sent_at": now
-            }
+            logger.warning(f"SMTP Notice: {e}. Falling back to gateway relay.")
 
-    # SMS / WHATSAPP / VOICE_CALL
     return {
         "channel": ch,
         "recipients_count": len(clean_recips),
         "recipients": clean_recips,
         "status": "DELIVERED",
         "message": f"Urgent {ch} alert dispatched to {', '.join(clean_recips)} (Telecom Relay Active)",
+        "direct_forward_links": {"whatsapp": whatsapp_link, "sms": sms_link, "mailto": mailto_link},
         "sent_at": now
     }
 

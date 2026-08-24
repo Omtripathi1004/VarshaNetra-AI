@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     TWILIO_SID: str = ""
     TWILIO_TOKEN: str = ""
     TWILIO_FROM: str = ""
+    FAST2SMS_API_KEY: str = ""
+    BREVO_API_KEY: str = ""
+    RESEND_API_KEY: str = ""
     NOTIFICATION_MOCK: bool = False  # False = Live real dispatch
 
     model_config = {
