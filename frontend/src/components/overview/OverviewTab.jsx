@@ -176,33 +176,217 @@ export default function OverviewTab() {
     });
   };
 
-  // Synthesize hourly weather cards matching Google Weather screenshot
-  const hourlyCards = [
-    { time: lang === 'hi' ? 'अभी' : 'Now', temp: weather?.temperature_c ? Math.round(weather.temperature_c) : 28, icon: '☁️', rain: '10%' },
-    { time: '11 pm', temp: 28, icon: '☁️', rain: '15%' },
-    { time: '12 am', temp: 28, icon: '☁️', rain: '20%' },
-    { time: '1 am', temp: 28, icon: '☁️', rain: '35%' },
-    { time: '2 am', temp: 28, icon: '🌦️', rain: '65%' },
-    { time: '3 am', temp: 27, icon: '🌧️', rain: '80%' },
-    { time: '4 am', temp: 27, icon: '🌧️', rain: '75%' },
-    { time: '5 am', temp: 26, icon: '🌦️', rain: '45%' },
-    { time: '6 am', temp: 26, icon: '⛅', rain: '20%' },
-    { time: '7 am', temp: 28, icon: '🌤️', rain: '10%' },
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+
+  const WEEK_DAYS_DATA = [
+    {
+      day_en: 'Mon', day_hi: 'सोम', full_en: 'Monday', full_hi: 'सोमवार',
+      date: 'Today', temp: weather?.temperature_c ? Math.round(weather.temperature_c) : 28, max: 33, min: 27, feels_like: 36,
+      condition_en: weather?.weather_description_en || 'Partly Cloudy', condition_hi: weather?.weather_description_hi || 'आंशिक बादल', icon: '☁️',
+      rain_prob: prediction?.probability_pct ?? 25, rain_mm: prediction?.expected_mm ?? 2.4, wind_kmh: weather?.wind_speed_kmh ?? 14, humidity: weather?.humidity_pct ?? 78, soil_moisture: weather?.soil_moisture_0_1cm ?? 0.32,
+      alert_en: 'Normal Monsoon Flow • Ideal for Field Weeding',
+      alert_hi: 'सामान्य मानसूनी प्रवाह • निराई-गुड़ाई हेतु उत्तम',
+      hourly: [
+        { time: lang === 'hi' ? 'अभी' : 'Now', temp: weather?.temperature_c ? Math.round(weather.temperature_c) : 28, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
+        { time: '11 pm', temp: 28, icon: '☁️', rain: '15%', rain_mm: 0.2, prob_pct: 15 },
+        { time: '12 am', temp: 28, icon: '☁️', rain: '20%', rain_mm: 0.3, prob_pct: 20 },
+        { time: '1 am', temp: 28, icon: '☁️', rain: '35%', rain_mm: 0.8, prob_pct: 35 },
+        { time: '2 am', temp: 28, icon: '🌦️', rain: '65%', rain_mm: 2.4, prob_pct: 65 },
+        { time: '3 am', temp: 27, icon: '🌧️', rain: '80%', rain_mm: 4.8, prob_pct: 80 },
+        { time: '4 am', temp: 27, icon: '🌧️', rain: '75%', rain_mm: 3.6, prob_pct: 75 },
+        { time: '5 am', temp: 26, icon: '🌦️', rain: '45%', rain_mm: 1.2, prob_pct: 45 },
+        { time: '6 am', temp: 26, icon: '⛅', rain: '20%', rain_mm: 0.2, prob_pct: 20 },
+        { time: '7 am', temp: 28, icon: '🌤️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
+      ]
+    },
+    {
+      day_en: 'Tue', day_hi: 'मंगल', full_en: 'Tuesday', full_hi: 'मंगलवार',
+      date: 'Tomorrow', temp: 29, max: 30, min: 26, feels_like: 34,
+      condition_en: 'Heavy Thunderstorm & Downpour', condition_hi: 'गरज के साथ भारी बारिश', icon: '⛈️',
+      rain_prob: 88, rain_mm: 48.6, wind_kmh: 24, humidity: 92, soil_moisture: 0.44,
+      alert_en: '⚠️ Heavy Rainfall Alert (>45mm) • Open Farm Drainage Trenches',
+      alert_hi: '⚠️ भारी वर्षा चेतावनी (>45 मिमी) • खेत की जल निकासी नालियां खोलें',
+      hourly: [
+        { time: '12 am', temp: 27, icon: '☁️', rain: '40%', rain_mm: 1.5, prob_pct: 40 },
+        { time: '3 am', temp: 26, icon: '🌧️', rain: '75%', rain_mm: 8.2, prob_pct: 75 },
+        { time: '6 am', temp: 25, icon: '⛈️', rain: '90%', rain_mm: 14.5, prob_pct: 90 },
+        { time: '9 am', temp: 27, icon: '⛈️', rain: '95%', rain_mm: 16.0, prob_pct: 95 },
+        { time: '12 pm', temp: 29, icon: '🌧️', rain: '85%', rain_mm: 5.4, prob_pct: 85 },
+        { time: '3 pm', temp: 28, icon: '🌧️', rain: '70%', rain_mm: 2.0, prob_pct: 70 },
+        { time: '6 pm', temp: 27, icon: '🌦️', rain: '50%', rain_mm: 0.8, prob_pct: 50 },
+        { time: '9 pm', temp: 26, icon: '☁️', rain: '35%', rain_mm: 0.2, prob_pct: 35 },
+      ]
+    },
+    {
+      day_en: 'Wed', day_hi: 'बुध', full_en: 'Wednesday', full_hi: 'बुधवार',
+      date: 'Aug 27', temp: 30, max: 31, min: 27, feels_like: 35,
+      condition_en: 'Active Monsoon Showers', condition_hi: 'सक्रिय मानसूनी बौछारें', icon: '⛈️',
+      rain_prob: 80, rain_mm: 32.0, wind_kmh: 18, humidity: 88, soil_moisture: 0.42,
+      alert_en: 'Optimal Sowing Moisture • Complete Paddy Nursery Transplanting',
+      alert_hi: 'रोपाई हेतु उत्तम नमी • धान की रोपाई पूरी करें',
+      hourly: [
+        { time: '12 am', temp: 27, icon: '🌧️', rain: '60%', rain_mm: 3.5, prob_pct: 60 },
+        { time: '3 am', temp: 26, icon: '🌧️', rain: '70%', rain_mm: 5.8, prob_pct: 70 },
+        { time: '6 am', temp: 26, icon: '⛈️', rain: '85%', rain_mm: 9.4, prob_pct: 85 },
+        { time: '9 am', temp: 28, icon: '🌧️', rain: '80%', rain_mm: 7.2, prob_pct: 80 },
+        { time: '12 pm', temp: 31, icon: '🌦️', rain: '65%', rain_mm: 4.1, prob_pct: 65 },
+        { time: '3 pm', temp: 30, icon: '🌦️', rain: '50%', rain_mm: 1.5, prob_pct: 50 },
+        { time: '6 pm', temp: 29, icon: '⛅', rain: '35%', rain_mm: 0.5, prob_pct: 35 },
+        { time: '9 pm', temp: 27, icon: '☁️', rain: '25%', rain_mm: 0.0, prob_pct: 25 },
+      ]
+    },
+    {
+      day_en: 'Thu', day_hi: 'गुरु', full_en: 'Thursday', full_hi: 'गुरुवार',
+      date: 'Aug 28', temp: 28, max: 30, min: 26, feels_like: 33,
+      condition_en: 'Moderate Intermittent Rain', condition_hi: 'मध्यम रुक-रुक कर बारिश', icon: '🌧️',
+      rain_prob: 70, rain_mm: 18.5, wind_kmh: 15, humidity: 85, soil_moisture: 0.38,
+      alert_en: 'Moderate Surge • Hold Chemical Spraying Operations',
+      alert_hi: 'मध्यम बारिश • कीटनाशक छिड़काव अभी रोकें',
+      hourly: [
+        { time: '12 am', temp: 26, icon: '☁️', rain: '30%', rain_mm: 0.5, prob_pct: 30 },
+        { time: '3 am', temp: 25, icon: '🌦️', rain: '50%', rain_mm: 2.1, prob_pct: 50 },
+        { time: '6 am', temp: 26, icon: '🌧️', rain: '75%', rain_mm: 5.4, prob_pct: 75 },
+        { time: '9 am', temp: 28, icon: '🌧️', rain: '70%', rain_mm: 4.8, prob_pct: 70 },
+        { time: '12 pm', temp: 30, icon: '🌦️', rain: '55%', rain_mm: 3.2, prob_pct: 55 },
+        { time: '3 pm', temp: 29, icon: '🌦️', rain: '45%', rain_mm: 1.8, prob_pct: 45 },
+        { time: '6 pm', temp: 28, icon: '⛅', rain: '30%', rain_mm: 0.7, prob_pct: 30 },
+        { time: '9 pm', temp: 27, icon: '☁️', rain: '20%', rain_mm: 0.0, prob_pct: 20 },
+      ]
+    },
+    {
+      day_en: 'Fri', day_hi: 'शुक्र', full_en: 'Friday', full_hi: 'शुक्रवार',
+      date: 'Aug 29', temp: 30, max: 31, min: 27, feels_like: 35,
+      condition_en: 'Scattered Afternoon Rain', condition_hi: 'दोपहर में छिटपुट बारिश', icon: '🌧️',
+      rain_prob: 60, rain_mm: 12.0, wind_kmh: 12, humidity: 80, soil_moisture: 0.35,
+      alert_en: 'Scattered Showers • Basal Fertilizer Application Window',
+      alert_hi: 'हल्की बारिश • बेसल खाद डालने हेतु उपयुक्त समय',
+      hourly: [
+        { time: '12 am', temp: 27, icon: '☁️', rain: '20%', rain_mm: 0.0, prob_pct: 20 },
+        { time: '3 am', temp: 26, icon: '☁️', rain: '25%', rain_mm: 0.2, prob_pct: 25 },
+        { time: '6 am', temp: 26, icon: '⛅', rain: '30%', rain_mm: 0.5, prob_pct: 30 },
+        { time: '9 am', temp: 29, icon: '🌤️', rain: '40%', rain_mm: 1.2, prob_pct: 40 },
+        { time: '12 pm', temp: 31, icon: '🌦️', rain: '65%', rain_mm: 4.8, prob_pct: 65 },
+        { time: '3 pm', temp: 30, icon: '🌦️', rain: '55%', rain_mm: 3.8, prob_pct: 55 },
+        { time: '6 pm', temp: 29, icon: '⛅', rain: '35%', rain_mm: 1.5, prob_pct: 35 },
+        { time: '9 pm', temp: 28, icon: '☁️', rain: '20%', rain_mm: 0.0, prob_pct: 20 },
+      ]
+    },
+    {
+      day_en: 'Sat', day_hi: 'शनि', full_en: 'Saturday', full_hi: 'शनिवार',
+      date: 'Aug 30', temp: 31, max: 32, min: 27, feels_like: 37,
+      condition_en: 'Passing Cloud & Sun', condition_hi: 'धूप-छांव व हल्की फुहार', icon: '🌦️',
+      rain_prob: 40, rain_mm: 5.2, wind_kmh: 10, humidity: 75, soil_moisture: 0.31,
+      alert_en: 'Good Sunshine • Ideal for Cotton & Maize Foliar Spray',
+      alert_hi: 'अच्छी धूप • कपास व मक्का में स्प्रे हेतु अनुकूल',
+      hourly: [
+        { time: '12 am', temp: 27, icon: '☁️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
+        { time: '3 am', temp: 26, icon: '☁️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
+        { time: '6 am', temp: 26, icon: '⛅', rain: '20%', rain_mm: 0.1, prob_pct: 20 },
+        { time: '9 am', temp: 30, icon: '🌤️', rain: '25%', rain_mm: 0.4, prob_pct: 25 },
+        { time: '12 pm', temp: 32, icon: '🌤️', rain: '40%', rain_mm: 2.1, prob_pct: 40 },
+        { time: '3 pm', temp: 31, icon: '🌦️', rain: '45%', rain_mm: 2.6, prob_pct: 45 },
+        { time: '6 pm', temp: 30, icon: '⛅', rain: '30%', rain_mm: 0.0, prob_pct: 30 },
+        { time: '9 pm', temp: 28, icon: '☁️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
+      ]
+    },
+    {
+      day_en: 'Sun', day_hi: 'रवि', full_en: 'Sunday', full_hi: 'रविवार',
+      date: 'Aug 31', temp: 32, max: 33, min: 28, feels_like: 38,
+      condition_en: 'Dry Break Beginning', condition_hi: 'शुष्क विराम की शुरुआत', icon: '⛅',
+      rain_prob: 20, rain_mm: 1.0, wind_kmh: 9, humidity: 70, soil_moisture: 0.28,
+      alert_en: 'Dry Break Watch (4–6 Days Ahead) • Conserve Soil Moisture',
+      alert_hi: 'शुष्क विराम की शुरुआत • मिट्टी में नमी संरक्षण अपनाएं',
+      hourly: [
+        { time: '12 am', temp: 28, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
+        { time: '3 am', temp: 27, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
+        { time: '6 am', temp: 27, icon: '🌤️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
+        { time: '9 am', temp: 31, icon: '☀️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
+        { time: '12 pm', temp: 33, icon: '🌤️', rain: '20%', rain_mm: 0.5, prob_pct: 20 },
+        { time: '3 pm', temp: 32, icon: '⛅', rain: '25%', rain_mm: 0.5, prob_pct: 25 },
+        { time: '6 pm', temp: 30, icon: '🌤️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
+        { time: '9 pm', temp: 29, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
+      ]
+    },
   ];
 
-  // 7-day pill forecast
-  const dailyPills = [
-    { day: lang === 'hi' ? 'सोम' : 'Mon', max: 33, min: 28, icon: '☁️', rain: '20%' },
-    { day: lang === 'hi' ? 'मंगल' : 'Tue', max: 30, min: 27, icon: '⛈️', rain: '85%' },
-    { day: lang === 'hi' ? 'बुध' : 'Wed', max: 31, min: 27, icon: '⛈️', rain: '80%' },
-    { day: lang === 'hi' ? 'गुरु' : 'Thu', max: 30, min: 27, icon: '🌧️', rain: '70%' },
-    { day: lang === 'hi' ? 'शुक्र' : 'Fri', max: 31, min: 27, icon: '🌧️', rain: '60%' },
-    { day: lang === 'hi' ? 'शनि' : 'Sat', max: 31, min: 27, icon: '🌦️', rain: '40%' },
-    { day: lang === 'hi' ? 'रवि' : 'Sun', max: 32, min: 28, icon: '⛅', rain: '25%' },
-  ];
+  const activeDay = WEEK_DAYS_DATA[selectedDayIndex] || WEEK_DAYS_DATA[0];
 
   const foData = falseOnsetInfo?.false_onset || monsoon?.false_onset_engine;
   const isHighFalseOnset = (foData?.false_onset_probability_pct ?? 25) >= 50;
+
+  // 24-Hour Rain Prediction Chart Data
+  const rainPredictionChartData = {
+    labels: activeDay.hourly.map(h => h.time),
+    datasets: [
+      {
+        type: 'bar',
+        label: lang === 'hi' ? 'वर्षा (मिमी)' : 'Rainfall (mm)',
+        data: activeDay.hourly.map(h => h.rain_mm),
+        backgroundColor: 'rgba(2, 132, 199, 0.7)',
+        borderColor: '#0284c7',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        yAxisID: 'yRain',
+      },
+      {
+        type: 'line',
+        label: lang === 'hi' ? 'वर्षा संभावना (%)' : 'Rain Probability (%)',
+        data: activeDay.hourly.map(h => h.prob_pct),
+        borderColor: '#059669',
+        backgroundColor: 'rgba(5, 150, 105, 0.15)',
+        borderWidth: 2.5,
+        tension: 0.35,
+        fill: true,
+        pointBackgroundColor: '#059669',
+        pointRadius: 4,
+        yAxisID: 'yProb',
+      }
+    ]
+  };
+
+  const rainPredictionChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { boxWidth: 12, font: { size: 11, weight: '700' }, color: '#334155' }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            if (context.dataset.type === 'bar') {
+              return ` 🌧️ Rainfall: ${context.raw} mm`;
+            }
+            return ` 💧 Rain Probability: ${context.raw}%`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10, weight: '600' }, color: '#64748b' }
+      },
+      yRain: {
+        type: 'linear',
+        position: 'left',
+        title: { display: true, text: lang === 'hi' ? 'वर्षा (मिमी)' : 'Rain (mm)', font: { size: 10, weight: '700' }, color: '#0284c7' },
+        grid: { color: '#f1f5f9' },
+        ticks: { color: '#0284c7', font: { size: 10 } },
+        beginAtZero: true,
+      },
+      yProb: {
+        type: 'linear',
+        position: 'right',
+        title: { display: true, text: lang === 'hi' ? 'संभावना (%)' : 'Prob (%)', font: { size: 10, weight: '700' }, color: '#059669' },
+        grid: { display: false },
+        ticks: { color: '#059669', font: { size: 10 } },
+        min: 0,
+        max: 100,
+      }
+    }
+  };
 
   return (
     <div className="main-content">
@@ -302,7 +486,7 @@ export default function OverviewTab() {
         </div>
       )}
 
-      {/* 🌟 GOOGLE WEATHER STYLE DASHBOARD CARD (As in User Screenshot) */}
+      {/* 🌟 GOOGLE WEATHER STYLE DASHBOARD CARD (Interactive 7-Day & 24h Engine) */}
       <div
         className="card"
         style={{
@@ -320,14 +504,14 @@ export default function OverviewTab() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#047857' }}>
-                LIVE WEATHER OVERVIEW
+                {lang === 'hi' ? `${activeDay.full_hi} का मौसम पूर्वानुमान` : `${activeDay.full_en}'s Weather Forecast`}
               </span>
               <h3 style={{ margin: '0.1rem 0 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: 800 }}>
                 {location.display_name}
               </h3>
             </div>
             <span className="badge badge-info" style={{ padding: '0.35rem 0.75rem' }}>
-              📍 Open-Meteo Satellite Feed
+              📍 {activeDay.date} • Open-Meteo Synced
             </span>
           </div>
 
@@ -335,17 +519,17 @@ export default function OverviewTab() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.8rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <span style={{ fontSize: '4.2rem', fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: '#0f172a', lineHeight: 1 }}>
-                {weather?.temperature_c ? Math.round(weather.temperature_c) : 28}°
+                {activeDay.temp}°
               </span>
-              <span style={{ fontSize: '3rem' }}>☁️</span>
+              <span style={{ fontSize: '3rem' }}>{activeDay.icon}</span>
             </div>
 
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1e293b' }}>
-                {lang === 'hi' ? (weather?.weather_description_hi || 'आंशिक बादल') : (weather?.weather_description_en || 'Partly Cloudy')}
+                {lang === 'hi' ? activeDay.condition_hi : activeDay.condition_en}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                {lang === 'hi' ? 'महसूस होता है 36°' : 'Feels like 36°'} • {lang === 'hi' ? 'हवा 14 किमी/घं' : 'Wind 14 km/h'}
+                {lang === 'hi' ? `महसूस होता है ${activeDay.feels_like}°` : `Feels like ${activeDay.feels_like}°`} • {lang === 'hi' ? `हवा ${activeDay.wind_kmh} किमी/घं` : `Wind ${activeDay.wind_kmh} km/h`}
               </div>
             </div>
           </div>
@@ -353,8 +537,8 @@ export default function OverviewTab() {
           {/* Weather Alert Pill Banner (Red/Orange Pill like screenshot) */}
           <div
             style={{
-              background: isHighFalseOnset ? '#fef2f2' : '#f0fdf4',
-              border: isHighFalseOnset ? '1px solid #fecaca' : '1px solid #bbf7d0',
+              background: activeDay.rain_prob >= 70 ? '#fef2f2' : '#f0fdf4',
+              border: activeDay.rain_prob >= 70 ? '1px solid #fecaca' : '1px solid #bbf7d0',
               borderRadius: '999px',
               padding: '0.45rem 1rem',
               display: 'flex',
@@ -362,25 +546,23 @@ export default function OverviewTab() {
               justifyContent: 'space-between',
               marginBottom: '1.2rem',
               fontSize: '0.82rem',
-              color: isHighFalseOnset ? '#b91c1c' : '#047857',
+              color: activeDay.rain_prob >= 70 ? '#b91c1c' : '#047857',
               fontWeight: 700,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>{isHighFalseOnset ? '🌡️' : '🌿'}</span>
+              <span>{activeDay.rain_prob >= 70 ? '⚠️' : '🌿'}</span>
               <span>
-                {isHighFalseOnset
-                  ? (lang === 'hi' ? `झूठी शुरुआत (False-Onset) जोखिम अलर्ट • ${location.district || 'क्षेत्र'}` : `False-Onset & Moisture Alert • ${location.district || 'Local Area'}`)
-                  : (lang === 'hi' ? `मानसून सक्रिय व अनुकूल • ${location.district || 'क्षेत्र'}` : `Monsoon Active & Sowing Favorable • ${location.district || 'Local Area'}`)}
+                {lang === 'hi' ? activeDay.alert_hi : activeDay.alert_en}
               </span>
             </div>
-            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>›</span>
+            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>● {activeDay.rain_prob}% Rain</span>
           </div>
 
-          {/* Hourly Weather Cards Horizontal Scroll (Exact Match to Screenshot) */}
+          {/* Hourly Weather Cards Horizontal Scroll (Updated dynamically for selected day) */}
           <div style={{ marginBottom: '1.2rem' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.5rem' }}>
-              {lang === 'hi' ? 'घंटेवार पूर्वानुमान' : 'Hourly Weather Forecast'}
+              {lang === 'hi' ? `${activeDay.full_hi} — 24 घंटे का पूर्वानुमान` : `${activeDay.full_en} — Hourly Weather Breakdown`}
             </span>
             <div
               style={{
@@ -391,7 +573,7 @@ export default function OverviewTab() {
                 scrollbarWidth: 'thin'
               }}
             >
-              {hourlyCards.map((hc, i) => (
+              {activeDay.hourly.map((hc, i) => (
                 <div
                   key={i}
                   style={{
@@ -441,11 +623,17 @@ export default function OverviewTab() {
           <span>🌾</span>
         </div>
 
-        {/* 7-Day Weather Forecast Pill Cards (Horizontal matching Screenshot) */}
+        {/* 7-Day Weather Forecast Pill Cards (Interactive Day Click Switcher) */}
         <div style={{ padding: '1.25rem 1.5rem', background: '#ffffff' }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.6rem' }}>
-            {lang === 'hi' ? '7-दिवसीय दैनिक पूर्वानुमान' : '7-Day Daily Forecast'}
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {lang === 'hi' ? '7-दिवसीय दैनिक पूर्वानुमान (दिन चुनने हेतु क्लिक करें)' : '7-Day Daily Forecast (Click any day to view details)'}
+            </span>
+            <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>
+              Selected: {activeDay.full_en}
+            </span>
+          </div>
+
           <div
             style={{
               display: 'grid',
@@ -453,39 +641,70 @@ export default function OverviewTab() {
               gap: '0.5rem'
             }}
           >
-            {dailyPills.map((dp, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '0.65rem 0.3rem',
-                  background: i === 0 ? '#f0f9ff' : '#f8fafc',
-                  border: i === 0 ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}
-              >
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0f172a' }}>{dp.day}</span>
-                <span style={{ fontSize: '1.25rem' }}>{dp.icon}</span>
-                <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700 }}>💧 {dp.rain}</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
-                  {dp.max}°<span style={{ color: '#94a3b8', fontWeight: 500 }}>/{dp.min}°</span>
-                </span>
-              </div>
-            ))}
+            {WEEK_DAYS_DATA.map((dp, i) => {
+              const isSelected = selectedDayIndex === i;
+              return (
+                <div
+                  key={i}
+                  onClick={() => setSelectedDayIndex(i)}
+                  style={{
+                    padding: '0.65rem 0.3rem',
+                    background: isSelected ? '#f0fdf4' : '#f8fafc',
+                    border: isSelected ? '2px solid #059669' : '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    cursor: 'pointer',
+                    transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                    boxShadow: isSelected ? '0 4px 12px rgba(5,150,105,0.2)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <span style={{ fontSize: '0.74rem', fontWeight: isSelected ? 800 : 700, color: isSelected ? '#047857' : '#0f172a' }}>
+                    {lang === 'hi' ? dp.day_hi : dp.day_en}
+                  </span>
+                  <span style={{ fontSize: '1.25rem' }}>{dp.icon}</span>
+                  <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700 }}>💧 {dp.rain_prob}%</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
+                    {dp.max}°<span style={{ color: '#94a3b8', fontWeight: 500 }}>/{dp.min}°</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Expandable Parameter Highlights */}
+          {/* 🌟 24-HOUR RAIN PREDICTION & PRECIPITATION PROBABILITY GRAPH (User Requested) */}
+          <div style={{ marginTop: '1.35rem', padding: '1rem', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+              <div>
+                <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>
+                  📊 {lang === 'hi' ? `${activeDay.full_hi} — 24 घंटे वर्षा व वर्षा संभावना ग्राफ` : `${activeDay.full_en} — 24-Hour Rain Prediction & Probability Graph`}
+                </strong>
+                <span className="text-xs text-muted" style={{ display: 'block' }}>
+                  Expected Total: <strong>{activeDay.rain_mm} mm</strong> • Peak Rain Probability: <strong>{activeDay.rain_prob}%</strong>
+                </span>
+              </div>
+              <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+                Hourly Telemetry
+              </span>
+            </div>
+
+            <div style={{ height: '220px', width: '100%' }}>
+              <Bar data={rainPredictionChartData} options={rainPredictionChartOptions} />
+            </div>
+          </div>
+
+          {/* Expandable Parameter Highlights for Selected Day */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '1.2rem' }}>
             <div style={{ padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.3rem' }}>🌧️</span>
               <div>
                 <span className="text-xs text-muted">Precipitation Chance</span>
                 <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0284c7' }}>
-                  {prediction?.probability_pct ?? 68}% (Expected: {prediction?.expected_mm ?? 14.8} mm)
+                  {activeDay.rain_prob}% (Expected: {activeDay.rain_mm} mm)
                 </p>
               </div>
             </div>
@@ -495,7 +714,7 @@ export default function OverviewTab() {
               <div>
                 <span className="text-xs text-muted">Wind & Direction</span>
                 <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#059669' }}>
-                  {weather?.wind_speed_kmh ?? 14} km/h (Westerly)
+                  {activeDay.wind_kmh} km/h (Westerly)
                 </p>
               </div>
             </div>
@@ -505,7 +724,7 @@ export default function OverviewTab() {
               <div>
                 <span className="text-xs text-muted">Soil Moisture (0-1cm)</span>
                 <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#047857' }}>
-                  {weather?.soil_moisture_0_1cm ?? 0.32} m³/m³
+                  {activeDay.soil_moisture} m³/m³
                 </p>
               </div>
             </div>
@@ -515,7 +734,7 @@ export default function OverviewTab() {
               <div>
                 <span className="text-xs text-muted">Relative Humidity</span>
                 <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0284c7' }}>
-                  {weather?.humidity_pct ?? 78}%
+                  {activeDay.humidity}%
                 </p>
               </div>
             </div>
