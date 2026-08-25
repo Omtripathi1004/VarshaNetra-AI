@@ -82,7 +82,7 @@ export default function HydroMapTab() {
 
       {/* Leaflet White Map Container */}
       <div className="grid-2" style={{ gap: '1rem' }}>
-        <div className="card" style={{ gridColumn: 'span 2', padding: '0.5rem', background: '#ffffff', borderRadius: '16px', overflow: 'hidden' }}>
+        <div className="card" style={{ gridColumn: 'span 2', padding: '0.5rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', overflow: 'hidden' }}>
           <MapContainer
             center={center}
             zoom={6}

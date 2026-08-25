@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { t } from '../../i18n/translations';
 
 const AppContext = createContext(null);
@@ -36,6 +36,11 @@ export const DEMO_ACCOUNTS = [
   },
 ];
 
+// RBAC Constants
+const USER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics'];
+const PRIVILEGED_TABS = ['alerts', 'command', 'system'];
+const PRIVILEGED_ROLES = new Set(['developer', 'admin']);
+
 export function AppProvider({ children }) {
   const [lang, setLang] = useState('en');
   const [location, setLocation] = useState({
@@ -49,7 +54,12 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(DEMO_ACCOUNTS[0]);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  const login = (userId, password) => {
+  /**
+   * SECURITY: Exact-match login only.
+   * The previous role-prefix fallback has been removed.
+   * In production, this should authenticate against a backend JWT/session endpoint.
+   */
+  const login = useCallback((userId, password) => {
     const matched = DEMO_ACCOUNTS.find(
       u => u.userId.toLowerCase() === (userId || '').trim().toLowerCase() && u.password === password
     );
@@ -58,19 +68,13 @@ export function AppProvider({ children }) {
       setIsLoginModalOpen(false);
       return { success: true, user: matched };
     }
-    // Fallback: match by role/ID prefix
-    const byRole = DEMO_ACCOUNTS.find(u => (userId || '').toLowerCase().includes(u.role));
-    if (byRole) {
-      setUser(byRole);
-      setIsLoginModalOpen(false);
-      return { success: true, user: byRole };
-    }
+    // No role-prefix fallback — exact credentials required
     return { success: false, error: 'Invalid User ID or Password' };
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(DEMO_ACCOUNTS[0]);
-  };
+  }, []);
 
   const toggleLang = () => setLang(l => l === 'en' ? 'hi' : 'en');
 
@@ -78,6 +82,11 @@ export function AppProvider({ children }) {
   const tr = (key) => t(lang, key);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // RBAC: whether the current user can access privileged tabs
+  const canAccessPrivileged = useMemo(() => {
+    return PRIVILEGED_ROLES.has(user?.role);
+  }, [user?.role]);
 
   return (
     <AppContext.Provider value={{
@@ -94,7 +103,10 @@ export function AppProvider({ children }) {
       setIsLoginModalOpen,
       isChatOpen,
       setIsChatOpen,
-      DEMO_ACCOUNTS
+      DEMO_ACCOUNTS,
+      canAccessPrivileged,
+      USER_TABS,
+      PRIVILEGED_TABS,
     }}>
       {children}
     </AppContext.Provider>

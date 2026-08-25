@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/send-sms",
+      "destination": "/api/send-sms.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },

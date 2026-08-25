@@ -69,7 +69,7 @@ export default function AnalyticsTab() {
           <h2 style={{ color: '#047857', margin: 0, fontWeight: 800 }}>
             🔬 {lang === 'hi' ? '10-वर्षीय ML मॉडल सत्यापन एवं कृषि सिमुलेशन लैब' : '10-Year ML Validation & Agri Simulation Lab'}
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem' }}>
             Empirical Validation on 100% Unseen Test Period (Strict 0 Data Leakage Protocol) + Interactive What-If Stress Testing
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function AnalyticsTab() {
       ) : (
         <>
           {/* 1. INTERACTIVE WHAT-IF SIMULATION LAB (HERO LAB FEATURE) */}
-          <div className="card" style={{ marginBottom: '1.25rem', border: '2px solid #bbf7d0', background: '#f0fdf4' }}>
+          <div className="card" style={{ marginBottom: '1.25rem', border: '2px solid #bbf7d0', background: 'rgba(5, 150, 105, 0.08)' }}>
             <div className="card-header">
               <span className="card-title" style={{ color: '#047857' }}>
                 🧪 {lang === 'hi' ? 'सक्रिय क्या-अगर (What-If) कृषि जलवायु सिमुलेशन लैब' : 'Active What-If Agricultural Climate Simulation Lab'}
@@ -95,7 +95,7 @@ export default function AnalyticsTab() {
               <span className="badge badge-success">Real-Time Scenario Modeling</span>
             </div>
 
-            <p style={{ fontSize: '0.8rem', color: '#334155', margin: '0 0 1rem' }}>
+            <p style={{ fontSize: '0.8rem', color: '#cbd5e1', margin: '0 0 1rem' }}>
               {lang === 'hi'
                 ? 'वर्षा में बदलाव, सूखे दिनों की संख्या और तापमान में वृद्धि के आधार पर फसल तनाव और उपज प्रभाव का सिमुलेशन करें:'
                 : 'Simulate climate stress scenarios by varying rainfall deviations, dry-spell lengths, and temperature anomalies to preview crop resilience:'}
@@ -109,7 +109,7 @@ export default function AnalyticsTab() {
                   className="select"
                   value={simCrop}
                   onChange={e => setSimCrop(e.target.value)}
-                  style={{ background: '#ffffff' }}
+                  style={{ background: 'rgba(18, 14, 40, 0.72)' }}
                 >
                   <option value="Paddy (Rice)">🌾 Paddy (Rice) / धान</option>
                   <option value="Cotton">☁️ Cotton / कपास</option>
@@ -193,9 +193,9 @@ export default function AnalyticsTab() {
 
             {/* Simulation Results Strip */}
             {simResult && (
-              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+              <div style={{ background: 'rgba(18, 14, 40, 0.72)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)' }}>
                 <div className="grid-3" style={{ gap: '0.8rem', marginBottom: '0.8rem' }}>
-                  <div style={{ padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ padding: '0.65rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
                     <span className="text-xs text-muted">{lang === 'hi' ? 'फसल तनाव सूचकांक' : 'Crop Stress Index'}</span>
                     <p style={{ fontSize: '1.4rem', fontWeight: 800, color: simResult.crop_stress_index_pct > 60 ? '#dc2626' : '#ea580c', margin: '0.15rem 0' }}>
                       {simResult.crop_stress_index_pct}%
@@ -230,12 +230,12 @@ export default function AnalyticsTab() {
                     </span>
                   </div>
 
-                  <div style={{ padding: '0.65rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ padding: '0.65rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
                     <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'प्रक्षेपित मृदा नमी' : 'Projected Soil Moisture'}</span>
                     <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', margin: '0.15rem 0' }}>
                       {simResult.soil_moisture_projected} m³/m³
                     </p>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Root zone moisture index</span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Root zone moisture index</span>
                   </div>
                 </div>
 
@@ -245,7 +245,7 @@ export default function AnalyticsTab() {
                   borderRadius: '8px',
                   borderLeft: `4px solid ${simResult.yield_impact_pct > 0 ? '#059669' : '#ea580c'}`,
                   fontSize: '0.84rem',
-                  color: '#1e293b'
+                  color: '#e2e8f0'
                 }}>
                   <strong>{lang === 'hi' ? 'आकस्मिक कृषि सिफारिश:' : 'Recommended Agronomic Contingency:'}</strong>{' '}
                   {lang === 'hi' ? simResult.recommended_contingency_hi : simResult.recommended_contingency_en}
@@ -262,23 +262,23 @@ export default function AnalyticsTab() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.8rem', marginBottom: '1rem' }}>
-              <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
                 <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'प्रशिक्षण काल (Years 1–7)' : 'Training Period (Years 1–7)'}</span>
                 <p style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0284c7', margin: '0.2rem 0' }}>
                   {ds?.training_period || '2015–2021'}
                 </p>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{ds?.training_samples || 2557} daily samples</span>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{ds?.training_samples || 2557} daily samples</span>
               </div>
 
-              <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
                 <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'सत्यापन काल (Years 8–9)' : 'Validation Period (Years 8–9)'}</span>
                 <p style={{ fontSize: '1.15rem', fontWeight: 800, color: '#d97706', margin: '0.2rem 0' }}>
                   {ds?.validation_period || '2022–2023'}
                 </p>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{ds?.validation_samples || 730} daily samples</span>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{ds?.validation_samples || 730} daily samples</span>
               </div>
 
-              <div style={{ padding: '0.75rem', background: '#f0fdf4', borderRadius: '8px', border: '2px solid #bbf7d0' }}>
+              <div style={{ padding: '0.75rem', background: 'rgba(5, 150, 105, 0.08)', borderRadius: '8px', border: '2px solid #bbf7d0' }}>
                 <span className="text-xs font-bold" style={{ color: '#047857' }}>
                   🎯 {lang === 'hi' ? 'पूर्णतः अनदेखा परीक्षण काल (Year 10)' : 'Completely Unseen Test (Year 10)'}
                 </span>
@@ -289,7 +289,7 @@ export default function AnalyticsTab() {
               </div>
             </div>
 
-            <div style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', borderRadius: '6px', fontSize: '0.78rem', color: '#334155' }}>
+            <div style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
               <strong>Scientific Validation Principle:</strong> The final Year 10 (2024) data was strictly withheld during model training and hyperparameter tuning. Evaluation metrics below reflect true out-of-sample predictive performance on future unseen monsoon conditions.
             </div>
           </div>
@@ -352,7 +352,7 @@ export default function AnalyticsTab() {
               </table>
             </div>
 
-            <div style={{ padding: '0.75rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '0.82rem', color: '#047857' }}>
+            <div style={{ padding: '0.75rem', background: 'rgba(5, 150, 105, 0.08)', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '0.82rem', color: '#047857' }}>
               <strong>Key Finding:</strong> {lang === 'hi' ? cmp?.conclusion_hi : cmp?.conclusion_en}
             </div>
           </div>
@@ -371,7 +371,7 @@ export default function AnalyticsTab() {
                     <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => v.slice(5)} />
                     <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit="mm" />
                     <Tooltip
-                      contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.78rem' }}
+                      contentStyle={{ background: 'rgba(18, 14, 40, 0.72)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '8px', fontSize: '0.78rem' }}
                     />
                     <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
                     <Line type="monotone" dataKey="observed_rain_mm" name="Observed Rain (mm)" stroke="#0f172a" strokeWidth={2} dot={{ r: 2 }} />
@@ -390,12 +390,12 @@ export default function AnalyticsTab() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginTop: '0.5rem' }}>
-                <div style={{ padding: '0.85rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ padding: '0.85rem', background: 'rgba(5, 150, 105, 0.08)', border: '1px solid #bbf7d0', borderRadius: '8px', textAlign: 'center' }}>
                   <span className="text-xs font-bold" style={{ color: '#047857' }}>True Positives (Rain Correct)</span>
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#047857', margin: '0.2rem 0' }}>
                     {hybM?.confusion_matrix?.tp ?? 90}
                   </p>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Rain days correctly alerted</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Rain days correctly alerted</span>
                 </div>
 
                 <div style={{ padding: '0.85rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', textAlign: 'center' }}>
@@ -403,23 +403,23 @@ export default function AnalyticsTab() {
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#b45309', margin: '0.2rem 0' }}>
                     {hybM?.confusion_matrix?.fp ?? 22}
                   </p>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Down from 38 in baseline</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Down from 38 in baseline</span>
                 </div>
 
-                <div style={{ padding: '0.85rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ padding: '0.85rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center' }}>
                   <span className="text-xs font-bold" style={{ color: '#dc2626' }}>False Negatives (Missed Rain)</span>
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#dc2626', margin: '0.2rem 0' }}>
                     {hybM?.confusion_matrix?.fn ?? 33}
                   </p>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Down from 39 in baseline</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Down from 39 in baseline</span>
                 </div>
 
-                <div style={{ padding: '0.85rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ padding: '0.85rem', background: 'rgba(5, 150, 105, 0.08)', border: '1px solid #bbf7d0', borderRadius: '8px', textAlign: 'center' }}>
                   <span className="text-xs font-bold" style={{ color: '#047857' }}>True Negatives (Dry Correct)</span>
                   <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#047857', margin: '0.2rem 0' }}>
                     {hybM?.confusion_matrix?.tn ?? 221}
                   </p>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Dry days correctly identified</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Dry days correctly identified</span>
                 </div>
               </div>
             </div>

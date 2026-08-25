@@ -18,12 +18,12 @@ function SubEngineCard({ title, icon, badgeText, badgeType = 'info', children })
 
 function MetricBox({ label, value, unit = '', color = '#0f172a', subtitle = '' }) {
   return (
-    <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-      <p style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, margin: 0 }}>{label}</p>
+    <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
+      <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, margin: 0 }}>{label}</p>
       <p style={{ fontFamily: 'Outfit', fontSize: '1.45rem', fontWeight: 800, color, margin: '0.2rem 0 0' }}>
         {value}{unit}
       </p>
-      {subtitle && <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.15rem 0 0' }}>{subtitle}</p>}
+      {subtitle && <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: '0.15rem 0 0' }}>{subtitle}</p>}
     </div>
   );
 }
@@ -60,7 +60,7 @@ export default function MonsoonPhaseTab() {
           <h2 style={{ color: '#047857', margin: 0, fontWeight: 800 }}>
             🌊 {lang === 'hi' ? 'मानसून चरण एवं जोखिम केंद्र' : 'Monsoon Phase & Event Decision Hub'}
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem' }}>
             📍 {location.display_name} • Probabilistic Event Forecasting (7–30 Days)
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function MonsoonPhaseTab() {
             style={{
               borderLeftWidth: '6px',
               borderLeftColor: (foData?.false_onset_probability_pct ?? 20) >= 50 ? '#ea580c' : '#10b981',
-              background: '#ffffff',
+              background: 'rgba(18, 14, 40, 0.72)',
               marginBottom: '1.25rem'
             }}
           >
@@ -96,10 +96,10 @@ export default function MonsoonPhaseTab() {
                 <span className="badge badge-warning" style={{ marginBottom: '0.3rem' }}>
                   🎯 {lang === 'hi' ? 'मुख्य तकनीकी योगदान' : 'Hero Intelligence Feature'}
                 </span>
-                <h3 style={{ margin: '0.2rem 0', color: '#0f172a', fontWeight: 800 }}>
+                <h3 style={{ margin: '0.2rem 0', color: '#f1f5f9', fontWeight: 800 }}>
                   {lang === 'hi' ? 'झूठी शुरुआत (False-Onset) जोखिम और शुष्क विराम पूर्वानुमान' : 'False-Onset Risk & Dry Break Prediction'}
                 </h3>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: 0 }}>
                   {foData?.definition || 'Rainfall surge followed by >= 6-day dry spell (< 2.5 mm/day) during early monsoon window.'}
                 </p>
               </div>
@@ -108,7 +108,7 @@ export default function MonsoonPhaseTab() {
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: (foData?.false_onset_probability_pct ?? 20) >= 50 ? '#ea580c' : '#059669', lineHeight: 1 }}>
                   {foData?.false_onset_probability_pct ?? 68}%
                 </div>
-                <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>
                   {lang === 'hi' ? 'झूठी शुरुआत संभावना' : 'False-Onset Probability'} • {lang === 'hi' ? 'विश्वास: उच्च' : 'Confidence: High'}
                 </span>
               </div>
@@ -140,7 +140,7 @@ export default function MonsoonPhaseTab() {
               />
             </div>
 
-            <div style={{ padding: '0.8rem 1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.84rem', color: '#334155' }}>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)', fontSize: '0.84rem', color: '#cbd5e1' }}>
               <strong>📢 {lang === 'hi' ? 'कार्रवाई योग्य परामर्श:' : 'Immediate Actionable Advisory:'}</strong>{' '}
               {lang === 'hi' ? (foData?.action_hi || foData?.action_en) : (foData?.action_en || foData?.action_hi)}
             </div>
@@ -151,7 +151,7 @@ export default function MonsoonPhaseTab() {
             {/* 1. Onset Sub-Engine */}
             <SubEngineCard title={lang === 'hi' ? 'मानसून शुरुआत इंजन' : 'Monsoon Onset Engine'} icon="🌱" badgeText={onsetData?.confidence || 'High'} badgeType="success">
               <MetricBox label={lang === 'hi' ? 'शुरुआत संभावना' : 'Onset Probability'} value={`${onsetData?.onset_probability_pct ?? 82}%`} color="#059669" />
-              <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+              <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
                 <p><strong>{lang === 'hi' ? 'अनुमानित विंडो:' : 'Expected Window:'}</strong> {onsetData?.expected_window || 'June 15 – July 05'}</p>
                 <p><strong>{lang === 'hi' ? 'प्रवाह स्थिति:' : 'Status:'}</strong> {onsetData?.status_label || 'Advancing'}</p>
               </div>
@@ -163,9 +163,9 @@ export default function MonsoonPhaseTab() {
             {/* 2. Break-Monsoon Watch Engine */}
             <SubEngineCard title={lang === 'hi' ? 'विराम (Break) निगरानी' : 'Break-Monsoon Watch'} icon="⏳" badgeText={breakData?.severity || 'MODERATE'} badgeType="warning">
               <MetricBox label={lang === 'hi' ? 'विराम संभावना' : 'Break Probability'} value={`${breakData?.break_probability_pct ?? 65}%`} color="#d97706" />
-              <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+              <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
                 <p><strong>{lang === 'hi' ? 'अपेक्षित अवधि:' : 'Expected Duration:'}</strong> {breakData?.expected_duration || '5–7 days'}</p>
-                <p style={{ marginTop: '0.3rem', color: '#64748b' }}>{lang === 'hi' ? breakData?.action_hi : breakData?.action_en}</p>
+                <p style={{ marginTop: '0.3rem', color: '#94a3b8' }}>{lang === 'hi' ? breakData?.action_hi : breakData?.action_en}</p>
               </div>
               <div className="progress-bar">
                 <div className="progress-fill yellow" style={{ width: `${breakData?.break_probability_pct ?? 65}%` }} />
@@ -175,9 +175,9 @@ export default function MonsoonPhaseTab() {
             {/* 3. Heavy Rain Risk Engine */}
             <SubEngineCard title={lang === 'hi' ? 'भारी वर्षा जोखिम इंजन' : 'Heavy Rain Risk Engine'} icon="🌧️" badgeText={heavyData?.confidence || 'Moderate'} badgeType="info">
               <MetricBox label={lang === 'hi' ? 'भारी वर्षा संभावना' : 'Heavy Rain Probability'} value={`${heavyData?.heavy_rain_probability_pct ?? 22}%`} color="#0284c7" />
-              <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+              <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
                 <p><strong>{lang === 'hi' ? 'मानक परिभाषा:' : 'Threshold:'}</strong> {heavyData?.threshold_definition || '>= 64.5 mm/day'}</p>
-                <p style={{ marginTop: '0.3rem', color: '#64748b' }}>{lang === 'hi' ? heavyData?.action_hi : heavyData?.action_en}</p>
+                <p style={{ marginTop: '0.3rem', color: '#94a3b8' }}>{lang === 'hi' ? heavyData?.action_hi : heavyData?.action_en}</p>
               </div>
               <div className="progress-bar">
                 <div className="progress-fill" style={{ width: `${heavyData?.heavy_rain_probability_pct ?? 22}%` }} />
@@ -194,7 +194,7 @@ export default function MonsoonPhaseTab() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.6rem' }}>
                 {data.criteria_met.map((c, i) => (
-                  <div key={i} style={{ padding: '0.5rem 0.8rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.8rem', color: '#047857', fontWeight: 600 }}>
+                  <div key={i} style={{ padding: '0.5rem 0.8rem', background: 'rgba(5, 150, 105, 0.08)', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.8rem', color: '#047857', fontWeight: 600 }}>
                     ✓ {c}
                   </div>
                 ))}

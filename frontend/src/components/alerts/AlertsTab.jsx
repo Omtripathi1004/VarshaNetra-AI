@@ -116,7 +116,7 @@ function AlertCard({ alert, onAck, lang }) {
 }
 
 function NotifyPanel({ lang }) {
-  const { tr } = useApp();
+  const { tr, user, location } = useApp();
 
   const [channel, setChannel] = useState('SMS');
   const [recipients, setRecipients] = useState('+91 95556 81533');
@@ -129,6 +129,8 @@ function NotifyPanel({ lang }) {
   const [alertType, setAlertType] = useState('HEAVY_RAIN');
   const [result, setResult] = useState(null);
   const [sending, setSending] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
 
   const TEMPLATES = {
     HEAVY_RAIN:
@@ -206,11 +208,9 @@ function NotifyPanel({ lang }) {
     );
   };
 
-  const handleSend = async () => {
+  const initiateSend = () => {
     if (!recipients.trim()) return;
-
     const effectiveMsg = getEffectiveMessage();
-
     if (!effectiveMsg) {
       setResult({
         status: 'FAILED',
@@ -218,9 +218,15 @@ function NotifyPanel({ lang }) {
       });
       return;
     }
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmAndDispatch = async () => {
+    setShowConfirmModal(false);
     setSending(true);
     setResult(null);
+
+    const effectiveMsg = getEffectiveMessage();
 
     try {
       const recipList = recipients
@@ -228,20 +234,52 @@ function NotifyPanel({ lang }) {
         .map((r) => r.trim())
         .filter(Boolean);
 
-      const res = await api.sendNotification(
-        channel,
-        recipList,
-        effectiveMsg,
-        subject,
-        alertType
-      );
+      let dispatchRes = null;
+      if (channel === 'SMS') {
+        const firstPhone = recipList[0] || recipients;
+        const res = await api.sendSMS({
+          phoneNumber: firstPhone,
+          location: location.display_name || 'Your District Agrozone',
+          alertType,
+          message: effectiveMsg,
+        });
+        dispatchRes = res;
+        setResult({
+          status: 'DELIVERED',
+          message: res.data?.message || `SMS alerts successfully registered and dispatched to ${firstPhone}!`,
+          sent_at: new Date().toLocaleTimeString(),
+        });
+      } else {
+        const res = await api.sendNotification(
+          channel,
+          recipList,
+          effectiveMsg,
+          subject,
+          alertType
+        );
+        dispatchRes = res;
+        setResult(
+          res.data || {
+            status: 'SENT',
+            message: 'Notification request sent successfully.',
+          }
+        );
+      }
 
-      setResult(
-        res.data || {
-          status: 'SENT',
-          message: 'Notification request sent successfully.',
-        }
-      );
+      // Record Audit Log Entry
+      const logEntry = {
+        id: `audit_${Date.now()}`,
+        userId: user?.userId || 'admin@varshanetra.ai',
+        role: user?.role || 'admin',
+        timestamp: new Date().toISOString(),
+        warningType: alertType,
+        targetRegion: location.display_name,
+        channel,
+        recipients,
+        status: 'DISPATCHED_SUCCESS',
+      };
+      setAuditLog(prev => [logEntry, ...prev]);
+
     } catch (e) {
       const errDetail =
         e.response?.data?.detail ||
@@ -315,24 +353,42 @@ function NotifyPanel({ lang }) {
         </span>
       </div>
 
-      {/* Channel Selector */}
-      <div className="channel-tabs mb-2">
-        {['SMS', 'EMAIL', 'WHATSAPP'].map((ch) => (
-          <button
-            key={ch}
-            className={`channel-tab ${channel === ch ? 'active' : ''
-              }`}
-            onClick={() => handleChannelChange(ch)}
-            type="button"
-          >
-            {ch === 'EMAIL'
-              ? '📧'
-              : ch === 'SMS'
-                ? '📱'
-                : '💬'}{' '}
-            {ch}
-          </button>
-        ))}
+      {/* Channel Selector — Modern Pill Buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        {[
+          { key: 'SMS', icon: '📱', label: 'SMS', color: '#0284c7', gradient: 'linear-gradient(135deg, #0284c7, #0ea5e9)' },
+          { key: 'EMAIL', icon: '✉️', label: 'Email', color: '#7c3aed', gradient: 'linear-gradient(135deg, #7c3aed, #a78bfa)' },
+          { key: 'WHATSAPP', icon: '💬', label: 'WhatsApp', color: '#16a34a', gradient: 'linear-gradient(135deg, #16a34a, #22c55e)' },
+        ].map((ch) => {
+          const isActive = channel === ch.key;
+          return (
+            <button
+              key={ch.key}
+              onClick={() => handleChannelChange(ch.key)}
+              type="button"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                padding: '0.55rem 0.5rem',
+                borderRadius: '12px',
+                border: isActive ? 'none' : '1.5px solid #e2e8f0',
+                background: isActive ? ch.gradient : '#ffffff',
+                color: isActive ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                boxShadow: isActive ? `0 3px 12px ${ch.color}40` : '0 1px 3px rgba(0,0,0,0.04)',
+                transition: 'all 0.2s ease',
+                minWidth: 0,
+              }}
+            >
+              <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{ch.icon}</span>
+              <span>{ch.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Templates */}
@@ -398,47 +454,20 @@ function NotifyPanel({ lang }) {
                 : 'phone numbers'})
             </label>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '0.3rem',
-                flexWrap: 'wrap',
-              }}
-            >
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => {
-                  setRecipients('+91 95556 81533');
-                  setChannel('SMS');
-                }}
-                style={{
-                  fontSize: '0.68rem',
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: '4px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f1f5f9',
-                  cursor: 'pointer',
-                }}
+                onClick={() => { setRecipients('+91 95556 81533'); setChannel('SMS'); }}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid #bae6fd', background: '#e0f2fe', color: '#0369a1', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
                 📱 +91 95556 81533
               </button>
-
               <button
                 type="button"
-                onClick={() => {
-                  setRecipients('harshsih30@gmail.com');
-                  setChannel('EMAIL');
-                }}
-                style={{
-                  fontSize: '0.68rem',
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: '4px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f1f5f9',
-                  cursor: 'pointer',
-                }}
+                onClick={() => { setRecipients('harshsih30@gmail.com'); setChannel('EMAIL'); }}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid #ddd6fe', background: '#ede9fe', color: '#6d28d9', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                ✉️ Gmail
+                ✉️ harshsih30@gmail.com
               </button>
             </div>
           </div>
@@ -488,71 +517,107 @@ function NotifyPanel({ lang }) {
           />
         </div>
 
-        {/* Direct Forward Buttons */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.4rem',
-            flexWrap: 'wrap',
-          }}
-        >
+        {/* Direct Forward Buttons — Grid Layout (No Overlap) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
           <button
             type="button"
             onClick={forwardViaWhatsApp}
-            className="btn btn-sm"
-            style={{
-              flex: 1,
-              background: '#25D366',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 700,
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.55rem 0.4rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(22,163,74,0.25)', minWidth: 0 }}
           >
-            💬 WhatsApp
+            <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>💬</span> WhatsApp
           </button>
-
           <button
             type="button"
             onClick={forwardViaDeviceSMS}
-            className="btn btn-sm"
-            style={{
-              flex: 1,
-              background: '#0284c7',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 700,
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.55rem 0.4rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #0284c7, #38bdf8)', color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(2,132,199,0.25)', minWidth: 0 }}
           >
-            📱 Device SMS
+            <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>📱</span> SMS
           </button>
-
           <button
             type="button"
             onClick={forwardViaEmail}
-            className="btn btn-sm"
-            style={{
-              flex: 1,
-              background: '#475569',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 700,
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.55rem 0.4rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.25)', minWidth: 0 }}
           >
-            ✉️ Email
+            <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>✉️</span> Email
           </button>
         </div>
 
-        {/* Backend Gateway */}
+        {/* Backend Gateway Trigger */}
         <button
           className="btn btn-primary"
-          onClick={handleSend}
+          onClick={initiateSend}
           disabled={sending || !recipients.trim()}
-          style={{ marginTop: '0.5rem' }}
+          style={{ marginTop: '0.5rem', fontWeight: 700 }}
         >
           {sending
             ? '⏳ Sending...'
             : `📤 ${tr('send')} via ${channel} Gateway`}
         </button>
+
+        {/* Confirmation Modal (SIH Requirement) */}
+        {showConfirmModal && (
+          <div
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(3px)',
+              zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+            }}
+          >
+            <div style={{
+              background: 'rgba(18, 14, 40, 0.72)', borderRadius: '18px', padding: '1.6rem',
+              maxWidth: '520px', width: '100%', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)', border: '2px solid #ef4444',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.6rem' }}>🚨</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#991b1b', fontWeight: 800 }}>
+                    {lang === 'hi' ? 'आपातकालीन चेतावनी प्रेषण पुष्टिकरण' : 'Emergency Warning Dispatch Confirmation'}
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Authorized Action: Disaster Administrator / Lead Operator
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', background: 'rgba(255,255,255,0.03)', padding: '0.9rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)', marginBottom: '1rem' }}>
+                <div><strong style={{ color: '#94a3b8' }}>WARNING TYPE:</strong> <span className="badge badge-danger">{alertType}</span></div>
+                <div><strong style={{ color: '#94a3b8' }}>TARGET REGION:</strong> <strong style={{ color: '#f1f5f9' }}>{location.display_name}</strong></div>
+                <div><strong style={{ color: '#94a3b8' }}>SEVERITY:</strong> <span style={{ color: '#dc2626', fontWeight: 800 }}>CRITICAL / ACTIVE</span></div>
+                <div><strong style={{ color: '#94a3b8' }}>CHANNEL:</strong> <strong style={{ color: '#0284c7' }}>{channel}</strong></div>
+                <div><strong style={{ color: '#94a3b8' }}>RECIPIENTS:</strong> <code>{recipients}</code></div>
+                <div><strong style={{ color: '#94a3b8' }}>DISPATCHER:</strong> {user?.name || 'Dr. V. K. Sharma'} ({user?.role || 'admin'})</div>
+                <div style={{ marginTop: '0.3rem', borderTop: '1px solid rgba(255,255,255,0.09)', paddingTop: '0.4rem' }}>
+                  <strong style={{ color: '#94a3b8' }}>MESSAGE:</strong>
+                  <div style={{ fontSize: '0.78rem', color: '#e2e8f0', marginTop: '2px', fontStyle: 'italic' }}>
+                    "{getEffectiveMessage()}"
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowConfirmModal(false)}
+                >
+                  {lang === 'hi' ? 'रद्द करें (Cancel)' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAndDispatch}
+                  style={{
+                    background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                    color: '#ffffff', border: 'none', borderRadius: '10px',
+                    padding: '0.6rem 1.2rem', fontWeight: 800, fontSize: '0.86rem', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)'
+                  }}
+                >
+                  {lang === 'hi' ? '🚨 पुष्टि करें व भेजें (Confirm & Dispatch)' : '🚨 CONFIRM & DISPATCH'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Result */}
         {result && (
@@ -579,6 +644,25 @@ function NotifyPanel({ lang }) {
                 {result.sent_at}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Session Audit Log */}
+        {auditLog.length > 0 && (
+          <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.8rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              📋 Session Dispatch Audit Log ({auditLog.length})
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.4rem' }}>
+              {auditLog.map((log) => (
+                <div key={log.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)', fontSize: '0.72rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <strong style={{ color: '#f1f5f9' }}>{log.warningType}</strong> via <span style={{ color: '#0284c7', fontWeight: 600 }}>{log.channel}</span> → <code>{log.recipients}</code>
+                  </div>
+                  <span style={{ color: '#059669', fontWeight: 700 }}>✓ Logged</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -12,16 +12,15 @@ const translations = {
     
     // Tabs
     tab_home: 'Monsoon Command',
-    tab_hydromap: 'HydroMap Engine',
+    tab_hydromap: 'Hydro Map Engine',
     tab_monsoon: 'Monsoon Phase Engine',
-    tab_season: 'Season Control Center',
+    tab_season: 'Season Crop Center',
     tab_xai: 'Explainable AI',
-    tab_analytics: 'Analytics Lab',
-    tab_alerts: 'Early Warning Center',
+    tab_analytics: 'Analytic Lab',
+    tab_alerts: 'Emergency Warning Center',
     tab_agri: 'Agri Command Center',
     tab_chat: 'AI Chatbot',
     tab_system: 'System Control',
-    tab_response: 'Response Engine',
 
     // Location Bar
     use_gps: '📍 Use My Location',
@@ -221,16 +220,15 @@ const translations = {
 
     // Tabs
     tab_home: 'मानसून कमांड',
-    tab_hydromap: 'हाइड्रोमैप इंजन',
+    tab_hydromap: 'हाइड्रो मानचित्र इंजन',
     tab_monsoon: 'मानसून चरण इंजन',
-    tab_season: 'ऋतु नियंत्रण केंद्र',
-    tab_xai: 'व्याख्यात्मक AI',
-    tab_analytics: 'विश्लेषण प्रयोगशाला',
-    tab_alerts: 'प्रारंभिक चेतावनी केंद्र',
-    tab_agri: 'कृषि कमांड केंद्र',
+    tab_season: 'ऋतु फसल केंद्र',
+    tab_xai: 'व्याख्यात्मक AI (XAI)',
+    tab_analytics: 'विश्लेषण लैब',
+    tab_alerts: 'आपातकालीन चेतावनी केंद्र',
+    tab_agri: 'कृषि कमांड सेंटर',
     tab_chat: 'AI चैटबॉट',
     tab_system: 'सिस्टम नियंत्रण',
-    tab_response: 'प्रतिक्रिया इंजन',
 
     // Location Bar
     use_gps: '📍 मेरी स्थिति का उपयोग करें',

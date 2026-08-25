@@ -132,10 +132,11 @@ def test_full_system():
         res = client.post("/api/v1/chat/message", json={"message": q, "language": lang, "lat": 26.85, "lon": 80.95})
         assert res.status_code == 200, f"Chat failed for {q}: {res.status_code}"
         chat_data = res.json()
-        print(f"  -> Q: '{q}'")
+        print(f"  -> Q: '{q.encode('ascii', 'replace').decode('ascii')}'")
         print(f"     Intent: {chat_data['intent_detected']}")
         reply_sample = chat_data.get('reply_en', chat_data.get('reply', '')) if lang == 'en' else chat_data.get('reply_hi', chat_data.get('reply', ''))
-        print(f"     Reply: {reply_sample[:90].strip()}...")
+        safe_reply = reply_sample.encode('ascii', 'replace').decode('ascii')
+        print(f"     Reply: {safe_reply[:90].strip()}...")
         
     # 13. Risk Summary & Early Warning
     print("\n[13/14] Testing Regional Risk Summary...")

@@ -23,28 +23,39 @@ export default function FloatingChatWidget() {
     }
   }, [msgs, isOpen]);
 
-  const send = async (msgText) => {
-    const textToSend = msgText || input.trim();
+  const send = async (msgText, isRegenerate = false, prevQuestion = null) => {
+    const textToSend = (msgText || input || prevQuestion || '').trim();
     if (!textToSend || loading) return;
-    setInput('');
-    setMsgs(m => [...m, { role: 'user', text: textToSend }]);
+
+    if (!isRegenerate) {
+      setInput('');
+      setMsgs(m => [...m, { id: `user_${Date.now()}`, role: 'user', text: textToSend }]);
+    }
     setLoading(true);
 
     try {
       const loc = { lat: location?.lat, lon: location?.lon, state: location?.state, district: location?.district };
-      const res = await api.chat(textToSend, lang, loc);
-      const reply = lang === 'hi' ? (res.data.reply_hi || res.data.reply) : (res.data.reply_en || res.data.reply);
-      setMsgs(m => [...m, {
-        role: 'bot',
-        text: reply,
-        intent: res.data.intent_detected
-      }]);
+      const reqId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const res = await api.chat(textToSend, lang, loc, { request_id: reqId, is_regenerate: isRegenerate });
+      const reply = lang === 'hi' ? (res.data?.reply_hi || res.data?.reply) : (res.data?.reply_en || res.data?.reply);
+      
+      setMsgs(m => {
+        const base = isRegenerate ? m.slice(0, -1) : m;
+        return [...base, {
+          id: reqId,
+          role: 'bot',
+          question: textToSend,
+          text: reply || (lang === 'hi' ? 'सलाहकार से उत्तर प्राप्त हुआ।' : 'Decision advisory response generated.'),
+          intent: res.data?.intent_detected || 'WHAT',
+        }];
+      });
     } catch {
       setMsgs(m => [...m, {
+        id: `err_${Date.now()}`,
         role: 'bot',
         text: lang === 'hi'
-          ? 'सर्वर से संपर्क करने में असमर्थ। कृपया पुनः प्रयास करें।'
-          : 'Unable to reach the server. Please try again.'
+          ? '⚠️ सर्वर से संपर्क करने में असमर्थ। कृपया पुनः प्रयास करें।'
+          : '⚠️ Unable to reach the server. Please try again.'
       }]);
     }
     setLoading(false);
@@ -120,8 +131,8 @@ export default function FloatingChatWidget() {
             width: 'min(440px, calc(100vw - 40px))',
             height: 'min(620px, calc(100vh - 100px))',
             zIndex: 9998,
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
+            background: 'rgba(18, 14, 40, 0.72)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: '16px',
             boxShadow: '0 16px 40px rgba(15, 23, 42, 0.15)',
             display: 'flex',
@@ -133,7 +144,7 @@ export default function FloatingChatWidget() {
           <div style={{
             padding: '0.9rem 1.1rem',
             background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)',
-            borderBottom: '1px solid #e2e8f0',
+            borderBottom: '1px solid rgba(255,255,255,0.09)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
@@ -141,7 +152,7 @@ export default function FloatingChatWidget() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.4rem' }}>🌱</span>
               <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a', fontWeight: 700 }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#f1f5f9', fontWeight: 700 }}>
                   VarshaNetra AI Crop Advisor
                 </h4>
                 <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
@@ -151,7 +162,7 @@ export default function FloatingChatWidget() {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 'bold' }}
             >
               ✕
             </button>
@@ -160,8 +171,8 @@ export default function FloatingChatWidget() {
           {/* Category Tabs */}
           <div style={{
             display: 'flex',
-            background: '#f8fafc',
-            borderBottom: '1px solid #e2e8f0',
+            background: 'rgba(255,255,255,0.03)',
+            borderBottom: '1px solid rgba(255,255,255,0.09)',
             padding: '0.35rem 0.6rem',
             gap: '0.4rem',
           }}>
@@ -194,8 +205,8 @@ export default function FloatingChatWidget() {
           {/* Quick Prompts Chips for Active Category */}
           <div style={{
             padding: '0.45rem 0.75rem',
-            background: '#ffffff',
-            borderBottom: '1px solid #f1f5f9',
+            background: 'rgba(18, 14, 40, 0.72)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
             display: 'flex',
             gap: '0.35rem',
             overflowX: 'auto',
@@ -207,7 +218,7 @@ export default function FloatingChatWidget() {
                 onClick={() => send(q)}
                 style={{
                   flexShrink: 0,
-                  background: '#f0fdf4',
+                  background: 'rgba(5, 150, 105, 0.08)',
                   border: '1px solid #bbf7d0',
                   borderRadius: '999px',
                   padding: '0.25rem 0.65rem',
@@ -224,13 +235,29 @@ export default function FloatingChatWidget() {
           </div>
 
           {/* Messages Feed */}
-          <div className="chat-messages" style={{ flex: 1, padding: '0.85rem', background: '#f8fafc' }}>
+          <div className="chat-messages" style={{ flex: 1, padding: '0.85rem', background: 'rgba(255,255,255,0.03)' }}>
             {msgs.map((m, idx) => (
               <div key={idx} className={`chat-msg ${m.role}`}>
                 {m.role === 'bot' && (
-                  <span style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '0.2rem', display: 'block', fontWeight: 600 }}>
-                    🤖 VarshaNetra AI {m.intent ? `• ${m.intent.toUpperCase()}` : ''}
-                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>
+                      🤖 VarshaNetra AI {m.intent ? `• ${m.intent.toUpperCase()}` : ''}
+                    </span>
+                    {m.question && (
+                      <button
+                        onClick={() => send(null, true, m.question)}
+                        disabled={loading}
+                        style={{
+                          background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '4px',
+                          padding: '0.1rem 0.35rem', fontSize: '0.62rem', fontWeight: 700,
+                          color: '#0284c7', cursor: 'pointer',
+                        }}
+                        title="Regenerate answer"
+                      >
+                        🔄 {lang === 'hi' ? 'पुनः' : 'Retry'}
+                      </button>
+                    )}
+                  </div>
                 )}
                 <div
                   className="chat-bubble"
@@ -253,7 +280,7 @@ export default function FloatingChatWidget() {
             ))}
             {loading && (
               <div className="chat-msg bot">
-                <div className="chat-bubble" style={{ background: '#ffffff', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem' }}>
+                <div className="chat-bubble" style={{ background: 'rgba(18, 14, 40, 0.72)', border: '1px solid rgba(255,255,255,0.09)', color: '#94a3b8', fontSize: '0.8rem' }}>
                   <span>{lang === 'hi' ? 'कृषि डेटा विश्लेषण हो रहा है...' : 'Analyzing crop & weather data...'}</span>
                 </div>
               </div>
@@ -262,7 +289,7 @@ export default function FloatingChatWidget() {
           </div>
 
           {/* Input Bar */}
-          <div className="chat-input-row" style={{ padding: '0.65rem', background: '#ffffff', borderTop: '1px solid #e2e8f0' }}>
+          <div className="chat-input-row" style={{ padding: '0.65rem', background: 'rgba(18, 14, 40, 0.72)', borderTop: '1px solid rgba(255,255,255,0.09)' }}>
             <input
               className="input"
               placeholder={lang === 'hi' ? 'फसल, कीट या मौसम संबंधी प्रश्न पूछें...' : 'Ask about cotton, soybean, false-onset, irrigation...'}

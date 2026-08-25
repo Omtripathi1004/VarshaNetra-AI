@@ -70,7 +70,7 @@ export default function ChatBotPanel() {
             key={q}
             onClick={() => send(q)}
             style={{
-              background: '#f0fdf4',
+              background: 'rgba(5, 150, 105, 0.08)',
               border: '1px solid #bbf7d0',
               borderRadius: '999px',
               padding: '0.28rem 0.75rem',
@@ -85,12 +85,12 @@ export default function ChatBotPanel() {
         ))}
       </div>
 
-      <div className="chat-container" style={{ flex: 1, minHeight: '380px', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-        <div className="chat-messages" style={{ background: '#f8fafc' }}>
+      <div className="chat-container" style={{ flex: 1, minHeight: '380px', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '10px' }}>
+        <div className="chat-messages" style={{ background: 'rgba(255,255,255,0.03)' }}>
           {msgs.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role}`}>
               {m.role === 'bot' && (
-                <span style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '0.2rem', display: 'block', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginBottom: '0.2rem', display: 'block', fontWeight: 600 }}>
                   🤖 VarshaNetra AI {m.intent ? `· ${m.intent.toUpperCase()}` : ''}
                 </span>
               )}
@@ -104,7 +104,7 @@ export default function ChatBotPanel() {
           ))}
           {loading && (
             <div className="chat-msg bot">
-              <div className="chat-bubble" style={{ background: '#ffffff', color: '#64748b', fontSize: '0.8rem' }}>
+              <div className="chat-bubble" style={{ background: 'rgba(18, 14, 40, 0.72)', color: '#94a3b8', fontSize: '0.8rem' }}>
                 <span>Analyzing data...</span>
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function ChatBotPanel() {
           <div ref={bottomRef} />
         </div>
 
-        <div className="chat-input-row" style={{ padding: '0.65rem', background: '#ffffff' }}>
+        <div className="chat-input-row" style={{ padding: '0.65rem', background: 'rgba(18, 14, 40, 0.72)' }}>
           <input
             className="input"
             placeholder={lang === 'hi' ? 'फसल, कीट या मौसम संबंधी प्रश्न पूछें...' : 'Ask about cotton, soybean, false-onset, irrigation...'}

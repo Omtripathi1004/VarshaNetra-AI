@@ -233,6 +233,13 @@ class AlertAcknowledgeRequest(BaseModel):
 
 # ── Emergency & Notifications ─────────────────────────────────────────────────
 
+class SMSRequest(BaseModel):
+    phoneNumber: str
+    location: Optional[str] = None
+    alertType: Optional[str] = "HEAVY_RAIN"
+    message: Optional[str] = None
+
+
 class NotifyRequest(BaseModel):
     channel: str                    # SMS / EMAIL / WHATSAPP
     recipients: List[str]

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Chart as ChartJS, registerables
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
+import { useLiveDate, generateDynamicWeekData } from '../../hooks/useLiveDate';
 
 ChartJS.register(...registerables);
 
@@ -175,138 +176,13 @@ export default function OverviewTab() {
     });
   };
 
+  const liveDate = useLiveDate();
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
-  const WEEK_DAYS_DATA = [
-    {
-      day_en: 'Mon', day_hi: 'सोम', full_en: 'Monday', full_hi: 'सोमवार',
-      date: 'Today', temp: weather?.temperature_c ? Math.round(weather.temperature_c) : 28, max: 33, min: 27, feels_like: 36,
-      condition_en: weather?.weather_description_en || 'Partly Cloudy', condition_hi: weather?.weather_description_hi || 'आंशिक बादल', icon: '☁️',
-      rain_prob: prediction?.probability_pct ?? 25, rain_mm: prediction?.expected_mm ?? 2.4, wind_kmh: weather?.wind_speed_kmh ?? 14, humidity: weather?.humidity_pct ?? 78, soil_moisture: weather?.soil_moisture_0_1cm ?? 0.32,
-      alert_en: 'Normal Monsoon Flow • Ideal for Field Weeding',
-      alert_hi: 'सामान्य मानसूनी प्रवाह • निराई-गुड़ाई हेतु उत्तम',
-      hourly: [
-        { time: lang === 'hi' ? 'अभी' : 'Now', temp: weather?.temperature_c ? Math.round(weather.temperature_c) : 28, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
-        { time: '11 pm', temp: 28, icon: '☁️', rain: '15%', rain_mm: 0.2, prob_pct: 15 },
-        { time: '12 am', temp: 28, icon: '☁️', rain: '20%', rain_mm: 0.3, prob_pct: 20 },
-        { time: '1 am', temp: 28, icon: '☁️', rain: '35%', rain_mm: 0.8, prob_pct: 35 },
-        { time: '2 am', temp: 28, icon: '🌦️', rain: '65%', rain_mm: 2.4, prob_pct: 65 },
-        { time: '3 am', temp: 27, icon: '🌧️', rain: '80%', rain_mm: 4.8, prob_pct: 80 },
-        { time: '4 am', temp: 27, icon: '🌧️', rain: '75%', rain_mm: 3.6, prob_pct: 75 },
-        { time: '5 am', temp: 26, icon: '🌦️', rain: '45%', rain_mm: 1.2, prob_pct: 45 },
-        { time: '6 am', temp: 26, icon: '⛅', rain: '20%', rain_mm: 0.2, prob_pct: 20 },
-        { time: '7 am', temp: 28, icon: '🌤️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
-      ]
-    },
-    {
-      day_en: 'Tue', day_hi: 'मंगल', full_en: 'Tuesday', full_hi: 'मंगलवार',
-      date: 'Tomorrow', temp: 29, max: 30, min: 26, feels_like: 34,
-      condition_en: 'Heavy Thunderstorm & Downpour', condition_hi: 'गरज के साथ भारी बारिश', icon: '⛈️',
-      rain_prob: 88, rain_mm: 48.6, wind_kmh: 24, humidity: 92, soil_moisture: 0.44,
-      alert_en: '⚠️ Heavy Rainfall Alert (>45mm) • Open Farm Drainage Trenches',
-      alert_hi: '⚠️ भारी वर्षा चेतावनी (>45 मिमी) • खेत की जल निकासी नालियां खोलें',
-      hourly: [
-        { time: '12 am', temp: 27, icon: '☁️', rain: '40%', rain_mm: 1.5, prob_pct: 40 },
-        { time: '3 am', temp: 26, icon: '🌧️', rain: '75%', rain_mm: 8.2, prob_pct: 75 },
-        { time: '6 am', temp: 25, icon: '⛈️', rain: '90%', rain_mm: 14.5, prob_pct: 90 },
-        { time: '9 am', temp: 27, icon: '⛈️', rain: '95%', rain_mm: 16.0, prob_pct: 95 },
-        { time: '12 pm', temp: 29, icon: '🌧️', rain: '85%', rain_mm: 5.4, prob_pct: 85 },
-        { time: '3 pm', temp: 28, icon: '🌧️', rain: '70%', rain_mm: 2.0, prob_pct: 70 },
-        { time: '6 pm', temp: 27, icon: '🌦️', rain: '50%', rain_mm: 0.8, prob_pct: 50 },
-        { time: '9 pm', temp: 26, icon: '☁️', rain: '35%', rain_mm: 0.2, prob_pct: 35 },
-      ]
-    },
-    {
-      day_en: 'Wed', day_hi: 'बुध', full_en: 'Wednesday', full_hi: 'बुधवार',
-      date: 'Aug 27', temp: 30, max: 31, min: 27, feels_like: 35,
-      condition_en: 'Active Monsoon Showers', condition_hi: 'सक्रिय मानसूनी बौछारें', icon: '⛈️',
-      rain_prob: 80, rain_mm: 32.0, wind_kmh: 18, humidity: 88, soil_moisture: 0.42,
-      alert_en: 'Optimal Sowing Moisture • Complete Paddy Nursery Transplanting',
-      alert_hi: 'रोपाई हेतु उत्तम नमी • धान की रोपाई पूरी करें',
-      hourly: [
-        { time: '12 am', temp: 27, icon: '🌧️', rain: '60%', rain_mm: 3.5, prob_pct: 60 },
-        { time: '3 am', temp: 26, icon: '🌧️', rain: '70%', rain_mm: 5.8, prob_pct: 70 },
-        { time: '6 am', temp: 26, icon: '⛈️', rain: '85%', rain_mm: 9.4, prob_pct: 85 },
-        { time: '9 am', temp: 28, icon: '🌧️', rain: '80%', rain_mm: 7.2, prob_pct: 80 },
-        { time: '12 pm', temp: 31, icon: '🌦️', rain: '65%', rain_mm: 4.1, prob_pct: 65 },
-        { time: '3 pm', temp: 30, icon: '🌦️', rain: '50%', rain_mm: 1.5, prob_pct: 50 },
-        { time: '6 pm', temp: 29, icon: '⛅', rain: '35%', rain_mm: 0.5, prob_pct: 35 },
-        { time: '9 pm', temp: 27, icon: '☁️', rain: '25%', rain_mm: 0.0, prob_pct: 25 },
-      ]
-    },
-    {
-      day_en: 'Thu', day_hi: 'गुरु', full_en: 'Thursday', full_hi: 'गुरुवार',
-      date: 'Aug 28', temp: 28, max: 30, min: 26, feels_like: 33,
-      condition_en: 'Moderate Intermittent Rain', condition_hi: 'मध्यम रुक-रुक कर बारिश', icon: '🌧️',
-      rain_prob: 70, rain_mm: 18.5, wind_kmh: 15, humidity: 85, soil_moisture: 0.38,
-      alert_en: 'Moderate Surge • Hold Chemical Spraying Operations',
-      alert_hi: 'मध्यम बारिश • कीटनाशक छिड़काव अभी रोकें',
-      hourly: [
-        { time: '12 am', temp: 26, icon: '☁️', rain: '30%', rain_mm: 0.5, prob_pct: 30 },
-        { time: '3 am', temp: 25, icon: '🌦️', rain: '50%', rain_mm: 2.1, prob_pct: 50 },
-        { time: '6 am', temp: 26, icon: '🌧️', rain: '75%', rain_mm: 5.4, prob_pct: 75 },
-        { time: '9 am', temp: 28, icon: '🌧️', rain: '70%', rain_mm: 4.8, prob_pct: 70 },
-        { time: '12 pm', temp: 30, icon: '🌦️', rain: '55%', rain_mm: 3.2, prob_pct: 55 },
-        { time: '3 pm', temp: 29, icon: '🌦️', rain: '45%', rain_mm: 1.8, prob_pct: 45 },
-        { time: '6 pm', temp: 28, icon: '⛅', rain: '30%', rain_mm: 0.7, prob_pct: 30 },
-        { time: '9 pm', temp: 27, icon: '☁️', rain: '20%', rain_mm: 0.0, prob_pct: 20 },
-      ]
-    },
-    {
-      day_en: 'Fri', day_hi: 'शुक्र', full_en: 'Friday', full_hi: 'शुक्रवार',
-      date: 'Aug 29', temp: 30, max: 31, min: 27, feels_like: 35,
-      condition_en: 'Scattered Afternoon Rain', condition_hi: 'दोपहर में छिटपुट बारिश', icon: '🌧️',
-      rain_prob: 60, rain_mm: 12.0, wind_kmh: 12, humidity: 80, soil_moisture: 0.35,
-      alert_en: 'Scattered Showers • Basal Fertilizer Application Window',
-      alert_hi: 'हल्की बारिश • बेसल खाद डालने हेतु उपयुक्त समय',
-      hourly: [
-        { time: '12 am', temp: 27, icon: '☁️', rain: '20%', rain_mm: 0.0, prob_pct: 20 },
-        { time: '3 am', temp: 26, icon: '☁️', rain: '25%', rain_mm: 0.2, prob_pct: 25 },
-        { time: '6 am', temp: 26, icon: '⛅', rain: '30%', rain_mm: 0.5, prob_pct: 30 },
-        { time: '9 am', temp: 29, icon: '🌤️', rain: '40%', rain_mm: 1.2, prob_pct: 40 },
-        { time: '12 pm', temp: 31, icon: '🌦️', rain: '65%', rain_mm: 4.8, prob_pct: 65 },
-        { time: '3 pm', temp: 30, icon: '🌦️', rain: '55%', rain_mm: 3.8, prob_pct: 55 },
-        { time: '6 pm', temp: 29, icon: '⛅', rain: '35%', rain_mm: 1.5, prob_pct: 35 },
-        { time: '9 pm', temp: 28, icon: '☁️', rain: '20%', rain_mm: 0.0, prob_pct: 20 },
-      ]
-    },
-    {
-      day_en: 'Sat', day_hi: 'शनि', full_en: 'Saturday', full_hi: 'शनिवार',
-      date: 'Aug 30', temp: 31, max: 32, min: 27, feels_like: 37,
-      condition_en: 'Passing Cloud & Sun', condition_hi: 'धूप-छांव व हल्की फुहार', icon: '🌦️',
-      rain_prob: 40, rain_mm: 5.2, wind_kmh: 10, humidity: 75, soil_moisture: 0.31,
-      alert_en: 'Good Sunshine • Ideal for Cotton & Maize Foliar Spray',
-      alert_hi: 'अच्छी धूप • कपास व मक्का में स्प्रे हेतु अनुकूल',
-      hourly: [
-        { time: '12 am', temp: 27, icon: '☁️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
-        { time: '3 am', temp: 26, icon: '☁️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
-        { time: '6 am', temp: 26, icon: '⛅', rain: '20%', rain_mm: 0.1, prob_pct: 20 },
-        { time: '9 am', temp: 30, icon: '🌤️', rain: '25%', rain_mm: 0.4, prob_pct: 25 },
-        { time: '12 pm', temp: 32, icon: '🌤️', rain: '40%', rain_mm: 2.1, prob_pct: 40 },
-        { time: '3 pm', temp: 31, icon: '🌦️', rain: '45%', rain_mm: 2.6, prob_pct: 45 },
-        { time: '6 pm', temp: 30, icon: '⛅', rain: '30%', rain_mm: 0.0, prob_pct: 30 },
-        { time: '9 pm', temp: 28, icon: '☁️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
-      ]
-    },
-    {
-      day_en: 'Sun', day_hi: 'रवि', full_en: 'Sunday', full_hi: 'रविवार',
-      date: 'Aug 31', temp: 32, max: 33, min: 28, feels_like: 38,
-      condition_en: 'Dry Break Beginning', condition_hi: 'शुष्क विराम की शुरुआत', icon: '⛅',
-      rain_prob: 20, rain_mm: 1.0, wind_kmh: 9, humidity: 70, soil_moisture: 0.28,
-      alert_en: 'Dry Break Watch (4–6 Days Ahead) • Conserve Soil Moisture',
-      alert_hi: 'शुष्क विराम की शुरुआत • मिट्टी में नमी संरक्षण अपनाएं',
-      hourly: [
-        { time: '12 am', temp: 28, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
-        { time: '3 am', temp: 27, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
-        { time: '6 am', temp: 27, icon: '🌤️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
-        { time: '9 am', temp: 31, icon: '☀️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
-        { time: '12 pm', temp: 33, icon: '🌤️', rain: '20%', rain_mm: 0.5, prob_pct: 20 },
-        { time: '3 pm', temp: 32, icon: '⛅', rain: '25%', rain_mm: 0.5, prob_pct: 25 },
-        { time: '6 pm', temp: 30, icon: '🌤️', rain: '15%', rain_mm: 0.0, prob_pct: 15 },
-        { time: '9 pm', temp: 29, icon: '☁️', rain: '10%', rain_mm: 0.0, prob_pct: 10 },
-      ]
-    },
-  ];
+  const WEEK_DAYS_DATA = useMemo(
+    () => generateDynamicWeekData(weather, prediction, lang),
+    [weather, prediction, lang, liveDate.fullDate]
+  );
 
   const activeDay = WEEK_DAYS_DATA[selectedDayIndex] || WEEK_DAYS_DATA[0];
 
@@ -349,7 +225,7 @@ export default function OverviewTab() {
     plugins: {
       legend: {
         position: 'top',
-        labels: { boxWidth: 12, font: { size: 11, weight: '700' }, color: '#334155' }
+        labels: { boxWidth: 12, font: { size: 11, weight: '700' }, color: '#cbd5e1' }
       },
       tooltip: {
         callbacks: {
@@ -365,7 +241,7 @@ export default function OverviewTab() {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { font: { size: 10, weight: '600' }, color: '#64748b' }
+        ticks: { font: { size: 10, weight: '600' }, color: '#94a3b8' }
       },
       yRain: {
         type: 'linear',
@@ -395,14 +271,14 @@ export default function OverviewTab() {
           <h2 style={{ color: '#047857', margin: 0, fontWeight: 800, fontSize: '1.45rem' }}>
             🌾 {lang === 'hi' ? 'वरदानेत्र AI — किसान निर्णय सहायता प्रणाली' : 'VarshaNetra AI — Hyperlocal Monsoon Decision System'}
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.2rem', fontWeight: 500 }}>
-            📍 {location.display_name} • Open-Meteo Current & 10-Yr Historical Archive + NOAA Teleconnections
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem', fontWeight: 500 }}>
+            📍 {location.display_name} • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr})
           </p>
         </div>
 
         {/* UI / UX View Switcher: Farmer / User, Developer, Administrator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#ffffff', padding: '0.3rem', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', padding: '0 0.4rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(18, 14, 40, 0.72)', padding: '0.3rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', padding: '0 0.4rem' }}>
             {lang === 'hi' ? 'दृष्टिकोण:' : 'View Mode:'}
           </span>
           <button
@@ -474,7 +350,7 @@ export default function OverviewTab() {
 
       {/* ADMINISTRATOR BROADCAST STRIP (Shown in Admin Mode) */}
       {userRole === 'admin' && (
-        <div style={{ padding: '0.85rem 1.1rem', background: '#fef2f2', color: '#991b1b', borderRadius: '12px', marginBottom: '1.25rem', fontSize: '0.78rem', border: '2px solid #fecaca' }}>
+        <div style={{ padding: '0.85rem 1.1rem', background: 'rgba(239, 68, 68, 0.08)', color: '#991b1b', borderRadius: '12px', marginBottom: '1.25rem', fontSize: '0.78rem', border: '2px solid #fecaca' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>🏛️ Agricultural Officer Crisis Console</strong>
             <span className="badge badge-danger">Emergency Dispatch Active</span>
@@ -493,7 +369,7 @@ export default function OverviewTab() {
           padding: 0,
           overflow: 'hidden',
           borderRadius: '20px',
-          border: '1px solid #cbd5e1',
+          border: '1px solid rgba(255,255,255,0.09)',
           background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)',
           boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
         }}
@@ -505,7 +381,7 @@ export default function OverviewTab() {
               <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#047857' }}>
                 {lang === 'hi' ? `${activeDay.full_hi} का मौसम पूर्वानुमान` : `${activeDay.full_en}'s Weather Forecast`}
               </span>
-              <h3 style={{ margin: '0.1rem 0 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: 800 }}>
+              <h3 style={{ margin: '0.1rem 0 0', fontSize: '1.2rem', color: '#f1f5f9', fontWeight: 800 }}>
                 {location.display_name}
               </h3>
             </div>
@@ -517,17 +393,17 @@ export default function OverviewTab() {
           {/* Current Temp, Condition & Feels Like */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.8rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ fontSize: '4.2rem', fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: '#0f172a', lineHeight: 1 }}>
+              <span style={{ fontSize: '4.2rem', fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: '#f1f5f9', lineHeight: 1 }}>
                 {activeDay.temp}°
               </span>
               <span style={{ fontSize: '3rem' }}>{activeDay.icon}</span>
             </div>
 
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1e293b' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#e2e8f0' }}>
                 {lang === 'hi' ? activeDay.condition_hi : activeDay.condition_en}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>
                 {lang === 'hi' ? `महसूस होता है ${activeDay.feels_like}°` : `Feels like ${activeDay.feels_like}°`} • {lang === 'hi' ? `हवा ${activeDay.wind_kmh} किमी/घं` : `Wind ${activeDay.wind_kmh} km/h`}
               </div>
             </div>
@@ -560,7 +436,7 @@ export default function OverviewTab() {
 
           {/* Hourly Weather Cards Horizontal Scroll (Updated dynamically for selected day) */}
           <div style={{ marginBottom: '1.2rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.5rem' }}>
               {lang === 'hi' ? `${activeDay.full_hi} — 24 घंटे का पूर्वानुमान` : `${activeDay.full_en} — Hourly Weather Breakdown`}
             </span>
             <div
@@ -589,10 +465,10 @@ export default function OverviewTab() {
                     gap: '0.3rem'
                   }}
                 >
-                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>{hc.temp}°</span>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#f1f5f9' }}>{hc.temp}°</span>
                   <span style={{ fontSize: '1.25rem' }}>{hc.icon}</span>
                   <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700 }}>{hc.rain}</span>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{hc.time}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>{hc.time}</span>
                 </div>
               ))}
             </div>
@@ -623,9 +499,9 @@ export default function OverviewTab() {
         </div>
 
         {/* 7-Day Weather Forecast Pill Cards (Interactive Day Click Switcher) */}
-        <div style={{ padding: '1.25rem 1.5rem', background: '#ffffff' }}>
+        <div style={{ padding: '1.25rem 1.5rem', background: 'rgba(18, 14, 40, 0.72)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {lang === 'hi' ? '7-दिवसीय दैनिक पूर्वानुमान (दिन चुनने हेतु क्लिक करें)' : '7-Day Daily Forecast (Click any day to view details)'}
             </span>
             <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>
@@ -667,7 +543,7 @@ export default function OverviewTab() {
                   </span>
                   <span style={{ fontSize: '1.25rem' }}>{dp.icon}</span>
                   <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700 }}>💧 {dp.rain_prob}%</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1' }}>
                     {dp.max}°<span style={{ color: '#94a3b8', fontWeight: 500 }}>/{dp.min}°</span>
                   </span>
                 </div>
@@ -676,10 +552,10 @@ export default function OverviewTab() {
           </div>
 
           {/* 🌟 24-HOUR RAIN PREDICTION & PRECIPITATION PROBABILITY GRAPH (User Requested) */}
-          <div style={{ marginTop: '1.35rem', padding: '1rem', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+          <div style={{ marginTop: '1.35rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.09)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.4rem' }}>
               <div>
-                <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>
+                <strong style={{ fontSize: '0.86rem', color: '#f1f5f9' }}>
                   📊 {lang === 'hi' ? `${activeDay.full_hi} — 24 घंटे वर्षा व वर्षा संभावना ग्राफ` : `${activeDay.full_en} — 24-Hour Rain Prediction & Probability Graph`}
                 </strong>
                 <span className="text-xs text-muted" style={{ display: 'block' }}>
@@ -698,7 +574,7 @@ export default function OverviewTab() {
 
           {/* Expandable Parameter Highlights for Selected Day */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '1.2rem' }}>
-            <div style={{ padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.3rem' }}>🌧️</span>
               <div>
                 <span className="text-xs text-muted">Precipitation Chance</span>
@@ -708,7 +584,7 @@ export default function OverviewTab() {
               </div>
             </div>
 
-            <div style={{ padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.3rem' }}>💨</span>
               <div>
                 <span className="text-xs text-muted">Wind & Direction</span>
@@ -718,7 +594,7 @@ export default function OverviewTab() {
               </div>
             </div>
 
-            <div style={{ padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.3rem' }}>🌱</span>
               <div>
                 <span className="text-xs text-muted">Soil Moisture (0-1cm)</span>
@@ -728,7 +604,7 @@ export default function OverviewTab() {
               </div>
             </div>
 
-            <div style={{ padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.3rem' }}>💧</span>
               <div>
                 <span className="text-xs text-muted">Relative Humidity</span>
@@ -741,11 +617,114 @@ export default function OverviewTab() {
         </div>
       </div>
 
+      {/* 🌟 SIH-STANDARD REDESIGNED AI PREDICTION & REASONING CARD */}
+      <div
+        className="card"
+        style={{
+          marginBottom: '1.4rem',
+          borderRadius: '18px',
+          border: '1.5px solid #0284c7',
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)',
+          padding: '1.25rem',
+          boxShadow: '0 8px 24px rgba(2, 132, 199, 0.08)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem', borderBottom: '1px solid #e0f2fe', paddingBottom: '0.8rem', marginBottom: '0.9rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
+                Coupled ML Prediction
+              </span>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
+                Model: LightGBM Hybrid v2.0
+              </span>
+            </div>
+            <h3 style={{ margin: '0.3rem 0 0', fontSize: '1.2rem', color: '#0369a1', fontWeight: 800 }}>
+              🌧️ {lang === 'hi' ? '24 घंटे का वर्षा जोखिम व संभावित मात्रा' : '24-Hour Rainfall Risk & Quantitative Prediction'}
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              📍 {location.display_name} • Forecast Window: Next 24 Hours • Updated: {liveDate.timeStr}
+            </span>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0284c7', lineHeight: 1 }}>
+              {prediction?.probability_pct ?? 65}%
+            </div>
+            <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 700 }}>
+              {lang === 'hi' ? 'कैलिब्रेटेड घटना संभावना' : 'Calibrated Event Probability'}
+            </span>
+          </div>
+        </div>
+
+        {/* Core Metrics Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.9rem' }}>
+          <div style={{ background: 'rgba(18, 14, 40, 0.72)', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>PREDICTED RAINFALL VOLUME</span>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '1.15rem', fontWeight: 800, color: '#f1f5f9' }}>
+              {prediction?.expected_mm ?? 14.5} mm
+            </p>
+          </div>
+          <div style={{ background: 'rgba(18, 14, 40, 0.72)', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>RISK CATEGORY</span>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '1.15rem', fontWeight: 800, color: '#059669' }}>
+              {prediction?.category || 'MODERATE'}
+            </p>
+          </div>
+          <div style={{ background: 'rgba(18, 14, 40, 0.72)', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>TELECONNECTIONS COUPLING</span>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '1.15rem', fontWeight: 800, color: '#7c3aed' }}>
+              ENSO ONI + IOD + MJO
+            </p>
+          </div>
+          <div style={{ background: 'rgba(18, 14, 40, 0.72)', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>UNCERTAINTY BOUND</span>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '1.15rem', fontWeight: 800, color: '#d97706' }}>
+              ±15% Synoptic Spread
+            </p>
+          </div>
+        </div>
+
+        {/* Actionable Guidance & Why This Prediction */}
+        <div style={{ background: 'rgba(18, 14, 40, 0.72)', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #bae6fd', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div>
+            <strong style={{ fontSize: '0.82rem', color: '#0369a1' }}>🌾 {lang === 'hi' ? 'सिफारिश की गई किसान कार्य योजना:' : 'Recommended Action:'}</strong>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+              {prediction?.action || (lang === 'hi'
+                ? 'निचले खेतों में जल निकासी नालियां खुली रखें। बारिश रुकने तक पर्णीय कीटनाशक छिड़काव स्थगित रखें।'
+                : 'Maintain clear drainage furrow outlets. Delay foliar chemical spraying until the rainfall window pauses.')}
+            </p>
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              🔍 {lang === 'hi' ? 'शीर्ष योगदान कारक: उच्च वायुमंडलीय आर्द्रता (78%) + मानसूनी द्रोणिका अक्ष' : 'Top Contributors: Relative Humidity (78%) + Soil Moisture Flux + MJO Phase 3'}
+            </span>
+            <a
+              href="#xai"
+              onClick={(e) => { e.preventDefault(); const btn = document.querySelector('[data-tab="xai"]') || document.body; }}
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#0284c7',
+                textDecoration: 'none',
+                background: '#e0f2fe',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '6px',
+                border: '1px solid #bae6fd'
+              }}
+            >
+              🧠 {lang === 'hi' ? 'यह भविष्यवाणी क्यों? (XAI देखें)' : 'Why this prediction? (Open XAI)'} →
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* 5 REGIONAL AGRICULTURAL SITUATION HUBS (As Requested) */}
       <div style={{ marginBottom: '1.4rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f1f5f9', fontWeight: 800 }}>
               🌾 {lang === 'hi' ? '5 प्रमुख कृषि हब — क्षेत्रीय स्थिति व फसल अलर्ट' : '5 Major Agricultural Hubs — Live Crop Situations'}
             </h3>
             <p className="text-xs text-muted" style={{ margin: '0.15rem 0 0' }}>
@@ -777,7 +756,7 @@ export default function OverviewTab() {
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.3rem' }}>
-                    <span className="badge" style={{ background: '#f1f5f9', color: '#334155', fontSize: '0.68rem', fontWeight: 700 }}>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', fontSize: '0.68rem', fontWeight: 700 }}>
                       {hub.badge}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700 }}>
@@ -785,21 +764,21 @@ export default function OverviewTab() {
                     </span>
                   </div>
 
-                  <h4 style={{ margin: '0.2rem 0', fontSize: '0.96rem', color: '#0f172a', fontWeight: 800 }}>
+                  <h4 style={{ margin: '0.2rem 0', fontSize: '0.96rem', color: '#f1f5f9', fontWeight: 800 }}>
                     {lang === 'hi' ? hub.name_hi : hub.name_en}
                   </h4>
                   <p className="text-xs text-muted" style={{ margin: 0 }}>
                     📍 {hub.district}, {hub.state}
                   </p>
 
-                  <div style={{ marginTop: '0.6rem', padding: '0.45rem 0.6rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
+                  <div style={{ marginTop: '0.6rem', padding: '0.45rem 0.6rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)', fontSize: '0.75rem' }}>
                     <strong style={{ color: hub.color }}>● {lang === 'hi' ? hub.status_label_hi : hub.status_label_en}</strong>
-                    <div style={{ color: '#64748b', marginTop: '0.15rem' }}>Stage: {hub.stage}</div>
+                    <div style={{ color: '#94a3b8', marginTop: '0.15rem' }}>Stage: {hub.stage}</div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f1f5f9' }}>
                     {hub.temp_c}°C
                   </span>
                   <span style={{ fontSize: '0.72rem', color: isActive ? '#059669' : '#0284c7', fontWeight: 700 }}>
@@ -829,7 +808,7 @@ export default function OverviewTab() {
               <h3 style={{ margin: 0, fontSize: '1.2rem', color: isHighFalseOnset ? '#b45309' : '#047857', fontWeight: 800 }}>
                 {lang === 'hi' ? 'झूठी शुरुआत (False-Onset) जोखिम विश्लेषण' : 'FALSE-ONSET RISK & MONSOON PERSISTENCE'}
               </h3>
-              <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+              <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
                 {lang === 'hi' ? 'वर्षा की अस्थायी शुरुआत और आगामी शुष्क विराम (Dry Spell) का पूर्व आकलन' : 'Hero Feature: Detects rainfall surges likely to collapse into prolonged dry breaks'}
               </p>
             </div>
@@ -838,24 +817,24 @@ export default function OverviewTab() {
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: isHighFalseOnset ? '#dc2626' : '#059669', lineHeight: 1 }}>
               {foData?.false_onset_probability_pct ?? 68}%
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
               {lang === 'hi' ? 'जोखिम संभावना' : 'False-Onset Probability'} • {lang === 'hi' ? 'विश्वास: उच्च' : 'Confidence: High'}
             </span>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.8rem', margin: '0.9rem 0 0.6rem' }}>
-          <div style={{ padding: '0.6rem 0.85rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+          <div style={{ padding: '0.6rem 0.85rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
               {lang === 'hi' ? 'अपेक्षित शुष्क विराम अवधि' : 'Expected Dry-Spell Window'}
             </span>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '1.1rem', fontWeight: 800, color: '#f1f5f9' }}>
               ⏳ {foData?.expected_dry_spell_window || '6–8 days'}
             </p>
           </div>
 
-          <div style={{ padding: '0.6rem 0.85rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+          <div style={{ padding: '0.6rem 0.85rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
               {lang === 'hi' ? 'सक्रिय मानसून शुरुआत संभावना' : 'Monsoon Onset Probability'}
             </span>
             <p style={{ margin: '0.2rem 0 0', fontSize: '1.1rem', fontWeight: 800, color: '#0284c7' }}>
@@ -863,8 +842,8 @@ export default function OverviewTab() {
             </p>
           </div>
 
-          <div style={{ padding: '0.6rem 0.85rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+          <div style={{ padding: '0.6rem 0.85rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
               {lang === 'hi' ? 'किसान के लिए मुख्य सिफारिश' : 'Actionable Recommendation'}
             </span>
             <p style={{ margin: '0.2rem 0 0', fontSize: '0.95rem', fontWeight: 700, color: isHighFalseOnset ? '#b45309' : '#059669' }}>
@@ -875,7 +854,7 @@ export default function OverviewTab() {
           </div>
         </div>
 
-        <div style={{ fontSize: '0.82rem', color: '#334155', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '0.6rem', marginTop: '0.4rem', fontWeight: 500 }}>
+        <div style={{ fontSize: '0.82rem', color: '#cbd5e1', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '0.6rem', marginTop: '0.4rem', fontWeight: 500 }}>
           <strong>{lang === 'hi' ? 'सलाह विवरण:' : 'Agronomic Guidance:'}</strong> {lang === 'hi' ? (foData?.action_hi || foData?.action_en) : (foData?.action_en || foData?.action_hi)}
         </div>
       </div>
@@ -916,10 +895,10 @@ export default function OverviewTab() {
         };
 
         return (
-          <div className="card" style={{ marginBottom: '1.4rem', border: '1px solid #cbd5e1', borderRadius: '16px', overflow: 'hidden' }}>
-            <div className="card-header" style={{ background: '#f8fafc', padding: '0.9rem 1.2rem', borderBottom: '1px solid #e2e8f0' }}>
+          <div className="card" style={{ marginBottom: '1.4rem', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '16px', overflow: 'hidden' }}>
+            <div className="card-header" style={{ background: 'rgba(255,255,255,0.03)', padding: '0.9rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.09)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', width: '100%' }}>
-                <span className="card-title" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                <span className="card-title" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f1f5f9' }}>
                   🌐 {lang === 'hi' ? 'वैश्विक जलवायु टेलीकनेक्शन प्रणाली (ENSO • IOD • MJO/MISO)' : 'Global Climate Teleconnections System (ENSO • IOD • MJO/MISO)'}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -934,25 +913,25 @@ export default function OverviewTab() {
             </div>
 
             {/* Coupled Teleconnections Banner */}
-            <div style={{ padding: '0.75rem 1.2rem', background: '#f0fdf4', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ padding: '0.75rem 1.2rem', background: 'rgba(5, 150, 105, 0.08)', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '1.2rem' }}>🌊</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#047857' }}>
                   {lang === 'hi' ? tele.overall_state_hi : tele.overall_state_en}
                 </span>
               </div>
-              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>
                 10-Year Historical Cross-Validation • 0-Leakage Coupling
               </span>
             </div>
 
             <div style={{ padding: '1.2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
               {/* 1. ENSO CARD */}
-              <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>🌊 ENSO (NOAA ONI)</strong>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Oceanic Niño Index (Niño 3.4)</span>
+                    <strong style={{ fontSize: '0.92rem', color: '#f1f5f9', display: 'block' }}>🌊 ENSO (NOAA ONI)</strong>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Oceanic Niño Index (Niño 3.4)</span>
                   </div>
                   <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
                     {lang === 'hi' ? tele.enso?.phase_hi || tele.enso?.phase : tele.enso?.phase}
@@ -962,19 +941,19 @@ export default function OverviewTab() {
                   <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', lineHeight: 1 }}>
                     {tele.enso?.latest_value > 0 ? `+${tele.enso.latest_value}` : tele.enso?.latest_value} °C
                   </span>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>SST Anomaly</span>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>SST Anomaly</span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0, lineHeight: 1.45 }}>
+                <p style={{ fontSize: '0.78rem', color: '#cbd5e1', margin: 0, lineHeight: 1.45 }}>
                   {lang === 'hi' ? tele.enso?.impact_hi : tele.enso?.impact_en}
                 </p>
               </div>
 
               {/* 2. IOD CARD */}
-              <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>🧭 IOD (NOAA DMI)</strong>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Dipole Mode Index (Indian Ocean)</span>
+                    <strong style={{ fontSize: '0.92rem', color: '#f1f5f9', display: 'block' }}>🧭 IOD (NOAA DMI)</strong>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Dipole Mode Index (Indian Ocean)</span>
                   </div>
                   <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
                     {lang === 'hi' ? tele.iod?.phase_hi || tele.iod?.phase : tele.iod?.phase}
@@ -984,19 +963,19 @@ export default function OverviewTab() {
                   <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
                     {tele.iod?.latest_value > 0 ? `+${tele.iod.latest_value}` : tele.iod?.latest_value} °C
                   </span>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>Zonal Gradient</span>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>Zonal Gradient</span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0, lineHeight: 1.45 }}>
+                <p style={{ fontSize: '0.78rem', color: '#cbd5e1', margin: 0, lineHeight: 1.45 }}>
                   {lang === 'hi' ? tele.iod?.impact_hi : tele.iod?.impact_en}
                 </p>
               </div>
 
               {/* 3. MJO & MISO CARD */}
-              <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>🌀 MJO & MISO (RMM)</strong>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Madden-Julian & Intra-Seasonal</span>
+                    <strong style={{ fontSize: '0.92rem', color: '#f1f5f9', display: 'block' }}>🌀 MJO & MISO (RMM)</strong>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Madden-Julian & Intra-Seasonal</span>
                   </div>
                   <span className="badge badge-purple" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
                     Phase {tele.mjo?.phase || 3} • Indian Ocean
@@ -1006,9 +985,9 @@ export default function OverviewTab() {
                   <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#7c3aed', lineHeight: 1 }}>
                     {tele.mjo?.amplitude || 1.25}
                   </span>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>RMM Amplitude (Active &gt; 1.0)</span>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>RMM Amplitude (Active &gt; 1.0)</span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0, lineHeight: 1.45 }}>
+                <p style={{ fontSize: '0.78rem', color: '#cbd5e1', margin: 0, lineHeight: 1.45 }}>
                   {lang === 'hi' ? tele.mjo?.impact_hi : tele.mjo?.impact_en}
                 </p>
               </div>
@@ -1064,7 +1043,7 @@ export default function OverviewTab() {
         </div>
 
         {cropAdvisory && (
-          <div style={{ padding: '1.1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <div style={{ padding: '1.1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
               <span
                 style={{
@@ -1078,14 +1057,14 @@ export default function OverviewTab() {
               >
                 {lang === 'hi' ? cropAdvisory.action_label_hi : cropAdvisory.action_label_en}
               </span>
-              <strong style={{ fontSize: '1rem', color: '#0f172a' }}>
+              <strong style={{ fontSize: '1rem', color: '#f1f5f9' }}>
                 {lang === 'hi' ? cropAdvisory.crop_name_hi : cropAdvisory.crop_name_en} ({lang === 'hi' ? cropAdvisory.stage_name_hi : cropAdvisory.stage_name_en})
               </strong>
             </div>
-            <p style={{ margin: '0.4rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: 1.55 }}>
+            <p style={{ margin: '0.4rem 0', fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.55 }}>
               {lang === 'hi' ? cropAdvisory.rationale_hi : cropAdvisory.rationale_en}
             </p>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.6rem' }}>
+            <div style={{ fontSize: '0.78rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.09)', paddingTop: '0.5rem', marginTop: '0.6rem' }}>
               ⚠️ <strong>{lang === 'hi' ? 'कीट व रोग प्रबंधन:' : 'Pest & Disease Advisory:'}</strong>{' '}
               {lang === 'hi' ? cropAdvisory.pest_warning_hi : cropAdvisory.pest_warning_en}
             </div>
@@ -1106,8 +1085,8 @@ export default function OverviewTab() {
               <div
                 key={h.horizon_days}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   borderRadius: '12px',
                   padding: '1rem',
                   display: 'flex',
@@ -1116,7 +1095,7 @@ export default function OverviewTab() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#f1f5f9' }}>
                     {h.horizon_days} {lang === 'hi' ? 'दिन का दृष्टिकोण' : 'Days Horizon'}
                   </strong>
                   <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>
@@ -1124,7 +1103,7 @@ export default function OverviewTab() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.78rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <div style={{ fontSize: '0.78rem', color: '#cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>{lang === 'hi' ? 'वर्षा की संभावना:' : 'Rain Probability:'}</span>
                     <strong style={{ color: '#0284c7' }}>{h.onset_probability_pct}%</strong>
@@ -1137,12 +1116,12 @@ export default function OverviewTab() {
                     <span>{lang === 'hi' ? 'विराम (Dry Break) संभावना:' : 'Break Probability:'}</span>
                     <strong style={{ color: '#d97706' }}>{h.break_probability_pct}%</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '0.3rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.09)', paddingTop: '0.3rem' }}>
                     <span>{lang === 'hi' ? 'अनुमानित कुल वर्षा:' : 'Expected Rain:'}</span>
                     <strong style={{ color: '#059669' }}>{h.expected_rain_mm} mm</strong>
                   </div>
                 </div>
-                <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0.2rem 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: '0.72rem', color: '#94a3b8', margin: '0.2rem 0 0', lineHeight: 1.4 }}>
                   {lang === 'hi' ? h.recommended_action_hi : h.recommended_action_en}
                 </p>
               </div>

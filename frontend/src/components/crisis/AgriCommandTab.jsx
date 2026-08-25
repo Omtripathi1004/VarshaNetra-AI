@@ -430,7 +430,7 @@ Backup irrigation alerted.`;
 
           <p
             style={{
-              color: '#64748b',
+              color: '#94a3b8',
               fontSize: '0.8rem',
               marginTop: '0.2rem',
             }}
@@ -472,7 +472,7 @@ Backup irrigation alerted.`;
           className="card"
           style={{
             padding: '0.9rem',
-            background: '#fef2f2',
+            background: 'rgba(239, 68, 68, 0.08)',
             border: '1.5px solid #fecaca',
             borderRadius: '14px',
           }}
@@ -509,7 +509,7 @@ Backup irrigation alerted.`;
           className="card"
           style={{
             padding: '0.9rem',
-            background: '#f0fdf4',
+            background: 'rgba(5, 150, 105, 0.08)',
             border: '1.5px solid #bbf7d0',
             borderRadius: '14px',
           }}
@@ -629,9 +629,9 @@ Backup irrigation alerted.`;
         <div
           className="card"
           style={{
-            background: '#ffffff',
+            background: 'rgba(18, 14, 40, 0.72)',
             borderRadius: '16px',
-            border: '1px solid #cbd5e1',
+            border: '1px solid rgba(255,255,255,0.09)',
             padding: '1.2rem',
           }}
         >
@@ -641,7 +641,7 @@ Backup irrigation alerted.`;
           >
             <span
               className="card-title"
-              style={{ color: '#0f172a' }}
+              style={{ color: '#f1f5f9' }}
             >
               🚨{' '}
               {lang === 'hi'
@@ -707,7 +707,7 @@ Backup irrigation alerted.`;
                     <strong
                       style={{
                         fontSize: '0.92rem',
-                        color: '#0f172a',
+                        color: '#f1f5f9',
                       }}
                     >
                       {inc.panchayat}
@@ -739,7 +739,7 @@ Backup irrigation alerted.`;
                   style={{
                     margin: '0.3rem 0',
                     fontSize: '0.82rem',
-                    color: '#334155',
+                    color: '#cbd5e1',
                   }}
                 >
                   <strong>Hazard:</strong> {inc.hazard}
@@ -755,7 +755,7 @@ Backup irrigation alerted.`;
                     flexWrap: 'wrap',
                     gap: '0.4rem',
                     fontSize: '0.74rem',
-                    color: '#64748b',
+                    color: '#94a3b8',
                     margin: '0.4rem 0',
                   }}
                 >
@@ -860,9 +860,9 @@ Backup irrigation alerted.`;
           <div
             className="card"
             style={{
-              background: '#ffffff',
+              background: 'rgba(18, 14, 40, 0.72)',
               borderRadius: '16px',
-              border: '1px solid #cbd5e1',
+              border: '1px solid rgba(255,255,255,0.09)',
               padding: '1.2rem',
             }}
           >
@@ -1087,7 +1087,7 @@ Backup irrigation alerted.`;
                 style={{
                   marginTop: '0.7rem',
                   padding: '0.6rem 0.85rem',
-                  background: '#f0fdf4',
+                  background: 'rgba(5, 150, 105, 0.08)',
                   border: '1px solid #86efac',
                   borderRadius: '8px',
                   fontSize: '0.8rem',
@@ -1106,7 +1106,7 @@ Backup irrigation alerted.`;
                 style={{
                   marginTop: '0.7rem',
                   padding: '0.6rem 0.85rem',
-                  background: '#fef2f2',
+                  background: 'rgba(239, 68, 68, 0.08)',
                   border: '1px solid #fecaca',
                   borderRadius: '8px',
                   fontSize: '0.8rem',
@@ -1123,9 +1123,9 @@ Backup irrigation alerted.`;
           <div
             className="card"
             style={{
-              background: '#ffffff',
+              background: 'rgba(18, 14, 40, 0.72)',
               borderRadius: '16px',
-              border: '1px solid #cbd5e1',
+              border: '1px solid rgba(255,255,255,0.09)',
               padding: '1.2rem',
             }}
           >
@@ -1154,9 +1154,9 @@ Backup irrigation alerted.`;
                   key={log.id}
                   style={{
                     padding: '0.55rem 0.75rem',
-                    background: '#f8fafc',
+                    background: 'rgba(255,255,255,0.03)',
                     borderRadius: '8px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid rgba(255,255,255,0.09)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -1164,13 +1164,13 @@ Backup irrigation alerted.`;
                   }}
                 >
                   <div>
-                    <strong style={{ color: '#0f172a' }}>
+                    <strong style={{ color: '#f1f5f9' }}>
                       {log.action}
                     </strong>
 
                     <div
                       style={{
-                        color: '#64748b',
+                        color: '#94a3b8',
                         fontSize: '0.72rem',
                       }}
                     >
@@ -1215,7 +1215,7 @@ Backup irrigation alerted.`;
             style={{
               whiteSpace: 'pre-wrap',
               fontSize: '0.72rem',
-              color: '#64748b',
+              color: '#94a3b8',
             }}
           >
             {JSON.stringify(risk, null, 2)}
