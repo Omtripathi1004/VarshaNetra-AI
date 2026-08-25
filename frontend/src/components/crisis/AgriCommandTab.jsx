@@ -546,14 +546,14 @@ Backup irrigation alerted.`;
           className="card"
           style={{
             padding: '0.9rem',
-            background: '#f0f9ff',
-            border: '1.5px solid #bae6fd',
+            background: 'rgba(6, 182, 212, 0.12)',
+            border: '1.5px solid rgba(6, 182, 212, 0.35)',
             borderRadius: '14px',
           }}
         >
           <span
             className="text-xs font-bold"
-            style={{ color: '#0369a1' }}
+            style={{ color: '#38bdf8' }}
           >
             ⚡ NOTIFICATION CHANNEL
           </span>
@@ -562,7 +562,7 @@ Backup irrigation alerted.`;
             style={{
               fontSize: '1.4rem',
               fontWeight: 900,
-              color: '#0284c7',
+              color: '#38bdf8',
               margin: '0.4rem 0 0',
             }}
           >
@@ -572,7 +572,7 @@ Backup irrigation alerted.`;
           <span
             style={{
               fontSize: '0.72rem',
-              color: '#0284c7',
+              color: '#38bdf8',
             }}
           >
             API Gateway Connected
@@ -583,14 +583,14 @@ Backup irrigation alerted.`;
           className="card"
           style={{
             padding: '0.9rem',
-            background: '#fffbeb',
-            border: '1.5px solid #fde68a',
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1.5px solid rgba(245, 158, 11, 0.35)',
             borderRadius: '14px',
           }}
         >
           <span
             className="text-xs font-bold"
-            style={{ color: '#b45309' }}
+            style={{ color: '#fbbf24' }}
           >
             🌐 CLIMATE TELECONNECTIONS
           </span>
@@ -599,7 +599,7 @@ Backup irrigation alerted.`;
             style={{
               fontSize: '1.1rem',
               fontWeight: 900,
-              color: '#d97706',
+              color: '#fbbf24',
               margin: '0.4rem 0 0',
             }}
           >
@@ -667,15 +667,15 @@ Backup irrigation alerted.`;
                 style={{
                   background:
                     inc.status === 'RESOLVED'
-                      ? '#f8fafc'
+                      ? 'rgba(255,255,255,0.03)'
                       : inc.severity === 'CRITICAL'
-                        ? '#fef2f2'
-                        : '#fffbeb',
+                        ? 'rgba(239, 68, 68, 0.12)'
+                        : 'rgba(245, 158, 11, 0.12)',
                   border: `1.5px solid ${inc.status === 'RESOLVED'
-                      ? '#e2e8f0'
+                      ? 'rgba(255,255,255,0.09)'
                       : inc.severity === 'CRITICAL'
-                        ? '#fca5a5'
-                        : '#fde68a'
+                        ? 'rgba(239, 68, 68, 0.35)'
+                        : 'rgba(245, 158, 11, 0.35)'
                     }`,
                   borderRadius: '12px',
                   padding: '0.9rem',

@@ -208,7 +208,7 @@ export default function AnalyticsTab() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '0.65rem', background: simResult.yield_impact_pct > 0 ? '#f0fdf4' : '#f8fafc', borderRadius: '8px', border: simResult.yield_impact_pct > 0 ? '1.5px solid #86efac' : '1px solid #e2e8f0' }}>
+                  <div style={{ padding: '0.65rem', background: simResult.yield_impact_pct > 0 ? 'rgba(5, 150, 105, 0.12)' : 'rgba(255,255,255,0.03)', borderRadius: '8px', border: simResult.yield_impact_pct > 0 ? '1.5px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255,255,255,0.09)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'अनुमानित उपज प्रभाव' : 'Estimated Yield Impact'}</span>
                       {simResult.yield_impact_pct > 0 && (
@@ -220,19 +220,19 @@ export default function AnalyticsTab() {
                     <p style={{
                       fontSize: '1.4rem',
                       fontWeight: 800,
-                      color: simResult.yield_impact_pct > 0 ? '#059669' : simResult.yield_impact_pct < -15 ? '#dc2626' : '#d97706',
+                      color: simResult.yield_impact_pct > 0 ? '#34d399' : simResult.yield_impact_pct < -15 ? '#f87171' : '#fbbf24',
                       margin: '0.15rem 0'
                     }}>
                       {simResult.yield_impact_pct > 0 ? `+${simResult.yield_impact_pct}` : simResult.yield_impact_pct}%
                     </p>
-                    <span style={{ fontSize: '0.72rem', color: simResult.yield_impact_pct > 0 ? '#047857' : '#64748b', fontWeight: simResult.yield_impact_pct > 0 ? 600 : 400 }}>
+                    <span style={{ fontSize: '0.72rem', color: simResult.yield_impact_pct > 0 ? '#34d399' : '#94a3b8', fontWeight: simResult.yield_impact_pct > 0 ? 600 : 400 }}>
                       {simResult.yield_impact_pct > 0 ? (lang === 'hi' ? 'अनुकूल वर्षा से उत्पादकता में बढ़ोतरी' : 'Productivity boost from optimal moisture') : 'Relative to standard baseline'}
                     </span>
                   </div>
 
                   <div style={{ padding: '0.65rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.09)' }}>
                     <span className="text-xs text-muted font-bold">{lang === 'hi' ? 'प्रक्षेपित मृदा नमी' : 'Projected Soil Moisture'}</span>
-                    <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', margin: '0.15rem 0' }}>
+                    <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38bdf8', margin: '0.15rem 0' }}>
                       {simResult.soil_moisture_projected} m³/m³
                     </p>
                     <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Root zone moisture index</span>
@@ -240,15 +240,21 @@ export default function AnalyticsTab() {
                 </div>
 
                 <div style={{
-                  padding: '0.75rem 0.9rem',
-                  background: simResult.yield_impact_pct > 0 ? '#f0fdf4' : '#f8fafc',
+                  padding: '0.85rem 1.05rem',
+                  background: simResult.yield_impact_pct > 0 ? 'rgba(5, 150, 105, 0.16)' : 'rgba(245, 158, 11, 0.16)',
                   borderRadius: '8px',
-                  borderLeft: `4px solid ${simResult.yield_impact_pct > 0 ? '#059669' : '#ea580c'}`,
-                  fontSize: '0.84rem',
-                  color: '#e2e8f0'
+                  border: simResult.yield_impact_pct > 0 ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
+                  borderLeft: `5px solid ${simResult.yield_impact_pct > 0 ? '#10b981' : '#f59e0b'}`,
+                  fontSize: '0.88rem',
+                  lineHeight: '1.6',
+                  color: '#f1f5f9'
                 }}>
-                  <strong>{lang === 'hi' ? 'आकस्मिक कृषि सिफारिश:' : 'Recommended Agronomic Contingency:'}</strong>{' '}
-                  {lang === 'hi' ? simResult.recommended_contingency_hi : simResult.recommended_contingency_en}
+                  <strong style={{ color: simResult.yield_impact_pct > 0 ? '#34d399' : '#fbbf24', fontWeight: 800 }}>
+                    {lang === 'hi' ? 'आकस्मिक कृषि सिफारिश:' : 'Recommended Agronomic Contingency:'}
+                  </strong>{' '}
+                  <span style={{ color: '#f1f5f9', fontWeight: 600 }}>
+                    {lang === 'hi' ? simResult.recommended_contingency_hi : simResult.recommended_contingency_en}
+                  </span>
                 </div>
               </div>
             )}

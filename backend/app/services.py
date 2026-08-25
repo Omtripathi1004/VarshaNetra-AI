@@ -1032,6 +1032,56 @@ def generate_chat_response(
         caution_en = "Rainfall > 64.5 mm/day meets the IMD threshold for Heavy Rain."
         caution_hi = "64.5 मिमी/दिन से अधिक वर्षा मौसम विभाग के भारी वर्षा मानक में आती है।"
 
+    elif detected_crop == "maize" or "maize" in msg or "मक्का" in msg or "armyworm" in msg:
+        direct_en = f"Maize agronomic advisory: Current rainfall risk is {prob}% ({expected_mm} mm expected)."
+        direct_hi = f"मक्का फसल सलाह: वर्तमान वर्षा संभावना {prob}% ({expected_mm} मिमी) है।"
+        why_en = f"Knee-high to tasseling stages require balanced root aeration; soil moisture is {soil_moist} m³/m³."
+        why_hi = f"मक्का की घुटने तक बढ़वार व मंजर आने की अवस्था में जलजमाव रहित मृदा नमी ({soil_moist} m³/m³) आवश्यक है।"
+        action_en = "1. Scout for Fall Armyworm (FAW) whorl damage; apply Neem oil (1500 ppm) or Emamectin Benzoate 5% SG @ 0.4 g/L in leaf whorls.\n2. Ensure earthing-up and furrow drainage to prevent root lodging in heavy rain."
+        action_hi = "1. फॉल आर्मीवर्म (FAW) कीट की निगरानी करें; पोंगली (लीफ वोर्ल) में नीम तेल या इमामेक्टिन बेंजोएट (0.4 ग्राम/लीटर) डालें।\n2. जड़ों पर मिट्टी चढ़ाएं व जल निकासी नालियां खुली रखें।"
+        caution_en = "Whorl moisture stagnation triggers stalk rot diseases."
+        caution_hi = "पोंगली में पानी रुकने से तना सड़न रोग का खतरा बढ़ता है।"
+
+    elif detected_crop == "groundnut" or "groundnut" in msg or "मूँगफली" in msg or "peanut" in msg:
+        direct_en = f"Groundnut crop status: Soil moisture is {soil_moist} m³/m³ with temperature at {temp}°C."
+        direct_hi = f"मूँगफली फसल स्थिति: मृदा नमी {soil_moist} m³/m³ और तापमान {temp}°C है।"
+        why_en = "Pegging and pod initiation require light friable soil with adequate sub-surface moisture."
+        why_hi = "सुइयां (Pegs) बनने और फली विकास हेतु भुरभुरी मिट्टी व पर्याप्त नमी आवश्यक है।"
+        action_en = "1. Apply Gypsum @ 500 kg/ha at pegging stage to ensure pod filling and oil synthesis.\n2. Avoid deep inter-cultivation once pegging has started to prevent peg snapping."
+        action_hi = "1. सुइयां बनते समय 500 किग्रा/हेक्टेयर जिप्सम प्रयोग करें ताकि फली में दाना मजबूत बने।\n2. सुइयां मिट्टी में प्रवेश करने के बाद गहरी गुड़ाई न करें।"
+        caution_en = "Excessive soil waterlogging causes peg rot and aflatoxin buildup."
+        caution_hi = "अत्यधिक जलभराव से सुइयां गलने व फली सड़न का जोखिम रहता है।"
+
+    elif detected_crop == "pulses" or "pulses" in msg or "arhar" in msg or "chana" in msg or "दाल" in msg or "चना" in msg:
+        direct_en = f"Pulses crop advisory: Rainfall probability is {prob}% with humidity at {hum}%."
+        direct_hi = f"दलहनी फसल सलाह: वर्षा संभावना {prob}% और आर्द्रता {hum}% है।"
+        why_en = "Pulse crops (Arhar, Moong, Urad, Chana) are highly sensitive to standing water and root hypoxia."
+        why_hi = "दलहनी फसलें (अरहर, मूंग, उड़द, चना) जड़ों में जलभराव के प्रति अत्यधिक संवेदनशील हैं।"
+        action_en = "1. Construct broad-bed furrow (BBF) or ridge channels for rapid water evacuation.\n2. Set up 5 pheromone traps/ha for Pod Borer (Helicoverpa) and spray Chlorantraniliprole 18.5% SC @ 0.3 ml/L at early flowering."
+        action_hi = "1. खेत में चौड़ी क्यारी एवं कुंड (BBF) विधि से तुरंत जल निकासी सुनिश्चित करें।\n2. फली छेदक (हेलिकोवर्पा) हेतु 5 फेरोमोन ट्रैप लगाएं व क्लोरैंट्रानिलीप्रोल (0.3 मिली/लीटर) का छिड़काव करें।"
+        caution_en = "Standing water > 24 hours causes irreversible yellowing and wilt."
+        caution_hi = "24 घंटे से अधिक जलभराव से पौधे पीले पड़कर सूखने लगते हैं।"
+
+    elif "soil" in msg or "moisture" in msg or "मिट्टी" in msg or "नमी" in msg or "temp" in msg or "तापमान" in msg:
+        direct_en = f"Live Telemetry: Soil Moisture is **{soil_moist} m³/m³**, Temperature is **{temp}°C**, and Humidity is **{hum}%**."
+        direct_hi = f"लाइव टेलीमेट्री: मृदा नमी **{soil_moist} m³/m³**, तापमान **{temp}°C**, एवं आर्द्रता **{hum}%** है।"
+        why_en = f"Root-zone moisture (0-1cm depth) and ambient thermal profile determine crop evapotranspiration rates."
+        why_hi = "जड़ क्षेत्र की मृदा नमी और वायुमंडलीय तापमान फसल के वाष्पोत्सर्जन दर को निर्धारित करते हैं।"
+        action_en = "1. Soil moisture > 0.30 m³/m³ indicates good water availability; suspend artificial irrigation.\n2. If temperature exceeds 32°C during sensitive crop stages, apply protective light irrigation."
+        action_hi = "1. मृदा नमी > 0.30 m³/m³ पर्याप्त जल उपलब्धता दर्शाती है; अतिरिक्त सिंचाई टालें।\n2. संवेदनशील फसल अवस्था में तापमान 32°C से ऊपर जाने पर हल्की सिंचाई करें।"
+        caution_en = "Sensor readings reflect satellite-calibrated topsoil profile."
+        caution_hi = "मृदा आंकड़े उपग्रह एवं लाइव सेंसर कैलिब्रेशन पर आधारित हैं।"
+
+    elif "pest" in msg or "insect" in msg or "कीट" in msg or "कीड़ा" in msg or "रोग" in msg:
+        direct_en = f"Integrated Pest Management (IPM) Alert for {hum}% ambient humidity conditions."
+        direct_hi = f"{hum}% आर्द्रता परिस्थितियों में एकीकृत कीट प्रबंधन (IPM) सलाह।"
+        why_en = f"High humidity combined with temperature around {temp}°C accelerates insect nymph hatching and fungal spore germination."
+        why_hi = f"उच्च आर्द्रता और {temp}°C तापमान कीटों के अंडों से बच्चे निकलने और फफूंद बीजाणुओं के प्रसार हेतु अनुकूल है।"
+        action_en = "1. Deploy yellow/blue sticky traps (25/ha) for sucking pests (Aphids, Whiteflies, Thrips).\n2. Spray Neem-based azadirachtin (1500 ppm) @ 5 ml/L as organic repellent.\n3. Use targeted systemic insecticides only if pest threshold crosses ETL."
+        action_hi = "1. रसचूसक कीटों (माहू, सफेद मक्खी, थ्रिप्स) हेतु पीले/नीले चिपचिपे कार्ड (25/हे.) लगाएं।\n2. जैविक रोकथाम हेतु नीम तेल (अजाडिराक्टिन 1500 पीपीएम) 5 मिली/लीटर का छिड़काव करें।\n3. कीट संख्या आर्थिक क्षति स्तर (ETL) पार करने पर ही संस्तुत रसायन का प्रयोग करें।"
+        caution_en = "Always wear protective gear during chemical spray operations."
+        caution_hi = "कीटनाशक छिड़काव करते समय सदैव सुरक्षात्मक किट पहनें।"
+
     elif "enso" in msg or "iod" in msg or "mjo" in msg or "climate" in msg or "टेली" in msg or "अल नीनो" in msg:
         direct_en = "Global teleconnection status: ENSO ONI, IOD DMI, and MJO Phase are integrated into our 10-year ML engine."
         direct_hi = "वैश्विक जलवायु संकेतक: ENSO, IOD और MJO हमारे 10-वर्षीय ML मॉडल में एकीकृत हैं।"

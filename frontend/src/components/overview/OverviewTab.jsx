@@ -524,8 +524,8 @@ export default function OverviewTab() {
                   onClick={() => setSelectedDayIndex(i)}
                   style={{
                     padding: '0.65rem 0.3rem',
-                    background: isSelected ? '#f0fdf4' : '#f8fafc',
-                    border: isSelected ? '2px solid #059669' : '1px solid #e2e8f0',
+                    background: isSelected ? 'rgba(5, 150, 105, 0.25)' : 'rgba(255,255,255,0.03)',
+                    border: isSelected ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.09)',
                     borderRadius: '12px',
                     textAlign: 'center',
                     display: 'flex',
@@ -534,16 +534,16 @@ export default function OverviewTab() {
                     gap: '0.25rem',
                     cursor: 'pointer',
                     transform: isSelected ? 'scale(1.04)' : 'scale(1)',
-                    boxShadow: isSelected ? '0 4px 12px rgba(5,150,105,0.2)' : 'none',
+                    boxShadow: isSelected ? '0 4px 16px rgba(16,185,129,0.3)' : 'none',
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <span style={{ fontSize: '0.74rem', fontWeight: isSelected ? 800 : 700, color: isSelected ? '#047857' : '#0f172a' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: isSelected ? 800 : 700, color: isSelected ? '#34d399' : '#f1f5f9' }}>
                     {lang === 'hi' ? dp.day_hi : dp.day_en}
                   </span>
                   <span style={{ fontSize: '1.25rem' }}>{dp.icon}</span>
-                  <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700 }}>💧 {dp.rain_prob}%</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700 }}>💧 {dp.rain_prob}%</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f1f5f9' }}>
                     {dp.max}°<span style={{ color: '#94a3b8', fontWeight: 500 }}>/{dp.min}°</span>
                   </span>
                 </div>
@@ -617,19 +617,86 @@ export default function OverviewTab() {
         </div>
       </div>
 
+      {/* 🌟 5 KEY INDIAN AGRO-CLIMATIC HUBS REGIONAL RAIN PREDICTIONS */}
+      <div className="card" style={{ marginBottom: '1.4rem' }}>
+        <div className="card-header" style={{ marginBottom: '0.8rem' }}>
+          <div>
+            <span className="card-title" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f1f5f9' }}>
+              🗺️ {lang === 'hi' ? '5 मुख्य भारतीय कृषि हब — क्षेत्रीय वर्षा व स्थिति पूर्वाभास' : '5 Key Indian Agro-Climatic Hubs — Live Rain & Crop Status'}
+            </span>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+              {lang === 'hi'
+                ? 'किसी भी कृषि हब (धान, कपास, सोयाबीन, मूँगफली, मक्का) पर क्लिक करके उस क्षेत्र का लाइव टेलीमेट्री देखें:'
+                : 'Click any key agricultural hub to instantly switch live dashboard telemetry & rainfall predictions to that region:'}
+            </p>
+          </div>
+          <span className="badge badge-success">Multi-Hub Telemetry</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+          {AGRI_HUBS.map((hub) => {
+            const isSelected = location.district === hub.district || location.display_name.includes(hub.district);
+            return (
+              <div
+                key={hub.id}
+                onClick={() => handleSelectHub(hub)}
+                style={{
+                  background: isSelected ? 'rgba(6, 182, 212, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                  border: isSelected ? '2px solid #06b6d4' : '1px solid rgba(255, 255, 255, 0.09)',
+                  borderRadius: '14px',
+                  padding: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isSelected ? '0 6px 20px rgba(6, 182, 212, 0.25)' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span className="badge" style={{ background: 'rgba(255,255,255,0.06)', color: hub.color, fontSize: '0.68rem', fontWeight: 800 }}>
+                    {hub.badge}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: isSelected ? '#38bdf8' : '#94a3b8', fontWeight: 700 }}>
+                    {isSelected ? '● ACTIVE' : 'Select'}
+                  </span>
+                </div>
+
+                <h4 style={{ margin: '0.2rem 0', fontSize: '0.9rem', color: '#f1f5f9', fontWeight: 800 }}>
+                  {lang === 'hi' ? hub.name_hi : hub.name_en}
+                </h4>
+                <p style={{ margin: '0 0 0.4rem', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                  📍 {hub.district}, {hub.state}
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.09)', paddingTop: '0.4rem', marginTop: '0.4rem' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#38bdf8', fontWeight: 800 }}>
+                    💧 {hub.rain_prob_pct}% Rain
+                  </span>
+                  <span style={{ fontSize: '0.76rem', color: '#f1f5f9', fontWeight: 700 }}>
+                    {hub.temp_c}°C
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.7rem', color: hub.color, fontWeight: 700, marginTop: '0.3rem' }}>
+                  {lang === 'hi' ? hub.status_label_hi : hub.status_label_en}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 🌟 SIH-STANDARD REDESIGNED AI PREDICTION & REASONING CARD */}
       <div
         className="card"
         style={{
           marginBottom: '1.4rem',
           borderRadius: '18px',
-          border: '1.5px solid #0284c7',
-          background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.09)',
+          background: 'rgba(18, 14, 40, 0.85)',
           padding: '1.25rem',
-          boxShadow: '0 8px 24px rgba(2, 132, 199, 0.08)'
+          boxShadow: 'var(--shadow-card)'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem', borderBottom: '1px solid #e0f2fe', paddingBottom: '0.8rem', marginBottom: '0.9rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.09)', paddingBottom: '0.8rem', marginBottom: '0.9rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
@@ -639,7 +706,7 @@ export default function OverviewTab() {
                 Model: LightGBM Hybrid v2.0
               </span>
             </div>
-            <h3 style={{ margin: '0.3rem 0 0', fontSize: '1.2rem', color: '#0369a1', fontWeight: 800 }}>
+            <h3 style={{ margin: '0.3rem 0 0', fontSize: '1.2rem', color: '#f1f5f9', fontWeight: 800 }}>
               🌧️ {lang === 'hi' ? '24 घंटे का वर्षा जोखिम व संभावित मात्रा' : '24-Hour Rainfall Risk & Quantitative Prediction'}
             </h3>
             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
