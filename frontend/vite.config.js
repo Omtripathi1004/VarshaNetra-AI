@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      outDir: '../backend/dist',
+      emptyOutDir: true
+    },
     envDir: '../',
     define: {
       'import.meta.env.VITE_MAPTILER_API_KEY': JSON.stringify(maptilerKey)

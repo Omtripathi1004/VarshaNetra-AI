@@ -68,23 +68,20 @@ async def health(request: Request):
         "engines": ["open_meteo", "false_onset_hero", "noaa_teleconnections", "10yr_ml_validation", "crop_stage_matrix"]
     }
 
-# Locate static build output (frontend/dist, dist, or public)
+import mimetypes
+
+# Locate static build output (backend/dist, frontend/dist, dist, or public)
 possible_dirs = [
+    os.path.join(backend_dir, "dist"),
     os.path.join(root_dir, "frontend", "dist"),
     os.path.join(root_dir, "dist"),
-    os.path.join(root_dir, "public"),
-    os.path.join(backend_dir, "dist")
+    os.path.join(root_dir, "public")
 ]
 static_dir = None
 for d in possible_dirs:
     if os.path.isdir(d) and os.path.isfile(os.path.join(d, "index.html")):
         static_dir = d
         break
-
-if static_dir:
-    assets_path = os.path.join(static_dir, "assets")
-    if os.path.isdir(assets_path):
-        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
 
 @app.get("/")
 async def serve_root():
@@ -107,7 +104,13 @@ async def serve_spa_or_file(full_path: str):
     if static_dir:
         file_path = os.path.join(static_dir, full_path)
         if full_path and os.path.isfile(file_path):
-            return FileResponse(file_path)
+            media_type, _ = mimetypes.guess_type(file_path)
+            if not media_type:
+                if file_path.endswith(".js"):
+                    media_type = "application/javascript"
+                elif file_path.endswith(".css"):
+                    media_type = "text/css"
+            return FileResponse(file_path, media_type=media_type)
         index_file = os.path.join(static_dir, "index.html")
         if os.path.isfile(index_file):
             return FileResponse(index_file, media_type="text/html")

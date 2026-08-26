@@ -1,16 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = path.join(__dirname, '..', 'frontend', 'dist');
-const distDst = path.join(__dirname, '..', 'dist');
-const publicDst = path.join(__dirname, '..', 'public');
+const src = path.join(__dirname, '..', 'backend', 'dist');
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 
 if (fs.existsSync(src)) {
-  console.log('🔄 Syncing frontend/dist -> dist & public...');
-  fs.cpSync(src, distDst, { recursive: true, force: true });
-  fs.cpSync(src, publicDst, { recursive: true, force: true });
+  console.log('🔄 Syncing backend/dist -> frontend/dist...');
+  fs.cpSync(src, frontendDist, { recursive: true, force: true });
   console.log('✅ Build assets synced successfully!');
 } else {
-  console.error('❌ Error: frontend/dist does not exist. Build frontend first.');
+  console.error('❌ Error: backend/dist does not exist.');
   process.exit(1);
 }
