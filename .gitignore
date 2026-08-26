@@ -7,6 +7,11 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Build outputs
+dist/
+public/
+frontend/dist/
+
 # Local databases & logs
 *.db
 *.sqlite

@@ -47,6 +47,22 @@ async def health(request: Request):
         "engines": ["open_meteo", "false_onset_hero", "noaa_teleconnections", "10yr_ml_validation", "crop_stage_matrix"]
     }
 
+@app.get("/api/debug-files")
+async def debug_files():
+    res = {"root_dir": root_dir, "static_dir": static_dir, "dirs_checked": {}}
+    for d in possible_dirs:
+        if os.path.exists(d):
+            try:
+                res["dirs_checked"][d] = os.listdir(d)
+                assets_d = os.path.join(d, "assets")
+                if os.path.exists(assets_d):
+                    res["dirs_checked"][d + "/assets"] = os.listdir(assets_d)
+            except Exception as e:
+                res["dirs_checked"][d] = str(e)
+        else:
+            res["dirs_checked"][d] = "NOT_EXISTS"
+    return res
+
 # Locate static build output (frontend/dist, dist, or public)
 possible_dirs = [
     os.path.join(root_dir, "frontend", "dist"),
