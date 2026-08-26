@@ -48,6 +48,19 @@ export default function HydroMapTab() {
   const [copiedGps, setCopiedGps] = useState(false);
   const [copiedClick, setCopiedClick] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapStats, setMapStats] = useState({
+    states_and_uts: 36,
+    districts: 766,
+    sub_districts_blocks: 6854,
+    gram_panchayats_lgd: 255286,
+    villages: 664369,
+  });
+
+  useEffect(() => {
+    api.getMapStats().then(res => {
+      if (res.data?.states_and_uts) setMapStats(res.data);
+    });
+  }, []);
 
   // Administrative search indexing
   const searchableDistricts = useMemo(() => {
@@ -520,11 +533,11 @@ export default function HydroMapTab() {
           🏛️ <strong>Authoritative Geographic Database (Survey of India & LGD):</strong>
         </div>
         <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
-          <span>States & UTs: <strong style={{ color: '#38bdf8' }}>36</strong></span>
-          <span>Districts: <strong style={{ color: '#38bdf8' }}>766</strong></span>
-          <span>Sub-Districts: <strong style={{ color: '#38bdf8' }}>6,854</strong></span>
-          <span>Gram Panchayats (LGD): <strong style={{ color: '#38bdf8' }}>255,286</strong></span>
-          <span>Villages: <strong style={{ color: '#38bdf8' }}>664,369</strong></span>
+          <span>States & UTs: <strong style={{ color: '#38bdf8' }}>{mapStats.states_and_uts}</strong></span>
+          <span>Districts: <strong style={{ color: '#38bdf8' }}>{mapStats.districts}</strong></span>
+          <span>Sub-Districts: <strong style={{ color: '#38bdf8' }}>{Number(mapStats.sub_districts_blocks).toLocaleString()}</strong></span>
+          <span>Gram Panchayats (LGD): <strong style={{ color: '#38bdf8' }}>{Number(mapStats.gram_panchayats_lgd).toLocaleString()}</strong></span>
+          <span>Villages: <strong style={{ color: '#38bdf8' }}>{Number(mapStats.villages).toLocaleString()}</strong></span>
         </div>
       </div>
     </div>

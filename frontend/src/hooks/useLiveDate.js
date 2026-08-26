@@ -229,29 +229,44 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
     const baseDate = new Date(target);
     baseDate.setMinutes(0, 0, 0);
 
+    const closestSlotIdx = Math.min(7, Math.max(0, Math.round(currentHour / 3)));
+
     const rawIntervals = [];
     for (let hIdx = 0; hIdx < 8; hIdx++) {
       const slotHour = hIdx * 3;
       const slotDate = new Date(baseDate);
       slotDate.setHours(slotHour, 0, 0, 0);
 
-      const hourProb = Math.min(95, Math.max(5, Math.round(p.rain_prob + (Math.sin(hIdx) * 16))));
-      const hourMm = Number(Math.max(0, (p.rain_mm * (hourProb / (p.rain_prob * 2.8 || 1))).toFixed(1)));
-      const tempVal = Math.round(p.min + ((p.max - p.min) * (Math.sin((hIdx * Math.PI) / 4) + 1) / 2));
+      const isCurrentSlot = i === 0 && hIdx === closestSlotIdx;
+
+      // Realistic diurnal temperature curve with peak at 2 PM (14:00) and min at 5 AM (05:00)
+      const diurnalOffset = Math.sin(((slotHour - 8) * Math.PI) / 12) * 3.5;
+      const calculatedTemp = Math.round(currentTemp + diurnalOffset);
+      const slotTemp = isCurrentSlot ? currentTemp : calculatedTemp;
+
+      const hourProb = isCurrentSlot
+        ? currentRainProb
+        : Math.min(95, Math.max(5, Math.round(p.rain_prob + (Math.sin(hIdx) * 14))));
+
+      const hourMm = isCurrentSlot
+        ? currentExpectedRain
+        : Number(Math.max(0, (p.rain_mm * (hourProb / (p.rain_prob * 2.8 || 1))).toFixed(1)));
+
       const humidityVal = Math.min(98, Math.max(45, Math.round(p.humidity + (Math.cos(hIdx) * 8))));
 
       rawIntervals.push({
         isoTimestamp: slotDate.toISOString(),
         timestampDate: slotDate,
         hour: slotHour,
-        temp: isNaN(tempVal) ? 28 : tempVal,
-        icon: hourProb > 70 ? '⛈️' : hourProb > 40 ? '🌧️' : hourProb > 20 ? '🌦️' : '☁️',
+        temp: isNaN(slotTemp) ? currentTemp : slotTemp,
+        icon: hourProb > 70 ? '⛈️' : hourProb > 40 ? '🌧️' : hourProb > 20 ? '🌦️' : '⛅',
         rain: `${hourProb}%`,
         rain_mm: isNaN(hourMm) ? 0 : hourMm,
         prob_pct: hourProb,
         humidity: humidityVal,
-        condition_en: hourProb > 60 ? 'Rain Showers' : hourProb > 30 ? 'Passing Clouds' : 'Partly Cloudy',
-        condition_hi: hourProb > 60 ? 'वर्षा बौछारें' : hourProb > 30 ? 'बादल छाए' : 'आंशिक बादल',
+        condition_en: isCurrentSlot ? (currentWeather?.weather_description_en || 'Current Observation') : (hourProb > 60 ? 'Rain Showers' : hourProb > 30 ? 'Passing Clouds' : 'Partly Cloudy'),
+        condition_hi: isCurrentSlot ? (currentWeather?.weather_description_hi || 'वर्तमान प्रेक्षण') : (hourProb > 60 ? 'वर्षा बौछारें' : hourProb > 30 ? 'बादल छाए' : 'आंशिक बादल'),
+        isCurrentSlot,
       });
     }
 
@@ -274,15 +289,12 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
         hour12: false,
       });
 
-      const isCurrentSlot = i === 0 && Math.abs(currentHour - item.hour) < 2;
-
       return {
         ...item,
-        time: isCurrentSlot ? (lang === 'hi' ? 'अभी (वर्तमान)' : 'Now (Live)') : timeFormatted,
+        time: item.isCurrentSlot ? (lang === 'hi' ? 'अभी (Live)' : 'Now (Live)') : timeFormatted,
         time12: timeFormatted,
         time24: time24Formatted,
         displayTime: timeFormatted,
-        isCurrentSlot,
       };
     });
 

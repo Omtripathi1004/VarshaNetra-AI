@@ -1484,5 +1484,19 @@ export const api = {
       };
     }
   },
+
+  getMapStats: () => axios.get(`${BASE}/map/stats`).catch(() => ({
+    data: {
+      states_and_uts: 36,
+      districts: 766,
+      sub_districts_blocks: 6854,
+      gram_panchayats_lgd: 255286,
+      villages: 664369,
+    }
+  })),
+
+  searchMap: (q, limit = 10) => axios.get(`${BASE}/map/search`, { params: { q, limit } }).catch(() => ({
+    data: { count: 0, results: [] }
+  })),
 };
 

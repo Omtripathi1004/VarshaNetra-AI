@@ -459,23 +459,29 @@ export default function OverviewTab() {
                   key={i}
                   style={{
                     flex: '0 0 auto',
-                    width: '72px',
+                    width: '76px',
                     padding: '0.7rem 0.35rem',
-                    background: i === 0 ? 'rgba(2, 132, 199, 0.28)' : 'rgba(255, 255, 255, 0.05)',
-                    border: i === 0 ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                    background: hc.isCurrentSlot ? 'rgba(2, 132, 199, 0.38)' : 'rgba(255, 255, 255, 0.05)',
+                    border: hc.isCurrentSlot ? '2px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '12px',
                     textAlign: 'center',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '0.3rem',
-                    boxShadow: i === 0 ? '0 4px 14px rgba(2, 132, 199, 0.25)' : 'none',
+                    boxShadow: hc.isCurrentSlot ? '0 4px 16px rgba(56, 189, 248, 0.4)' : 'none',
+                    position: 'relative',
                   }}
                 >
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc' }}>{hc.temp}°</span>
+                  {hc.isCurrentSlot && (
+                    <span style={{ position: 'absolute', top: '-7px', background: '#ef4444', color: '#fff', fontSize: '0.58rem', fontWeight: 900, padding: '0.05rem 0.35rem', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      LIVE
+                    </span>
+                  )}
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: hc.isCurrentSlot ? '#38bdf8' : '#f8fafc' }}>{hc.temp}°</span>
                   <span style={{ fontSize: '1.3rem' }}>{hc.icon}</span>
                   <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>{hc.rain}</span>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>{hc.time}</span>
+                  <span style={{ fontSize: '0.72rem', color: hc.isCurrentSlot ? '#f8fafc' : '#94a3b8', fontWeight: hc.isCurrentSlot ? 800 : 600 }}>{hc.time}</span>
                 </div>
               ))}
             </div>

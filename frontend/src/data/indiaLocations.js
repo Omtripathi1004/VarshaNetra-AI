@@ -355,12 +355,17 @@ export const INDIA_LOCATIONS = {
     }
   },
   "Uttar Pradesh": {
-    districts: ["Lucknow", "Varanasi", "Kanpur Nagar", "Prayagraj (Allahabad)", "Agra", "Meerut", "Bareilly", "Aligarh", "Moradabad", "Gorakhpur", "Ayodhya (Faizabad)", "Jhansi", "Saharanpur", "Muzaffarnagar", "Mathura", "Firozabad", "Ghaziabad", "Gautam Buddha Nagar (Noida)", "Bulandshahr", "Budaun", "Shahjahanpur", "Pilibhit", "Lakhimpur Kheri", "Sitapur", "Hardoi", "Unnao", "Rae Bareli", "Amethi", "Sultanpur", "Barabanki", "Bahraich", "Shravasti", "Balrampur", "Gonda", "Siddharthnagar", "Basti", "Sant Kabir Nagar", "Maharajganj", "Kushinagar", "Deoria", "Azamgarh", "Mau", "Ballia", "Jaunpur", "Ghazipur", "Chandauli", "Mirzapur", "Sonbhadra", "Banda", "Chitrakoot", "Fatehpur", "Hamirpur UP", "Mahoba", "Lalitpur", "Jalaun (Orai)", "Etawah", "Mainpuri", "Kannauj", "Farrukhabad", "Etah", "Kasganj", "Hathras", "Baghpat", "Shamli", "Hapur", "Sambhal", "Amroha", "Bijnor", "Rampur"],
-    cities: ["Lucknow", "Varanasi", "Kanpur", "Prayagraj", "Agra", "Meerut", "Bareilly", "Aligarh", "Moradabad", "Gorakhpur", "Ayodhya", "Jhansi", "Saharanpur", "Muzaffarnagar", "Mathura", "Firozabad", "Noida", "Ghaziabad", "Bulandshahr", "Sitapur", "Hardoi", "Unnao", "Rae Bareli", "Barabanki", "Bahraich", "Gonda", "Basti", "Deoria", "Azamgarh", "Jaunpur", "Mirzapur", "Orai", "Etawah", "Kannauj", "Farrukhabad", "Bijnor", "Rampur"],
+    districts: [
+      "Lucknow", "Varanasi", "Kanpur Nagar", "Kanpur Dehat (Ramabai Nagar)", "Prayagraj (Allahabad)", "Agra", "Meerut", "Bareilly", "Aligarh", "Moradabad", "Gorakhpur", "Ayodhya (Faizabad)", "Jhansi", "Saharanpur", "Muzaffarnagar", "Mathura", "Firozabad", "Ghaziabad", "Gautam Buddha Nagar (Noida)", "Bulandshahr", "Budaun", "Shahjahanpur", "Pilibhit", "Lakhimpur Kheri", "Sitapur", "Hardoi", "Unnao", "Rae Bareli", "Amethi", "Sultanpur", "Barabanki", "Bahraich", "Shravasti", "Balrampur", "Gonda", "Siddharthnagar", "Basti", "Sant Kabir Nagar", "Maharajganj", "Kushinagar", "Deoria", "Azamgarh", "Mau", "Ballia", "Jaunpur", "Ghazipur", "Chandauli", "Mirzapur", "Sonbhadra", "Banda", "Chitrakoot", "Fatehpur", "Hamirpur UP", "Mahoba", "Lalitpur", "Jalaun (Orai)", "Etawah", "Mainpuri", "Kannauj", "Farrukhabad", "Etah", "Kasganj", "Hathras", "Baghpat", "Shamli", "Hapur", "Sambhal", "Amroha", "Bijnor", "Rampur", "Ambedkar Nagar", "Auraiya", "Bhadohi (Sant Ravidas Nagar)", "Kaushambi", "Pratapgarh"
+    ],
+    cities: [
+      "Lucknow", "Varanasi", "Kanpur", "Prayagraj", "Agra", "Meerut", "Bareilly", "Aligarh", "Moradabad", "Gorakhpur", "Ayodhya", "Jhansi", "Saharanpur", "Muzaffarnagar", "Mathura", "Firozabad", "Noida", "Ghaziabad", "Bulandshahr", "Sitapur", "Hardoi", "Unnao", "Rae Bareli", "Barabanki", "Bahraich", "Gonda", "Basti", "Deoria", "Azamgarh", "Jaunpur", "Mirzapur", "Orai", "Etawah", "Kannauj", "Farrukhabad", "Bijnor", "Rampur", "Akbarpur", "Auraiya", "Bhadohi", "Manjhanpur", "Bela Pratapgarh"
+    ],
     villages: {
       "Lucknow": ["Malihabad Gram", "Bakshi Ka Talab (BKT) Panchayat", "Mohanlalganj Gram", "Kakori Panchayat", "Sarojini Nagar Gram", "Chinhat Panchayat", "Gosainganj Gram", "Itaunja Panchayat", "Nagram Gram", "Amethi Lucknow Panchayat"],
       "Varanasi": ["Pindra Gram", "Shivpur Panchayat", "Raja Talab Gram", "Cholapur Panchayat", "Kashi Vidyapeeth Gram", "Araziline Panchayat", "Sevapuri Gram", "Baragaon Varanasi Panchayat", "Harahua Gram", "Chiraigaon Panchayat"],
       "Kanpur Nagar": ["Bilhaur Gram", "Ghatampur Panchayat", "Kalyanpur Kanpur Gram", "Chaubepur Panchayat", "Sarsaul Gram", "Bidhnu Panchayat", "Bhitargaon Gram", "Shivrajpur Panchayat", "Patara Gram", "Kakwan Panchayat"],
+      "Kanpur Dehat (Ramabai Nagar)": ["Akbarpur Gram", "Rasulabad Panchayat", "Derapur Gram", "Bhognipur Panchayat", "Sikandra Dehat Gram", "Maitha Panchayat", "Amrutpur Gram", "Rajpur Dehat Panchayat"],
       "Prayagraj (Allahabad)": ["Phulpur Gram", "Koraon Panchayat", "Handia Gram", "Soraon Panchayat", "Karchana Gram", "Meja Panchayat", "Mauaima Gram", "Shankargarh Panchayat", "Holagarh Gram", "Jasra Panchayat", "Bahria Gram", "Pratappur UP Panchayat"],
       "Ayodhya (Faizabad)": ["Bikapur Gram", "Rudauli Panchayat", "Sohawal Gram", "Milkipur Panchayat", "Pura Bazar Gram", "Masodha Panchayat", "Tarun Gram", "Maya Bazar Panchayat", "Amaniganj Gram", "Harrington Ganj Panchayat"],
       "Gorakhpur": ["Sahjanwa Gram", "Chauri Chaura Panchayat", "Campierganj Gram", "Bansgaon Panchayat", "Gola Gorakhpur Gram", "Pipraich Panchayat", "Khorabar Gram", "Bhalloti Panchayat", "Jangha Gram", "Sardarnagar Panchayat"],
@@ -381,6 +386,11 @@ export const INDIA_LOCATIONS = {
       "Azamgarh": ["Lalganj Azamgarh Gram", "Phoolpur Pawai Panchayat", "Sagri Gram", "Mehnagar Panchayat", "Mubarakpur Rural Gram", "Bilariyaganj Panchayat", "Atraulia Gram", "Jiyanpur Panchayat", "Martinganj Gram"],
       "Jaunpur": ["Shahganj Gram", "Machhlishahr Panchayat", "Mariahu Gram", "Kerakat Panchayat", "Badlapur Jaunpur Gram", "Mungra Badshahpur Panchayat", "Baksha Gram", "Sujanpur Jaunpur Panchayat", "Dharmapur Gram"],
       "Mirzapur": ["Chunar Gram", "Lalganj Mirzapur Panchayat", "Mariyahu Mirzapur Gram", "Kon Mirzapur Panchayat", "Majhawan Gram", "City Mirzapur Panchayat", "Pahari Mirzapur Gram", "Halalpur Mirzapur Gram"],
+      "Ambedkar Nagar": ["Akbarpur Gram", "Tanda Panchayat", "Jalalpur Gram", "Alapur Panchayat", "Bhiti Gram", "Katehari Panchayat", "Baskhari Gram"],
+      "Auraiya": ["Bidhuna Gram", "Ajitmal Panchayat", "Auraiya Rural Gram", "Sahar Panchayat", "Bhagyanagar Gram", "Achhalda Panchayat"],
+      "Bhadohi (Sant Ravidas Nagar)": ["Gyanpur Gram", "Aurai Bhadohi Panchayat", "Suriyawan Gram", "Deegh Panchayat", "Abholi Gram"],
+      "Kaushambi": ["Manjhanpur Gram", "Chail Panchayat", "Sirathu Gram", "Mooratganj Panchayat", "Kada Gram", "Sarsawan Kaushambi Panchayat"],
+      "Pratapgarh": ["Kunda Gram", "Patti Panchayat", "Raniganj Pratapgarh Gram", "Lalganj Ajhara Panchayat", "Gaura Gram", "Mandhata Panchayat", "Sandwa Chandrika Gram"]
     }
   },
   "West Bengal": {

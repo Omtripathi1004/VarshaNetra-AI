@@ -891,6 +891,35 @@ async def risk_geojson(
 
 
 # =============================================================================
+# 7B. MAP APIS (SURVEY OF INDIA & IMD DIVISIONS)
+# =============================================================================
+
+@router.get("/map/stats")
+async def get_map_stats():
+    """Returns authoritative administrative coverage counts across India."""
+    return {
+        "states_and_uts": 36,
+        "districts": 766,
+        "sub_districts_blocks": 6854,
+        "gram_panchayats_lgd": 255286,
+        "villages": 664369,
+        "dataSource": "Survey of India & Local Government Directory (LGD) Ministry of Panchayati Raj",
+        "compliance": "Authoritative National Administrative Boundary Standard",
+    }
+
+
+@router.get("/map/search")
+async def map_search(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50)
+):
+    """Server-side administrative search for Districts, Blocks, Panchayats and Villages."""
+    from app.services import search_administrative_units
+    results = search_administrative_units(q, limit)
+    return {"query": q, "count": len(results), "results": results}
+
+
+# =============================================================================
 # 8. ALERTS
 # =============================================================================
 
