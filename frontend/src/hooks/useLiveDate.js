@@ -116,27 +116,32 @@ export function useLiveDate() {
 
 /**
  * Dynamically computes a normalized 7-day forecast array rooted at current Asia/Kolkata live date.
+ * Flow:
+ * 1. Normalize timestamps in Asia/Kolkata (UTC+05:30)
+ * 2. Compare with current IST time
+ * 3. Select current observation (or closest valid forecast interval)
+ * 4. Chronologically sort hourly weather intervals strictly by timestamp (NEVER alphabetically)
  */
-export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang = 'en') {
+export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang = 'en', forecast = null) {
   const kNow = getKolkataDate();
   const currentHour = kNow.getHours();
   const hasLiveWeather = currentWeather && currentWeather.temperature_c != null;
-  const currentTemp = hasLiveWeather ? Math.round(currentWeather.temperature_c) : 28;
-  const currentRainProb = rainfallPrediction?.probability_pct ?? (hasLiveWeather && currentWeather.precipitation_mm > 0 ? 80 : 45);
-  const currentExpectedRain = rainfallPrediction?.expected_mm ?? (hasLiveWeather ? currentWeather.precipitation_mm || 3.5 : 4.2);
+  const currentTemp = hasLiveWeather ? Number(currentWeather.temperature_c) : 26.4;
+  const currentRainProb = rainfallPrediction?.probability_pct ?? (hasLiveWeather && (currentWeather.precipitation_mm > 0 || currentWeather.rain_mm > 0) ? 80 : 40);
+  const currentExpectedRain = rainfallPrediction?.expected_mm ?? (hasLiveWeather ? (currentWeather.rain_mm || currentWeather.precipitation_mm || 0.0) : 1.2);
 
   const patterns = [
     {
       condition_en: currentWeather?.weather_description_en || 'Partly Cloudy',
       condition_hi: currentWeather?.weather_description_hi || 'आंशिक बादल',
       icon: currentRainProb > 70 ? '⛈️' : currentRainProb > 40 ? '🌧️' : '⛅',
-      max: currentTemp + 3,
-      min: Math.max(18, currentTemp - 4),
-      feels_like: currentTemp + 2,
+      max: Math.round(currentTemp + 3.5),
+      min: Math.max(18, Math.round(currentTemp - 4.0)),
+      feels_like: Math.round(currentTemp + 1.5),
       rain_prob: currentRainProb,
       rain_mm: currentExpectedRain,
-      wind_kmh: currentWeather?.wind_speed_kmh || 14,
-      humidity: currentWeather?.humidity_pct || 76,
+      wind_kmh: currentWeather?.wind_speed_kmh || 12,
+      humidity: currentWeather?.humidity_pct || 75,
       soil_moisture: currentWeather?.soil_moisture_0_1cm || 0.32,
       alert_en: 'Active Weather Telemetry • Sowing & Field Drainage Monitored',
       alert_hi: 'सक्रिय मौसम डेटा • बुवाई व जल निकासी पर नज़र रखें',
@@ -145,8 +150,8 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       condition_en: 'Heavy Thunderstorm & Downpour',
       condition_hi: 'गरज के साथ भारी बारिश',
       icon: '⛈️',
-      max: 30, min: 26, feels_like: 34,
-      rain_prob: 88, rain_mm: 42.6, wind_kmh: 24, humidity: 92, soil_moisture: 0.44,
+      max: 30, min: 25, feels_like: 33,
+      rain_prob: 88, rain_mm: 42.6, wind_kmh: 22, humidity: 92, soil_moisture: 0.44,
       alert_en: '⚠️ Heavy Rainfall Alert (>40mm) • Open Farm Drainage Trenches',
       alert_hi: '⚠️ भारी वर्षा चेतावनी (>40 मिमी) • खेत की जल निकासी नालियां खोलें',
     },
@@ -154,7 +159,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       condition_en: 'Active Monsoon Showers',
       condition_hi: 'सक्रिय मानसूनी बौछारें',
       icon: '🌧️',
-      max: 31, min: 27, feels_like: 35,
+      max: 31, min: 26, feels_like: 34,
       rain_prob: 78, rain_mm: 28.0, wind_kmh: 18, humidity: 88, soil_moisture: 0.42,
       alert_en: 'Optimal Sowing Moisture • Complete Paddy Nursery Transplanting',
       alert_hi: 'रोपाई हेतु उत्तम नमी • धान की रोपाई पूरी करें',
@@ -163,7 +168,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       condition_en: 'Moderate Intermittent Rain',
       condition_hi: 'मध्यम रुक-रुक कर बारिश',
       icon: '🌦️',
-      max: 30, min: 26, feels_like: 33,
+      max: 30, min: 25, feels_like: 33,
       rain_prob: 65, rain_mm: 16.5, wind_kmh: 15, humidity: 85, soil_moisture: 0.38,
       alert_en: 'Moderate Surge • Hold Chemical Spraying Operations',
       alert_hi: 'मध्यम बारिश • कीटनाशक छिड़काव अभी रोकें',
@@ -172,7 +177,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       condition_en: 'Scattered Afternoon Rain',
       condition_hi: 'दोपहर में छिटपुट बारिश',
       icon: '🌧️',
-      max: 31, min: 27, feels_like: 35,
+      max: 31, min: 26, feels_like: 35,
       rain_prob: 55, rain_mm: 10.0, wind_kmh: 12, humidity: 80, soil_moisture: 0.35,
       alert_en: 'Scattered Showers • Basal Fertilizer Application Window',
       alert_hi: 'हल्की बारिश • बेसल खाद डालने हेतु उपयुक्त समय',
@@ -181,7 +186,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       condition_en: 'Passing Cloud & Sun',
       condition_hi: 'धूप-छांव व हल्की फुहार',
       icon: '⛅',
-      max: 32, min: 27, feels_like: 37,
+      max: 32, min: 26, feels_like: 36,
       rain_prob: 35, rain_mm: 4.2, wind_kmh: 10, humidity: 75, soil_moisture: 0.31,
       alert_en: 'Good Sunshine • Ideal for Cotton & Maize Foliar Spray',
       alert_hi: 'अच्छी धूप • कपास व मक्का में स्प्रे हेतु अनुकूल',
@@ -190,7 +195,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       condition_en: 'Dry Break Beginning',
       condition_hi: 'शुष्क विराम की शुरुआत',
       icon: '☀️',
-      max: 33, min: 28, feels_like: 38,
+      max: 33, min: 27, feels_like: 37,
       rain_prob: 18, rain_mm: 0.8, wind_kmh: 9, humidity: 68, soil_moisture: 0.28,
       alert_en: 'Dry Break Watch • Conserve Soil Moisture with Straw Mulch',
       alert_hi: 'शुष्क विराम की शुरुआत • पुआल की मल्चिंग से नमी बचाएं',
@@ -226,6 +231,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
     const p = patterns[i % patterns.length];
 
     // Generate dynamic 8-interval chronological 24h hourly forecast with real ISO timestamps
+    // Canonical intervals: 12 AM (00:00), 3 AM (03:00), 6 AM (06:00), 9 AM (09:00), 12 PM (12:00), 3 PM (15:00), 6 PM (18:00), 9 PM (21:00)
     const baseDate = new Date(target);
     baseDate.setMinutes(0, 0, 0);
 
@@ -240,8 +246,8 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       const isCurrentSlot = i === 0 && hIdx === closestSlotIdx;
 
       // Realistic diurnal temperature curve with peak at 2 PM (14:00) and min at 5 AM (05:00)
-      const diurnalOffset = Math.sin(((slotHour - 8) * Math.PI) / 12) * 3.5;
-      const calculatedTemp = Math.round(currentTemp + diurnalOffset);
+      const diurnalOffset = Math.sin(((slotHour - 8) * Math.PI) / 12) * 4.0;
+      const calculatedTemp = Number((currentTemp + diurnalOffset).toFixed(1));
       const slotTemp = isCurrentSlot ? currentTemp : calculatedTemp;
 
       const hourProb = isCurrentSlot
@@ -257,6 +263,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       rawIntervals.push({
         isoTimestamp: slotDate.toISOString(),
         timestampDate: slotDate,
+        epochMs: slotDate.getTime(),
         hour: slotHour,
         temp: isNaN(slotTemp) ? currentTemp : slotTemp,
         icon: hourProb > 70 ? '⛈️' : hourProb > 40 ? '🌧️' : hourProb > 20 ? '🌦️' : '⛅',
@@ -270,10 +277,10 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       });
     }
 
-    // Sort strictly in ascending chronological order via Date timestamps
-    rawIntervals.sort((a, b) => a.timestampDate.getTime() - b.timestampDate.getTime());
+    // Sort strictly in ascending chronological order via Date epoch timestamps (NEVER alphabetical!)
+    rawIntervals.sort((a, b) => a.epochMs - b.epochMs);
 
-    // Format display times in Asia/Kolkata timezone with proper 12 AM / 12 PM
+    // Format display times in Asia/Kolkata timezone with 12 AM / 12 PM format
     const hourly = rawIntervals.map((item) => {
       const timeFormatted = item.timestampDate.toLocaleTimeString('en-IN', {
         timeZone: 'Asia/Kolkata',
@@ -326,3 +333,4 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
 
   return days;
 }
+

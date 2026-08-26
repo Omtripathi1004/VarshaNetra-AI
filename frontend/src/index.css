@@ -410,12 +410,66 @@ label.field-label { display: block; font-size: 0.75rem; color: var(--text-muted)
 }
 .chat-input-row { display: flex; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); }
 
-/* ── Leaflet Map Container ───────────────────────────────── */
-.leaflet-container {
+/* ── MapLibre GL Map & Control Customization ─────────────── */
+.maplibregl-map {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--border-subtle);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
+
+.maplibregl-ctrl-group {
+  background: rgba(13, 9, 28, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button {
+  width: 34px !important;
+  height: 34px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.2);
+}
+
+.maplibregl-ctrl-group button:hover {
+  background: rgba(56, 189, 248, 0.18) !important;
+}
+
+.maplibregl-ctrl-scale {
+  background: rgba(13, 9, 28, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #e2e8f0 !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+}
+
+.maplibregl-popup-content {
+  background: rgba(13, 9, 28, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+  padding: 0.75rem 1rem !important;
+  color: var(--text-primary) !important;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: rgba(13, 9, 28, 0.95) !important; }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: rgba(13, 9, 28, 0.95) !important; }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: rgba(13, 9, 28, 0.95) !important; }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: rgba(13, 9, 28, 0.95) !important; }
 
 /* ── SHAP Feature Importance Bars ────────────────────────── */
 .shap-bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }

@@ -254,6 +254,28 @@ function NotifyPanel({ lang }) {
           message: res.data?.message || (isOk ? `SMS accepted by ${res.data?.provider || 'Gateway'}` : 'SMS dispatch failed.'),
           sent_at: new Date().toLocaleTimeString(),
         });
+      } else if (channel === 'EMAIL') {
+        const firstEmail = recipList[0] || recipients;
+        const res = await api.sendEmail({
+          email: firstEmail,
+          recipient: firstEmail,
+          subject: subject || 'VarshaNetra Agro-Alert',
+          message: effectiveMsg,
+          alertType,
+        });
+        dispatchRes = res;
+        const isOk = res.data?.success === true;
+        const s = res.data?.status || (isOk ? 'ACCEPTED' : 'FAILED');
+        setResult({
+          status: s,
+          success: isOk,
+          provider: res.data?.provider || 'GMAIL_SMTP',
+          provider_message_id: res.data?.provider_message_id,
+          smtp_host: res.data?.smtp_host || 'smtp.gmail.com',
+          smtp_port: res.data?.smtp_port || 587,
+          message: res.data?.message || (isOk ? `Email accepted by ${res.data?.provider || 'Gmail SMTP'}` : 'Email dispatch failed.'),
+          sent_at: new Date().toLocaleTimeString(),
+        });
       } else {
         const res = await api.sendNotification(
           channel,
@@ -274,6 +296,7 @@ function NotifyPanel({ lang }) {
           sent_at: new Date().toLocaleTimeString(),
         });
       }
+
 
       // Record Audit Log Entry
       const logEntry = {
@@ -337,7 +360,7 @@ function NotifyPanel({ lang }) {
   const forwardViaEmail = () => {
     const emailTarget = recipients.includes('@')
       ? recipients
-      : 'harhsih30@gmail.com';
+      : 'harshsih30@gmail.com';
 
     const effectiveMsg = getEffectiveMessage();
 
@@ -478,10 +501,10 @@ function NotifyPanel({ lang }) {
               </button>
               <button
                 type="button"
-                onClick={() => { setRecipients('harhsih30@gmail.com'); setChannel('EMAIL'); }}
+                onClick={() => { setRecipients('harshsih30@gmail.com'); setChannel('EMAIL'); }}
                 style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid #ddd6fe', background: '#ede9fe', color: '#6d28d9', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                ✉️ harhsih30@gmail.com
+                ✉️ harshsih30@gmail.com
               </button>
             </div>
           </div>
@@ -661,6 +684,7 @@ function NotifyPanel({ lang }) {
                 {result.provider && (
                   <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
                     Provider: <strong>{result.provider}</strong> | Status: <strong>{result.status}</strong>
+                    {result.smtp_host && <span> | Gateway: <code>{result.smtp_host}:{result.smtp_port || 587}</code></span>}
                     {result.provider_message_id && <span> | Ref: <code>{result.provider_message_id}</code></span>}
                   </p>
                 )}
@@ -669,6 +693,7 @@ function NotifyPanel({ lang }) {
                     Timestamp: {result.sent_at}
                   </p>
                 )}
+
               </div>
             </div>
           </div>

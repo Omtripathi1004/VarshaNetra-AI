@@ -33,17 +33,66 @@ export default function LocationBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter matching suggestions as user types with clear state tag (e.g. "pun" -> Pune (Maharashtra), Punjab (State))
+  const [backendResults, setBackendResults] = useState([]);
+
+  // Query backend authoritative administrative database
+  useEffect(() => {
+    const q = query.trim();
+    if (!q || q.length < 2) {
+      setBackendResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.searchAdminGeo(q, 'ALL', '', '', 8, 0);
+        if (res.data?.results) {
+          setBackendResults(res.data.results);
+        }
+      } catch {
+        setBackendResults([]);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Combined suggestions: client index + backend LGD database
   const filteredSuggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q || q.length < 1) return [];
     
-    return ALL_SEARCHABLE_LOCATIONS.filter(item => 
+    const clientMatches = ALL_SEARCHABLE_LOCATIONS.filter(item => 
       item.name.toLowerCase().includes(q) || 
       item.state.toLowerCase().includes(q) ||
       (item.district && item.district.toLowerCase().includes(q))
-    ).slice(0, 12);
-  }, [query]);
+    ).slice(0, 8);
+
+    if (backendResults.length > 0) {
+      const backendMapped = backendResults.map(b => ({
+        name: b.name,
+        state: b.state,
+        district: b.district,
+        city: b.district,
+        type: b.entity_type === 'GRAM_PANCHAYAT' ? 'Gram Panchayat' : b.entity_type === 'VILLAGE' ? 'Village' : b.entity_type === 'DISTRICT' ? 'District' : 'State',
+        display: b.display_name,
+        lgd_code: b.lgd_code,
+        latitude: b.latitude,
+        longitude: b.longitude
+      }));
+      // Merge unique by name + state
+      const seen = new Set();
+      const combined = [];
+      [...backendMapped, ...clientMatches].forEach(item => {
+        const key = `${item.name}-${item.state}-${item.type}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          combined.push(item);
+        }
+      });
+      return combined.slice(0, 12);
+    }
+
+    return clientMatches;
+  }, [query, backendResults]);
 
   // Available districts strictly for chosen state
   const availableDistricts = useMemo(() => {
@@ -115,6 +164,20 @@ export default function LocationBar() {
     setSearching(true);
     setError('');
     
+    if (item.latitude && item.longitude) {
+      setLocation({
+        lat: item.latitude,
+        lon: item.longitude,
+        state: item.state,
+        district: item.district || '',
+        city: item.city || item.district || '',
+        village: item.type === 'Village' ? item.name : '',
+        display_name: item.display || `${item.name}, ${item.district ? item.district + ', ' : ''}${item.state}`,
+      });
+      setSearching(false);
+      return;
+    }
+
     try {
       const res = await api.resolveLocation({
         state: item.state,

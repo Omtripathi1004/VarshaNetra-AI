@@ -11,6 +11,14 @@
       "destination": "/api/send-sms.js"
     },
     {
+      "source": "/api/send-email",
+      "destination": "/api/send-email.js"
+    },
+    {
+      "source": "/api/send-email/(.*)",
+      "destination": "/api/send-email.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.py?_path=/$1"
     },

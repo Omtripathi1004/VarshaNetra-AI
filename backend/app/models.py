@@ -146,3 +146,124 @@ class EmergencyEvent(Base):
     action_taken = Column(Text, default="")
     created_at = Column(DateTime(timezone=True), default=_now)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# =============================================================================
+# AUTHORITATIVE ADMINISTRATIVE DATA MODELS (Survey of India & LGD MoPR)
+# =============================================================================
+
+class AdminState(Base):
+    """
+    Survey of India & LGD State / Union Territory entity
+    """
+    __tablename__ = "admin_states"
+    id = Column(Integer, primary_key=True)
+    lgd_code = Column(Integer, unique=True, index=True, nullable=False)
+    name = Column(String, unique=True, index=True, nullable=False)
+    name_hi = Column(String, default="")
+    census_code = Column(String, default="")
+    category = Column(String, default="STATE")  # STATE / UT
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class AdminDistrict(Base):
+    """
+    Authoritative District entity with LGD Code and State relationship
+    """
+    __tablename__ = "admin_districts"
+    id = Column(Integer, primary_key=True)
+    lgd_code = Column(Integer, unique=True, index=True, nullable=False)
+    state_id = Column(Integer, ForeignKey("admin_states.id"), index=True, nullable=True)
+    state_name = Column(String, index=True, nullable=False)
+    name = Column(String, index=True, nullable=False)
+    name_hi = Column(String, default="")
+    census_code = Column(String, default="")
+    headquarters = Column(String, default="")
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    has_boundary_geom = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class AdminSubDistrict(Base):
+    """
+    Sub-district / Tehsil / Taluk administrative division
+    """
+    __tablename__ = "admin_sub_districts"
+    id = Column(Integer, primary_key=True)
+    lgd_code = Column(Integer, unique=True, index=True, nullable=False)
+    district_id = Column(Integer, ForeignKey("admin_districts.id"), index=True, nullable=True)
+    district_name = Column(String, index=True, nullable=False)
+    state_name = Column(String, index=True, nullable=False)
+    name = Column(String, index=True, nullable=False)
+    name_hi = Column(String, default="")
+    census_code = Column(String, default="")
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class AdminBlock(Base):
+    """
+    Development Block administrative division
+    """
+    __tablename__ = "admin_blocks"
+    id = Column(Integer, primary_key=True)
+    lgd_code = Column(Integer, unique=True, index=True, nullable=False)
+    district_id = Column(Integer, ForeignKey("admin_districts.id"), index=True, nullable=True)
+    district_name = Column(String, index=True, nullable=False)
+    state_name = Column(String, index=True, nullable=False)
+    name = Column(String, index=True, nullable=False)
+    name_hi = Column(String, default="")
+    headquarters = Column(String, default="")
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class AdminPanchayat(Base):
+    """
+    Local Government Directory (LGD) Panchayat Entity (Gram / Block / District Panchayat / ULB)
+    Explicitly decoupled from Revenue Villages.
+    """
+    __tablename__ = "admin_panchayats"
+    id = Column(Integer, primary_key=True)
+    lgd_code = Column(Integer, unique=True, index=True, nullable=False)
+    panchayat_type = Column(String, default="GRAM_PANCHAYAT", index=True)  # GRAM_PANCHAYAT, INTERMEDIATE_PANCHAYAT, DISTRICT_PANCHAYAT, URBAN_LOCAL_BODY
+    name = Column(String, index=True, nullable=False)
+    name_hi = Column(String, default="")
+    state_name = Column(String, index=True, nullable=False)
+    district_name = Column(String, index=True, nullable=False)
+    block_name = Column(String, index=True, default="")
+    district_lgd_code = Column(Integer, nullable=True)
+    block_lgd_code = Column(Integer, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class AdminVillage(Base):
+    """
+    Revenue Village entity with official Village LGD Code, Sub-District and Panchayat mapping.
+    """
+    __tablename__ = "admin_villages"
+    id = Column(Integer, primary_key=True)
+    lgd_code = Column(Integer, unique=True, index=True, nullable=False)
+    name = Column(String, index=True, nullable=False)
+    name_hi = Column(String, default="")
+    state_name = Column(String, index=True, nullable=False)
+    district_name = Column(String, index=True, nullable=False)
+    sub_district_name = Column(String, index=True, default="")
+    block_name = Column(String, index=True, default="")
+    panchayat_id = Column(Integer, ForeignKey("admin_panchayats.id"), nullable=True, index=True)
+    panchayat_name = Column(String, index=True, default="")
+    panchayat_lgd_code = Column(Integer, nullable=True, index=True)
+    census_code = Column(String, default="")
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    soil_type = Column(String, default="Alluvial")
+    irrigation_status = Column(String, default="Rainfed / Tube-well")
+    created_at = Column(DateTime(timezone=True), default=_now)
+

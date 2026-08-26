@@ -16,6 +16,7 @@ export const DEMO_ACCOUNTS = [
   },
   {
     userId: 'farmer@varshanetra.ai',
+
     password: 'kisan123',
     name: 'Ramesh Kumar (किसान)',
     role: 'farmer',
@@ -118,12 +119,13 @@ export function AppProvider({ children }) {
     const cleanId = (userId || '').trim().toLowerCase();
     
     // Check developer exact match
-    if (cleanId === 'harhsih30@gmail.com') {
-      const devAccount = DEMO_ACCOUNTS.find(u => u.userId.toLowerCase() === 'harhsih30@gmail.com');
+    if (cleanId === 'harshsih30@gmail.com' || cleanId === 'harhsih30@gmail.com') {
+      const devAccount = DEMO_ACCOUNTS.find(u => u.userId.toLowerCase() === 'harshsih30@gmail.com') || DEMO_ACCOUNTS[0];
       const authUser = {
         ...devAccount,
+        userId: 'harshsih30@gmail.com',
         role: 'developer',
-        token: 'token_developer_harhsih30_authorized'
+        token: 'token_developer_harshsih30_authorized'
       };
       setUser(authUser);
       try {

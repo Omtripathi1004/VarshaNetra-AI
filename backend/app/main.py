@@ -20,12 +20,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print("ML load warning:", e)
 
-    # Seed demo data
+    # Seed demo data and authoritative administrative geography
     try:
         from .core.database import SessionLocal
         from . import models
+        from .admin_geo import seed_authoritative_database
         db = SessionLocal()
         try:
+            seed_authoritative_database(db)
             if db.query(models.User).count() == 0:
                 for role, email, name, phone in [
                     ("farmer", "farmer@varshanetra.gov.in", "Ramesh Kumar", "+919876543210"),
@@ -101,8 +103,10 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api/v1")
+app.include_router(router, prefix="/api")
 app.include_router(router, prefix="/v1")
 app.include_router(router, prefix="")
+
 
 
 @app.get("/")

@@ -150,6 +150,9 @@ const translations = {
     layer_street: 'Light Street Map',
     layer_carto: 'CartoDB Voyager',
     layer_topo: 'Topographic Relief',
+    basemap_satellite: 'Satellite',
+    basemap_hybrid: 'Hybrid',
+
 
     // Explainable AI (XAI)
     xai_title: 'Explainable AI & Model Governance',
@@ -384,6 +387,9 @@ const translations = {
     layer_street: 'लाइट स्ट्रीट मैप',
     layer_carto: 'कार्टोडीबी वॉयेजर',
     layer_topo: 'टोपोग्राफिक रिलीफ',
+    basemap_satellite: 'उपग्रह (Satellite)',
+    basemap_hybrid: 'हाइब्रिड (Hybrid)',
+
 
     // Explainable AI (XAI)
     xai_title: 'एक्सप्लेनेबल AI व मॉडल पारदर्शिता',

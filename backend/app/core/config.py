@@ -132,11 +132,34 @@ class Settings(BaseSettings):
 
     @property
     def effective_smtp_user(self) -> str:
-        return (self.SMTP_USER or os.getenv("SMTP_USER") or os.getenv("GMAIL_USER") or "").strip()
+        return (
+            self.SMTP_USER or 
+            os.getenv("SMTP_USER") or 
+            os.getenv("GMAIL_USER") or 
+            os.getenv("SMTP_EMAIL") or 
+            os.getenv("GMAIL_ADDRESS") or 
+            ""
+        ).strip()
 
     @property
     def effective_smtp_pass(self) -> str:
-        return (self.SMTP_PASS or os.getenv("SMTP_PASS") or os.getenv("GMAIL_APP_PASSWORD") or "").strip()
+        return (
+            self.SMTP_PASS or 
+            os.getenv("SMTP_PASS") or 
+            os.getenv("GMAIL_APP_PASSWORD") or 
+            os.getenv("SMTP_PASSWORD") or 
+            os.getenv("GMAIL_PASS") or 
+            ""
+        ).strip()
+
+    @property
+    def effective_smtp_from(self) -> str:
+        return (
+            os.getenv("SMTP_FROM") or 
+            os.getenv("EMAIL_FROM") or 
+            self.effective_smtp_user or 
+            "noreply@varshanetra.gov.in"
+        ).strip()
 
     @property
     def effective_resend_key(self) -> str:
@@ -168,6 +191,8 @@ class Settings(BaseSettings):
 
     @property
     def is_email_configured(self) -> bool:
+        return self.is_smtp_configured or self.is_resend_configured or self.is_brevo_configured
+
         return self.is_smtp_configured or self.is_resend_configured or self.is_brevo_configured
 
     @property

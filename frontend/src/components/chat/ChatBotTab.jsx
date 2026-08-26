@@ -59,11 +59,12 @@ export default function ChatBotTab() {
       });
     } catch {
       setMsgs(m => [...m, {
-        id: `err_${Date.now()}`,
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         role: 'bot',
+        isError: true,
         text: lang === 'hi'
-          ? '⚠️ चैट सेवा अस्थायी रूप से अनुपलब्ध है। कृपया पुनः प्रयास करें।'
-          : '⚠️ Chat service is temporarily unavailable. Please try again.'
+          ? 'वर्तमान में उत्तर उत्पन्न करने में असमर्थ। कृपया पुनः प्रयास करें। (Unable to generate a response right now. Please try again.)'
+          : 'Unable to generate a response right now. Please try again.'
       }]);
     }
     setLoading(false);
@@ -71,6 +72,8 @@ export default function ChatBotTab() {
 
   // 15 Standard Quick Questions for rigorous regression verification
   const SUGGESTIONS = lang === 'hi' ? [
+    { title: '🔍 78% पूर्वानुमान कारण', prompt: 'Why is the prediction 78%?' },
+    { title: '🌏 ENSO व IOD प्रभाव', prompt: 'What is ENSO and IOD?' },
     { title: '🌧️ आज की बारिश', prompt: 'आज मेरे क्षेत्र में बारिश का क्या अनुमान है?' },
     { title: '☁️ कपास + भारी बारिश', prompt: 'भारी बारिश आने वाली है और मेरे पास कपास है, मुझे क्या करना चाहिए?' },
     { title: '🫘 सोयाबीन + शुष्क विराम', prompt: 'सोयाबीन में सूखा विराम (Dry Spell) से बचाव कैसे करें?' },
@@ -83,10 +86,11 @@ export default function ChatBotTab() {
     { title: '☀️ सूखा विराम अवधि', prompt: 'मानसून ब्रेक कितने दिनों तक चलेगा?' },
     { title: '🚨 भारी वर्षा सावधानी', prompt: 'अतिवृष्टि और बाढ़ से फसल बचाने के लिए क्या करें?' },
     { title: '🌊 मानसून स्थिति', prompt: 'मानसून का वर्तमान प्रवाह और चरण क्या है?' },
-    { title: '🌏 ENSO व IOD प्रभाव', prompt: 'अल नीनो और आईओडी का इस बार मानसून पर क्या असर है?' },
     { title: '🌱 मिट्टी की नमी', prompt: 'वर्तमान में खेत में मिट्टी की नमी कितनी है?' },
     { title: '🌡️ वर्तमान मौसम', prompt: 'अभी का तापमान, आर्द्रता और हवा की गति क्या है?' },
   ] : [
+    { title: '🔍 78% Prediction Reason', prompt: 'Why is the prediction 78%?' },
+    { title: '🌏 What is ENSO & IOD', prompt: 'What is ENSO and what is IOD?' },
     { title: '🌧️ Today\'s Rain Risk', prompt: 'What is today\'s rainfall risk in my area?' },
     { title: '☁️ Cotton + Heavy Rain', prompt: 'Heavy rain is expected tomorrow and I have cotton. What should I do?' },
     { title: '🫘 Soybean + Dry Spell', prompt: 'How to manage dry spell break in soybean fields?' },
@@ -98,13 +102,13 @@ export default function ChatBotTab() {
     { title: '⚠️ False-Onset Risk', prompt: 'Why is there a false-onset risk and should I delay sowing?' },
     { title: '☀️ Break-Monsoon Duration', prompt: 'When is the monsoon break expected and how long will it last?' },
     { title: '🚨 Heavy Rain Precautions', prompt: 'What precautions should be taken for excessive rainfall?' },
-    { title: '🌊 Monsoon Progress', prompt: 'What is the current monsoon phase and active flow?' },
-    { title: '🌏 ENSO & IOD Impact', prompt: 'How do ENSO ONI and IOD DMI impact rainfall prediction?' },
-    { title: '🌱 Soil Moisture Status', prompt: 'What is the current soil moisture level in the topsoil?' },
+    { title: '🌊 Monsoon Phase', prompt: 'What is the current southwest monsoon stage?' },
+    { title: '🌱 Soil Moisture', prompt: 'What is the surface soil moisture saturation level?' },
     { title: '🌡️ Live Weather Parameters', prompt: 'What are the current temperature, humidity, and wind speed?' },
   ];
 
   return (
+
     <div className="main-content">
       <div style={{ marginBottom: '1.25rem' }}>
         <h2 style={{ background: 'linear-gradient(135deg, #059669, #0284c7, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 800, margin: 0 }}>

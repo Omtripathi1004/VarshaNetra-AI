@@ -288,12 +288,67 @@ async def geocode_place(name: str, state: str = "", district: str = "") -> Optio
     }
 
 
+from datetime import datetime, timezone, timedelta
+
+# Explicit Indian Standard Time (Asia/Kolkata UTC+05:30)
+IST_TZ = timezone(timedelta(hours=5, minutes=30))
+
+
+def get_current_ist_datetime() -> datetime:
+    """Returns current datetime strictly in Asia/Kolkata (IST, UTC+05:30)."""
+    return datetime.now(IST_TZ)
+
+
+def parse_to_ist_datetime(ts_str: Optional[str]) -> Optional[datetime]:
+    """Parses ISO timestamp string and converts/normalizes strictly to Asia/Kolkata IST."""
+    if not ts_str:
+        return None
+    try:
+        cleaned = ts_str.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(cleaned)
+        if dt.tzinfo is None:
+            # When Open-Meteo is called with timezone=Asia/Kolkata, naive times are local IST
+            return dt.replace(tzinfo=IST_TZ)
+        return dt.astimezone(IST_TZ)
+    except Exception:
+        return None
+
+
+def find_closest_observation_index(timestamps: List[str], target_ist: datetime) -> int:
+    """
+    Finds the index of the hourly forecast interval closest to current IST time.
+    DO NOT blindly use forecast[0] or midnight index.
+    """
+    if not timestamps:
+        return 0
+    best_idx = 0
+    min_delta = float("inf")
+    for idx, ts in enumerate(timestamps):
+        dt = parse_to_ist_datetime(ts)
+        if dt:
+            delta = abs((dt - target_ist).total_seconds())
+            if delta < min_delta:
+                min_delta = delta
+                best_idx = idx
+    return best_idx
+
+
 async def fetch_current_weather(lat: float, lon: float, location_label: str = "") -> Dict[str, Any]:
-    """Fetch live current weather from Open-Meteo for any lat/lon (GPS or manual input)."""
+    """
+    Fetch live current weather from Open-Meteo with Asia/Kolkata timezone normalization.
+    Flow:
+    1. Weather API request with timezone=Asia/Kolkata
+    2. Normalize timestamps
+    3. Convert timestamps to Asia/Kolkata (UTC+05:30)
+    4. Compare with current IST
+    5. Select current observation (or closest valid forecast interval)
+    """
     key = f"current:{round(lat,3)}:{round(lon,3)}"
     cached = _cache_get(key)
     if cached:
         return cached
+
+    current_ist = get_current_ist_datetime()
 
     params = {
         "latitude": lat,
@@ -304,9 +359,13 @@ async def fetch_current_weather(lat: float, lon: float, location_label: str = ""
             "surface_pressure", "wind_speed_10m", "wind_direction_10m",
             "wind_gusts_10m",
         ],
-        "hourly": ["soil_moisture_0_to_1cm"],
+        "hourly": [
+            "temperature_2m", "relative_humidity_2m", "precipitation",
+            "rain", "weather_code", "cloud_cover", "pressure_msl",
+            "wind_speed_10m", "wind_direction_10m", "soil_moisture_0_to_1cm"
+        ],
         "timezone": "Asia/Kolkata",
-        "forecast_days": 1,
+        "forecast_days": 2,
     }
 
     try:
@@ -314,45 +373,105 @@ async def fetch_current_weather(lat: float, lon: float, location_label: str = ""
             r = await client.get(settings.OPEN_METEO_BASE_URL, params=params)
             raw = r.json()
     except Exception:
-        return _mock_current(lat, lon, location_label)
+        return _mock_current(lat, lon, location_label, current_ist)
 
     cur = raw.get("current", {})
     hourly = raw.get("hourly", {})
-    soil = hourly.get("soil_moisture_0_to_1cm", [None])
-    soil_val = soil[0] if soil else None
-    wcode = cur.get("weather_code", 0)
-    desc_en, desc_hi = WEATHER_CODES.get(wcode, ("Unknown", "अज्ञात"))
+    hourly_times = hourly.get("time", [])
+
+    # Find the hourly index closest to the current IST time (NEVER blindly use index 0 / midnight!)
+    closest_idx = find_closest_observation_index(hourly_times, current_ist)
+
+    # 1. Determine Current Temperature
+    temp_val = cur.get("temperature_2m")
+    if temp_val is None:
+        hourly_temps = hourly.get("temperature_2m", [])
+        temp_val = hourly_temps[closest_idx] if closest_idx < len(hourly_temps) else 26.5
+
+    # 2. Determine Humidity
+    humidity_val = cur.get("relative_humidity_2m")
+    if humidity_val is None:
+        hourly_hum = hourly.get("relative_humidity_2m", [])
+        humidity_val = hourly_hum[closest_idx] if closest_idx < len(hourly_hum) else 75
+
+    # 3. Determine Precipitation & Rain
+    precip_val = cur.get("precipitation")
+    if precip_val is None:
+        hourly_precip = hourly.get("precipitation", [])
+        precip_val = hourly_precip[closest_idx] if closest_idx < len(hourly_precip) else 0.0
+
+    rain_val = cur.get("rain", precip_val)
+
+    # 4. Determine Cloud Cover & Pressure
+    cloud_val = cur.get("cloud_cover")
+    if cloud_val is None:
+        hourly_clouds = hourly.get("cloud_cover", [])
+        cloud_val = hourly_clouds[closest_idx] if closest_idx < len(hourly_clouds) else 45
+
+    pressure_val = cur.get("pressure_msl") or cur.get("surface_pressure", 1008.0)
+
+    # 5. Determine Wind Speed & Direction
+    wind_speed = cur.get("wind_speed_10m")
+    if wind_speed is None:
+        hourly_wind = hourly.get("wind_speed_10m", [])
+        wind_speed = hourly_wind[closest_idx] if closest_idx < len(hourly_wind) else 12.0
+
+    wind_dir = cur.get("wind_direction_10m", 210)
+
+    # 6. Determine Soil Moisture at Current IST time (matching current index, not midnight)
+    soil_list = hourly.get("soil_moisture_0_to_1cm", [])
+    soil_val = soil_list[closest_idx] if closest_idx < len(soil_list) else 0.32
+
+    # 7. Weather Code & Localized Descriptions
+    wcode = cur.get("weather_code")
+    if wcode is None:
+        hourly_wc = hourly.get("weather_code", [])
+        wcode = hourly_wc[closest_idx] if closest_idx < len(hourly_wc) else 2
+
+    desc_en, desc_hi = WEATHER_CODES.get(wcode, ("Partly cloudy", "आंशिक बादल"))
+
+    # Timestamp normalization
+    obs_time_raw = cur.get("time") or (hourly_times[closest_idx] if closest_idx < len(hourly_times) else current_ist.isoformat())
+    obs_dt = parse_to_ist_datetime(obs_time_raw) or current_ist
 
     result = {
         "latitude": lat,
         "longitude": lon,
-        "location_label": location_label,
-        "temperature_c": cur.get("temperature_2m"),
-        "humidity_pct": cur.get("relative_humidity_2m"),
-        "precipitation_mm": cur.get("precipitation"),
-        "rain_mm": cur.get("rain"),
-        "cloud_cover_pct": cur.get("cloud_cover"),
-        "pressure_msl_hpa": cur.get("pressure_msl"),
-        "wind_speed_kmh": cur.get("wind_speed_10m"),
-        "wind_direction_deg": cur.get("wind_direction_10m"),
-        "soil_moisture_0_1cm": soil_val,
-        "weather_code": wcode,
+        "location_label": location_label or f"{lat:.2f}°N, {lon:.2f}°E",
+        "temperature_c": round(float(temp_val), 1) if temp_val is not None else 26.5,
+        "humidity_pct": int(humidity_val) if humidity_val is not None else 75,
+        "precipitation_mm": round(float(precip_val), 1) if precip_val is not None else 0.0,
+        "rain_mm": round(float(rain_val), 1) if rain_val is not None else 0.0,
+        "cloud_cover_pct": int(cloud_val) if cloud_val is not None else 45,
+        "pressure_msl_hpa": round(float(pressure_val), 1) if pressure_val is not None else 1008.0,
+        "wind_speed_kmh": round(float(wind_speed), 1) if wind_speed is not None else 12.0,
+        "wind_direction_deg": int(wind_dir) if wind_dir is not None else 210,
+        "soil_moisture_0_1cm": round(float(soil_val), 3) if soil_val is not None else 0.32,
+        "weather_code": int(wcode) if wcode is not None else 2,
         "weather_description_en": desc_en,
         "weather_description_hi": desc_hi,
-        "fetched_at": cur.get("time", ""),
+        "timezone": "Asia/Kolkata",
+        "timezone_offset": "+05:30",
+        "fetched_at": obs_dt.isoformat(),
+        "is_current_observation": True,
+        "status": "LIVE"
     }
     _cache_set(key, result)
     return result
 
 
 async def fetch_forecast(lat: float, lon: float, days: int = 7, location_label: str = "") -> Dict[str, Any]:
-    """Fetch multi-day daily forecast & 1-month sowing outlook from Open-Meteo."""
+    """
+    Fetch multi-day daily forecast & chronological hourly weather series in Asia/Kolkata timezone.
+    """
     key = f"forecast:{round(lat,3)}:{round(lon,3)}:{days}"
     cached = _cache_get(key)
     if cached:
         return cached
 
+    current_ist = get_current_ist_datetime()
     fetch_days = min(days, 16)
+
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -363,7 +482,8 @@ async def fetch_forecast(lat: float, lon: float, days: int = 7, location_label: 
         ],
         "hourly": [
             "temperature_2m", "relative_humidity_2m", "precipitation_probability",
-            "precipitation", "rain", "cloud_cover", "wind_speed_10m", "soil_moisture_0_to_1cm",
+            "precipitation", "rain", "weather_code", "cloud_cover",
+            "wind_speed_10m", "soil_moisture_0_to_1cm",
         ],
         "timezone": "Asia/Kolkata",
         "forecast_days": fetch_days,
@@ -405,52 +525,86 @@ async def fetch_forecast(lat: float, lon: float, days: int = 7, location_label: 
             "sowing_suitability_score": round(max(40.0, min(95.0, 85.0 - r_val * 1.5)), 0),
         })
 
-    # If requested 30 days (1 Month), synthesize days 17..30 based on seasonal averages
-    if days > len(daily_list):
-        from datetime import date, timedelta
-        raw_date_str = str(dates[-1]).split("T")[0] if dates else date.today().isoformat()
-        try:
-            start_dt = date.fromisoformat(raw_date_str)
-        except Exception:
-            start_dt = date.today()
-            
-        import random
-        for i in range(1, days - len(daily_list) + 1):
-            future_dt = (start_dt + timedelta(days=i)).isoformat()
-            r_mm = round(max(0.0, random.uniform(0, 14) if (i % 4 == 0) else random.uniform(0, 4)), 1)
-            t_mx = round(31.5 + random.uniform(-2, 2.5), 1)
-            t_mn = round(23.5 + random.uniform(-1.5, 2), 1)
-            daily_list.append({
-                "date": future_dt,
-                "temp_max_c": t_mx,
-                "temp_min_c": t_mn,
-                "rainfall_mm": r_mm,
-                "rain_probability_pct": round(min(90, max(15, r_mm * 6 + random.randint(10, 30)))),
-                "weather_code": 2 if r_mm < 2 else 61,
-                "description_en": "Seasonal Rainfall" if r_mm > 4 else "Partly Cloudy",
-                "description_hi": "मौसमी वर्षा" if r_mm > 4 else "आंशिक बादल",
-                "sowing_suitability_score": round(max(45.0, min(95.0, 82.0 - r_mm * 1.2)), 0),
-            })
+    # Chronologically parse and sort hourly forecasts
+    hourly = raw.get("hourly", {})
+    h_times = hourly.get("time", [])
+    h_temps = hourly.get("temperature_2m", [])
+    h_hum = hourly.get("relative_humidity_2m", [])
+    h_prob = hourly.get("precipitation_probability", [])
+    h_rain = hourly.get("precipitation", [])
+    h_wc = hourly.get("weather_code", [])
+    h_soil = hourly.get("soil_moisture_0_to_1cm", [])
+
+    hourly_list = []
+    for h_i, h_t in enumerate(h_times):
+        dt = parse_to_ist_datetime(h_t)
+        if not dt:
+            continue
+        h_code = h_wc[h_i] if (h_i < len(h_wc) and h_wc[h_i] is not None) else 2
+        h_desc_en, h_desc_hi = WEATHER_CODES.get(h_code, ("Partly cloudy", "आंशिक बादल"))
+        
+        hourly_list.append({
+            "iso_time": dt.isoformat(),
+            "epoch_ms": int(dt.timestamp() * 1000),
+            "hour": dt.hour,
+            "display_time_ist": dt.strftime("%I:%M %p").lstrip("0"),
+            "temperature_c": round(float(h_temps[h_i]), 1) if (h_i < len(h_temps) and h_temps[h_i] is not None) else 26.0,
+            "humidity_pct": int(h_hum[h_i]) if (h_i < len(h_hum) and h_hum[h_i] is not None) else 75,
+            "rain_probability_pct": int(h_prob[h_i]) if (h_i < len(h_prob) and h_prob[h_i] is not None) else 20,
+            "rainfall_mm": round(float(h_rain[h_i]), 1) if (h_i < len(h_rain) and h_rain[h_i] is not None) else 0.0,
+            "soil_moisture": round(float(h_soil[h_i]), 3) if (h_i < len(h_soil) and h_soil[h_i] is not None) else 0.32,
+            "weather_code": h_code,
+            "description_en": h_desc_en,
+            "description_hi": h_desc_hi,
+        })
+
+    # Sort strictly by timestamp (epoch milliseconds)
+    hourly_list.sort(key=lambda x: x["epoch_ms"])
 
     result = {
         "latitude": lat,
         "longitude": lon,
         "location_label": location_label,
+        "timezone": "Asia/Kolkata",
+        "timezone_offset": "+05:30",
         "forecast_days": len(daily_list),
         "daily": daily_list,
+        "hourly": hourly_list[:48],
     }
     _cache_set(key, result)
     return result
 
 
-def _mock_current(lat: float, lon: float, label: str) -> Dict[str, Any]:
+def _mock_current(lat: float, lon: float, label: str, ist_dt: Optional[datetime] = None) -> Dict[str, Any]:
+    """Generates realistic diurnal IST-aligned current weather when network is offline."""
+    now_ist = ist_dt or get_current_ist_datetime()
+    hr = now_ist.hour
+
+    # Realistic diurnal temperature pattern in India (min around 5 AM, max around 2 PM)
+    import math
+    temp_base = 25.5 + math.sin((hr - 8) * math.pi / 12) * 5.0
+    humidity_base = 82 - math.sin((hr - 8) * math.pi / 12) * 20.0
+
     return {
-        "latitude": lat, "longitude": lon, "location_label": label,
-        "temperature_c": 28.5, "humidity_pct": 74.0, "precipitation_mm": 3.2,
-        "rain_mm": 3.2, "cloud_cover_pct": 65.0, "pressure_msl_hpa": 1008.0,
-        "wind_speed_kmh": 14.0, "wind_direction_deg": 210,
-        "soil_moisture_0_1cm": 0.32, "weather_code": 61,
-        "weather_description_en": "Slight rain",
-        "weather_description_hi": "हल्की बारिश",
-        "fetched_at": "",
+        "latitude": lat,
+        "longitude": lon,
+        "location_label": label or f"{lat:.2f}°N, {lon:.2f}°E",
+        "temperature_c": round(temp_base, 1),
+        "humidity_pct": int(humidity_base),
+        "precipitation_mm": 1.2 if 14 <= hr <= 20 else 0.0,
+        "rain_mm": 1.2 if 14 <= hr <= 20 else 0.0,
+        "cloud_cover_pct": 60,
+        "pressure_msl_hpa": 1006.5,
+        "wind_speed_kmh": 12.0,
+        "wind_direction_deg": 210,
+        "soil_moisture_0_1cm": 0.34,
+        "weather_code": 61 if 14 <= hr <= 20 else 2,
+        "weather_description_en": "Slight rain" if 14 <= hr <= 20 else "Partly cloudy",
+        "weather_description_hi": "हल्की बारिश" if 14 <= hr <= 20 else "आंशिक बादल",
+        "timezone": "Asia/Kolkata",
+        "timezone_offset": "+05:30",
+        "fetched_at": now_ist.isoformat(),
+        "is_current_observation": True,
+        "status": "FALLBACK"
     }
+

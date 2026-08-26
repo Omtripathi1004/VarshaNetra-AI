@@ -251,7 +251,18 @@ class TestEmailRequest(BaseModel):
     message: Optional[str] = "VarshaNetra AI email test successful."
 
 
+class EmailRequest(BaseModel):
+    email: Optional[str] = None
+    recipient: Optional[str] = None
+    to: Optional[str] = None
+    subject: Optional[str] = "VarshaNetra AI Alert"
+    message: Optional[str] = ""
+    alertType: Optional[str] = "GENERAL"
+    alert_type: Optional[str] = "GENERAL"
+
+
 class NotifyRequest(BaseModel):
+
     channel: str                    # SMS / EMAIL / WHATSAPP
     recipients: List[str]
     subject: Optional[str] = ""

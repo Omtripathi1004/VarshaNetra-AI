@@ -68,12 +68,13 @@ export default function FloatingChatWidget() {
         isError: true,
         question: textToSend,
         text: lang === 'hi'
-          ? '⚠️ VarshaNetra AI इस समय उत्तर उत्पन्न नहीं कर सका। कृपया पुनः प्रयास करें।'
-          : '⚠️ VarshaNetra AI could not generate a response right now. Please try again.'
+          ? 'वर्तमान में उत्तर उत्पन्न करने में असमर्थ। कृपया पुनः प्रयास करें। (Unable to generate a response right now. Please try again.)'
+          : 'Unable to generate a response right now. Please try again.'
       }]);
     }
     setLoading(false);
   };
+
 
   const QUESTION_CATEGORIES = {
     crops: {

@@ -125,10 +125,19 @@ export default function OverviewTab() {
   const [cropAdvisory, setCropAdvisory] = useState(null);
   const [forecastDays, setForecastDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [weatherError, setWeatherError] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
 
-  useEffect(() => {
+  const fetchAllData = (isPeriodic = false) => {
     const loc = { lat: location.lat, lon: location.lon, state: location.state, district: location.district };
-    setLoading(true);
+    if (isPeriodic) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setWeatherError(false);
+
     Promise.all([
       api.getCurrentWeather(loc).catch(() => ({ data: null })),
       api.getForecast(loc, 7).catch(() => ({ data: null })),
@@ -141,7 +150,12 @@ export default function OverviewTab() {
       api.getMonsoonOutlook(loc).catch(() => ({ data: null })),
       api.getCropStageAdvisory(selectedCrop, selectedStage, loc).catch(() => ({ data: null })),
     ]).then(([w, f, p, m, r, pf, tc, fo, mo, ca]) => {
-      if (w?.data) setWeather(w.data);
+      if (w?.data) {
+        setWeather(w.data);
+        setWeatherError(false);
+      } else {
+        if (!weather) setWeatherError(true);
+      }
       if (f?.data) setForecast(f.data);
       if (p?.data) setPrediction(p.data);
       if (m?.data) setMonsoon(m.data);
@@ -151,8 +165,24 @@ export default function OverviewTab() {
       if (fo?.data) setFalseOnsetInfo(fo.data);
       if (mo?.data) setMultiOutlook(mo.data);
       if (ca?.data) setCropAdvisory(ca.data);
+
+      setLastRefreshedAt(new Date());
       setLoading(false);
-    }).catch(() => setLoading(false));
+      setIsRefreshing(false);
+    }).catch(() => {
+      if (!weather) setWeatherError(true);
+      setLoading(false);
+      setIsRefreshing(false);
+    });
+  };
+
+  useEffect(() => {
+    fetchAllData(false);
+    // Automatic weather refresh every 60 seconds
+    const refreshInterval = setInterval(() => {
+      fetchAllData(true);
+    }, 60000);
+    return () => clearInterval(refreshInterval);
   }, [location.lat, location.lon]);
 
   const handleSelectHub = (hub) => {
@@ -180,8 +210,8 @@ export default function OverviewTab() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   const WEEK_DAYS_DATA = useMemo(
-    () => generateDynamicWeekData(weather, prediction, lang),
-    [weather, prediction, lang, liveDate.fullDate]
+    () => generateDynamicWeekData(weather, prediction, lang, forecast),
+    [weather, prediction, lang, forecast, liveDate.fullDate]
   );
 
   const activeDay = WEEK_DAYS_DATA[selectedDayIndex] || WEEK_DAYS_DATA[0];
@@ -272,7 +302,7 @@ export default function OverviewTab() {
             🌾 {lang === 'hi' ? 'VarshaNetra AI — किसान निर्णय सहायता प्रणाली' : 'VarshaNetra AI — Hyperlocal Monsoon Decision System'}
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem', fontWeight: 500 }}>
-            📍 {location.display_name} • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr})
+            📍 {location.display_name} • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr} IST • UTC+05:30)
           </p>
         </div>
 
@@ -337,13 +367,13 @@ export default function OverviewTab() {
         <div style={{ padding: '0.85rem 1.1rem', background: '#0f172a', color: '#38bdf8', borderRadius: '12px', marginBottom: '1.25rem', fontSize: '0.78rem', border: '1px solid #334155' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
             <strong style={{ color: '#4ade80' }}>⚡ Developer & ML Telemetry Diagnostics</strong>
-            <span style={{ color: '#94a3b8' }}>API Gateway: FastServerless v2.0 • Status: OK</span>
+            <span style={{ color: '#94a3b8' }}>Timezone: Asia/Kolkata (UTC+05:30) • Gateway: Active</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem', color: '#cbd5e1' }}>
             <div>Lat/Lon: <code>{location.lat}, {location.lon}</code></div>
-            <div>Inference Latency: <code>~24ms</code></div>
+            <div>Observation Time: <code>{weather?.fetched_at || 'Live IST'}</code></div>
             <div>NOAA Teleconnection Coupled: <code>Active (ONI/DMI/MJO)</code></div>
-            <div>10-Yr Validation Split: <code>0-Leakage Forward Chaining</code></div>
+            <div>Hourly Chrono Sort: <code>Strict Timestamp Epoch</code></div>
           </div>
         </div>
       )}
@@ -385,14 +415,47 @@ export default function OverviewTab() {
                 {location.display_name}
               </h3>
             </div>
-            <span className="badge badge-info" style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, background: activeDay.isLiveObservation ? 'rgba(16, 185, 129, 0.2)' : 'rgba(2, 132, 199, 0.2)', color: activeDay.isLiveObservation ? '#34d399' : '#38bdf8', border: activeDay.isLiveObservation ? '1px solid #059669' : '1px solid #0284c7' }}>
-              📍 {activeDay.isLiveObservation ? (lang === 'hi' ? 'वर्तमान मौसम प्रेक्षण (Live IST)' : 'Live Observation (Asia/Kolkata)') : (lang === 'hi' ? 'नवीनतम उपलब्ध पूर्वानुमान' : 'Latest available forecast')}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="badge badge-info" style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, background: activeDay.isLiveObservation ? 'rgba(16, 185, 129, 0.2)' : 'rgba(2, 132, 199, 0.2)', color: activeDay.isLiveObservation ? '#34d399' : '#38bdf8', border: activeDay.isLiveObservation ? '1px solid #059669' : '1px solid #0284c7' }}>
+                📍 {activeDay.isLiveObservation ? (lang === 'hi' ? 'वर्तमान मौसम प्रेक्षण (Asia/Kolkata IST)' : 'Live Observation (Asia/Kolkata IST)') : (lang === 'hi' ? 'नवीनतम उपलब्ध पूर्वानुमान' : 'Latest available forecast')}
+              </span>
+              <button
+                onClick={() => fetchAllData(true)}
+                disabled={isRefreshing}
+                style={{
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '8px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid #38bdf8',
+                  color: '#38bdf8',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+                title={lang === 'hi' ? 'मौसम ताज़ा करें' : 'Refresh Weather'}
+              >
+                🔄 {isRefreshing ? (lang === 'hi' ? 'अपडेट...' : 'Updating...') : (lang === 'hi' ? 'ताज़ा करें' : 'Refresh')}
+              </button>
+            </div>
           </div>
 
-          {loading && (
-            <div style={{ marginTop: '0.5rem', padding: '0.35rem 0.85rem', background: 'rgba(56, 189, 248, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>
-              🔄 {lang === 'hi' ? 'वर्तमान मौसम अपडेट हो रहा है...' : 'Updating current weather...'}
+          {/* Refreshing and Error Indicators */}
+          {isRefreshing && (
+            <div style={{ marginTop: '0.6rem', padding: '0.4rem 0.85rem', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #0284c7', borderRadius: '8px', fontSize: '0.78rem', color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
+              <span>{lang === 'hi' ? 'वर्तमान मौसम अपडेट हो रहा है...' : 'Updating current weather...'}</span>
+            </div>
+          )}
+
+          {weatherError && (
+            <div style={{ marginTop: '0.6rem', padding: '0.4rem 0.85rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '0.78rem', color: '#fca5a5', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>⚠️ {lang === 'hi' ? 'वर्तमान मौसम अनुपलब्ध' : 'Current weather unavailable'}</span>
+              <button
+                onClick={() => fetchAllData(true)}
+                style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                {lang === 'hi' ? 'पुनः प्रयास करें' : 'Retry'}
+              </button>
             </div>
           )}
 
