@@ -22,7 +22,7 @@ const INDIA_DEFAULT_ZOOM = 4.6;
 // Function to resolve MapLibre style for Vector/Normal, Satellite, and Hybrid basemaps
 const getMapStyle = (apiKey, basemapMode = 'normal') => {
   const cleanKey = (apiKey || '').trim();
-  const hasKey = cleanKey && cleanKey !== 'YOUR_KEY' && cleanKey.length > 5;
+  const hasKey = cleanKey && cleanKey !== 'YOUR_KEY' && cleanKey.length > 10;
 
   if (basemapMode === 'satellite') {
     if (hasKey) {
@@ -72,15 +72,21 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
           tileSize: 256,
           attribution: '&copy; Esri, Maxar, Earthstar Geographics'
         },
-        'hybrid-labels': {
+        'hybrid-places': {
           type: 'raster',
           tiles: [
-            'https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
-            'https://b.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
-            'https://c.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png'
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
           ],
           tileSize: 256,
-          attribution: '&copy; OpenStreetMap contributors, CARTO'
+          attribution: '&copy; Esri'
+        },
+        'hybrid-roads': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256,
+          attribution: '&copy; Esri'
         }
       },
       layers: [
@@ -97,9 +103,16 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
           maxzoom: 20
         },
         {
-          id: 'hybrid-labels-layer',
+          id: 'hybrid-roads-layer',
           type: 'raster',
-          source: 'hybrid-labels',
+          source: 'hybrid-roads',
+          minzoom: 0,
+          maxzoom: 20
+        },
+        {
+          id: 'hybrid-places-layer',
+          type: 'raster',
+          source: 'hybrid-places',
           minzoom: 0,
           maxzoom: 20
         }
@@ -107,7 +120,7 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
     };
   }
 
-  // DEFAULT: NORMAL / VECTOR MAP (Crisp, light Leaflet/OpenStreetMap-style geographic appearance)
+  // DEFAULT: NORMAL / VECTOR MAP (Crisp, clean Leaflet/OpenStreetMap-style World Street Map with roads, cities, state boundaries, rivers — 100% Watermark Free)
   if (hasKey) {
     return `https://api.maptiler.com/maps/streets-v2/style.json?key=${cleanKey}`;
   }
@@ -115,16 +128,13 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
   return {
     version: 8,
     sources: {
-      'osm-voyager-tiles': {
+      'world-street-tiles': {
         type: 'raster',
         tiles: [
-          'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-          'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-          'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-          'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
         ],
         tileSize: 256,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        attribution: '&copy; Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, OpenStreetMap contributors'
       }
     },
     layers: [
@@ -134,9 +144,9 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
         paint: { 'background-color': '#e8ecef' }
       },
       {
-        id: 'osm-voyager-base',
+        id: 'world-street-base',
         type: 'raster',
-        source: 'osm-voyager-tiles',
+        source: 'world-street-tiles',
         minzoom: 0,
         maxzoom: 20
       }
