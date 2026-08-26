@@ -19,20 +19,8 @@
       "destination": "/api/send-email.js"
     },
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py?_path=/$1"
-    },
-    {
-      "source": "/docs",
-      "destination": "/api/index.py?_path=/docs"
-    },
-    {
-      "source": "/openapi.json",
-      "destination": "/api/index.py?_path=/openapi.json"
-    },
-    {
-      "source": "/((?!api|docs|openapi.json|assets|.*\\..*).*)",
-      "destination": "/index.html"
+      "source": "/(.*)",
+      "destination": "/api/index.py"
     }
   ]
 }
