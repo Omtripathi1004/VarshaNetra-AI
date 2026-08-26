@@ -3,9 +3,11 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix frontend && node scripts/sync-dist.js"
+    "postinstall": "npm install --prefix frontend",
+    "build": "npm install --prefix frontend && npm run build --prefix frontend && node scripts/sync-dist.js"
   },
   "dependencies": {
+    "maplibre-gl": "^4.7.1",
     "varshanetra-frontend": "file:frontend"
   }
 }
