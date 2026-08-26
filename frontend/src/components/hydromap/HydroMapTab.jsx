@@ -22,13 +22,12 @@ const INDIA_DEFAULT_ZOOM = 4.6;
 // Function to resolve MapLibre style for Vector/Normal, Satellite, and Hybrid basemaps
 const getMapStyle = (apiKey, basemapMode = 'normal') => {
   const cleanKey = (apiKey || '').trim();
-  const hasKey = cleanKey && cleanKey !== 'YOUR_KEY';
+  const hasKey = cleanKey && cleanKey !== 'YOUR_KEY' && cleanKey.length > 5;
 
   if (basemapMode === 'satellite') {
     if (hasKey) {
       return `https://api.maptiler.com/maps/satellite/style.json?key=${cleanKey}`;
     }
-    // High-resolution satellite raster fallback
     return {
       version: 8,
       sources: {
@@ -62,7 +61,6 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
     if (hasKey) {
       return `https://api.maptiler.com/maps/hybrid/style.json?key=${cleanKey}`;
     }
-    // High-resolution satellite imagery + Carto overlay reference lines
     return {
       version: 8,
       sources: {
@@ -77,8 +75,9 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
         'hybrid-labels': {
           type: 'raster',
           tiles: [
-            'https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
-            'https://b.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png'
+            'https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
+            'https://b.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
+            'https://c.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png'
           ],
           tileSize: 256,
           attribution: '&copy; OpenStreetMap contributors, CARTO'
@@ -108,21 +107,21 @@ const getMapStyle = (apiKey, basemapMode = 'normal') => {
     };
   }
 
-  // DEFAULT: NORMAL / VECTOR MAP (Clean, light Leaflet/OpenStreetMap-style geographic appearance)
+  // DEFAULT: NORMAL / VECTOR MAP (Crisp, light Leaflet/OpenStreetMap-style geographic appearance)
   if (hasKey) {
     return `https://api.maptiler.com/maps/streets-v2/style.json?key=${cleanKey}`;
   }
 
-  // Standard high-availability OSM / CARTO light geographic tiles
   return {
     version: 8,
     sources: {
       'osm-voyager-tiles': {
         type: 'raster',
         tiles: [
-          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-          'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+          'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+          'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+          'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+          'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
         ],
         tileSize: 256,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
