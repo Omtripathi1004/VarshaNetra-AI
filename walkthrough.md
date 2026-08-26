@@ -66,3 +66,4 @@ dist/assets/index-P-9xPVHF.js   1,287.43 kB │ gzip: 392.54 kB
 ```
 
 All unit tests and build compilations passed with 0 errors.
+to save change in vercel run this in terminal :- npx vercel --prod

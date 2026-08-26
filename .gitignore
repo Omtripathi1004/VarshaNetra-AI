@@ -30,3 +30,6 @@ Thumbs.db
 .vercel
 .env*
 scratch/
+
+.vercel
+.env*

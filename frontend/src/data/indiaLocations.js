@@ -535,8 +535,29 @@ export const INDIA_LOCATIONS = {
       "Puducherry": ["Villianur Gram", "Ariyankuppam Panchayat", "Bahour Gram", "Mannadipet Panchayat", "Nettapakkam Gram"],
       "Karaikal": ["Kottucherry Gram", "Nedungadu Panchayat", "Neravy Gram", "Thirunallar Panchayat"],
     }
+  },
+  "Delhi (NCT)": {
+    districts: ["Central Delhi", "East Delhi", "New Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi"],
+    cities: ["New Delhi", "Connaught Place", "Dwarka", "Rohini", "Saket", "Laxmi Nagar", "Karol Bagh", "Chandni Chowk", "Vasant Kunj", "Janakpuri", "Pitampura", "Mayur Vihar", "Narela", "Najafgarh"],
+    villages: {
+      "New Delhi": ["Barakhamba Gram", "Chanakyapuri Panchayat", "Connaught Place Central Gram"],
+      "South West Delhi": ["Najafgarh Gram", "Palam Panchayat", "Kapashera Gram", "Bijwasan Panchayat", "Dwarka Rural Gram"],
+      "North West Delhi": ["Narela Gram", "Bawana Panchayat", "Alipur Gram", "Kanjhawala Panchayat", "Khera Kalan Gram", "Holambi Kalan Panchayat"],
+      "East Delhi": ["Gandhi Nagar Gram", "Preet Vihar Panchayat", "Mayur Vihar Rural Gram", "Mandawali Panchayat"],
+      "North East Delhi": ["Seelampur Gram", "Shahdara Rural Panchayat", "Yamuna Vihar Gram", "Karawal Nagar Panchayat"]
+    }
+  },
+  "Dadra and Nagar Haveli and Daman and Diu": {
+    districts: ["Dadra and Nagar Haveli (Silvassa)", "Daman", "Diu"],
+    cities: ["Silvassa", "Daman", "Diu", "Amli", "Naroli"],
+    villages: {
+      "Dadra and Nagar Haveli (Silvassa)": ["Silvassa Rural Gram", "Naroli Panchayat", "Dadra Gram", "Khanvel Panchayat", "Rakholi Gram"],
+      "Daman": ["Moti Daman Gram", "Nani Daman Panchayat", "Marwad Gram", "Dunetha Panchayat"],
+      "Diu": ["Ghoghla Gram", "Fudam Panchayat", "Vanakbara Gram", "Bucharwada Panchayat"]
+    }
   }
 };
+
 
 
 export const DEFAULT_DISTRICT_VILLAGES = [

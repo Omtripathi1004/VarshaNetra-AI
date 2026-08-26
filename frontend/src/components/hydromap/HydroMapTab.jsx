@@ -4,8 +4,10 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
+import { INDIA_BOUNDARY_GEOJSON, IMD_METEOROLOGICAL_DIVISIONS_GEOJSON } from '../../data/indiaGeoJson';
 
 const { BaseLayer } = LayersControl;
+
 
 // Custom GPS pulsing icon
 const createGpsIcon = () => {
@@ -336,7 +338,53 @@ export default function HydroMapTab() {
               </Marker>
             )}
 
-            {/* PART 10 & 12: DISTINCT NON-OVERLAPPING GEOJSON REGIONAL HAZARD ZONES */}
+            {/* SIH-STANDARD AUTHENTIC INDIA NATIONAL BOUNDARY OUTLINE */}
+            <GeoJSON
+              data={INDIA_BOUNDARY_GEOJSON}
+              style={{
+                color: '#06b6d4',
+                weight: 2.5,
+                fillColor: 'transparent',
+                fillOpacity: 0.04,
+                dashArray: 'none',
+              }}
+            />
+
+            {/* SIH-STANDARD IMD METEOROLOGICAL AGRO-CLIMATIC SUBDIVISIONS */}
+            <GeoJSON
+              data={IMD_METEOROLOGICAL_DIVISIONS_GEOJSON}
+              style={(feature) => {
+                const p = feature.properties;
+                return {
+                  color: p.color || '#38bdf8',
+                  fillColor: p.color || '#38bdf8',
+                  fillOpacity: 0.22,
+                  weight: 2,
+                  dashArray: p.risk_level === 'CRITICAL' ? '4, 4' : 'none',
+                };
+              }}
+              onEachFeature={(feature, layer) => {
+                const p = feature.properties;
+                layer.on({
+                  click: () => setSelectedFeature(p),
+                  mouseover: (e) => { e.target.setStyle({ fillOpacity: 0.45, weight: 3 }); },
+                  mouseout: (e) => { e.target.setStyle({ fillOpacity: 0.22, weight: 2 }); },
+                });
+                layer.bindPopup(`
+                  <div style="font-family:Inter,sans-serif;min-width:200px;color:#0f172a;line-height:1.4">
+                    <div style="font-weight:800;font-size:13px;color:#0369a1;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:4px">
+                      📍 ${lang === 'hi' ? p.name_hi : p.name}
+                    </div>
+                    <div style="font-size:11px;margin-bottom:2px"><b>Hazard:</b> ${lang === 'hi' ? p.hazard_hi : p.hazard}</div>
+                    <div style="font-size:11px;margin-bottom:2px"><b>24h Rainfall:</b> ${p.rainfall_24h_mm}</div>
+                    <div style="font-size:11px;margin-bottom:2px"><b>Risk Score:</b> <span style="font-weight:800;color:${p.color}">${p.risk_score}/100</span></div>
+                    <div style="font-size:11px"><b>Severity:</b> <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#f1f5f9;font-weight:700;font-size:10px">${p.risk_level}</span></div>
+                  </div>
+                `);
+              }}
+            />
+
+            {/* PART 10 & 12: DYNAMIC LOCAL RISK OVERLAY */}
             {filteredGeoJSON && (
               <GeoJSON
                 key={riskFilter + JSON.stringify(gpsCenter)}
