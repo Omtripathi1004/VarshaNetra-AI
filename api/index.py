@@ -10,8 +10,7 @@ if backend_dir not in sys.path:
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from backend.app.core.database import init_db
 from backend.app.router import router
 
@@ -39,7 +38,11 @@ async def normalize_vercel_path(request: Request, call_next):
             _path = "/" + _path
         request.scope["path"] = _path
     else:
-        matched = request.headers.get("x-matched-path") or request.headers.get("x-vercel-matched-path") or request.headers.get("x-forwarded-path")
+        matched = (
+            request.headers.get("x-matched-path")
+            or request.headers.get("x-vercel-matched-path")
+            or request.headers.get("x-forwarded-path")
+        )
         if matched and not matched.startswith("/api/index"):
             request.scope["path"] = matched
         else:
@@ -56,6 +59,7 @@ app.include_router(router, prefix="/api/v1")
 app.include_router(router, prefix="/v1")
 app.include_router(router, prefix="/api")
 
+@app.get("/")
 @app.get("/health")
 @app.get("/api/health")
 @app.get("/api/v1/health")
@@ -67,54 +71,5 @@ async def health(request: Request):
         "path": request.scope.get("path"),
         "engines": ["open_meteo", "false_onset_hero", "noaa_teleconnections", "10yr_ml_validation", "crop_stage_matrix"]
     }
-
-import mimetypes
-
-# Locate static build output (backend/dist, frontend/dist, dist, or public)
-possible_dirs = [
-    os.path.join(backend_dir, "dist"),
-    os.path.join(root_dir, "frontend", "dist"),
-    os.path.join(root_dir, "dist"),
-    os.path.join(root_dir, "public")
-]
-static_dir = None
-for d in possible_dirs:
-    if os.path.isdir(d) and os.path.isfile(os.path.join(d, "index.html")):
-        static_dir = d
-        break
-
-@app.get("/")
-async def serve_root():
-    if static_dir:
-        index_file = os.path.join(static_dir, "index.html")
-        if os.path.isfile(index_file):
-            return FileResponse(index_file, media_type="text/html")
-    return {
-        "status": "HEALTHY",
-        "service": "VarshaNetra-AI-API",
-        "version": "2.0.0"
-    }
-
-@app.get("/{full_path:path}")
-async def serve_spa_or_file(full_path: str):
-    # Do not hijack API or docs
-    if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
-        return JSONResponse(status_code=404, content={"detail": "Not Found"})
-
-    if static_dir:
-        file_path = os.path.join(static_dir, full_path)
-        if full_path and os.path.isfile(file_path):
-            media_type, _ = mimetypes.guess_type(file_path)
-            if not media_type:
-                if file_path.endswith(".js"):
-                    media_type = "application/javascript"
-                elif file_path.endswith(".css"):
-                    media_type = "text/css"
-            return FileResponse(file_path, media_type=media_type)
-        index_file = os.path.join(static_dir, "index.html")
-        if os.path.isfile(index_file):
-            return FileResponse(index_file, media_type="text/html")
-
-    return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 handler = app
