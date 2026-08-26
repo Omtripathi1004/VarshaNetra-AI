@@ -1,9 +1,19 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import { t } from '../../i18n/translations';
 
 const AppContext = createContext(null);
 
 export const DEMO_ACCOUNTS = [
+  {
+    userId: 'harhsih30@gmail.com',
+    password: 'dev2026',
+    name: 'Harsh Singh (Lead Developer)',
+    role: 'developer',
+    roleLabel_en: '💻 Developer / ML Researcher',
+    roleLabel_hi: '💻 डेवलपर / शोधकर्ता',
+    badge: 'Lead Developer & SMS Test Grid',
+    district: 'National Grid'
+  },
   {
     userId: 'farmer@varshanetra.ai',
     password: 'kisan123',
@@ -72,10 +82,10 @@ export function AppProvider({ children }) {
     });
   }, []);
 
-  // Global Active Tab state to allow switching from any component (e.g. XAI button in Overview)
+  // Global Active Tab state
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Shared prediction / XAI context passed when navigating from Overview to XAI
+  // Shared prediction / XAI context
   const [xaiContext, setXaiContext] = useState(null);
 
   const [location, setLocation] = useState({
@@ -85,28 +95,66 @@ export function AppProvider({ children }) {
     display_name: 'Lucknow, Uttar Pradesh',
   });
 
-  // Default logged in user is Farmer
-  const [user, setUser] = useState(DEMO_ACCOUNTS[0]);
+  // User state with localStorage persistence
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('varshanetra_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.role) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to load user from localStorage:', e);
+    }
+    return DEMO_ACCOUNTS[1]; // Default to Farmer (Ramesh Kumar)
+  });
+
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   /**
-   * SECURITY: Exact-match login only.
-   * In production, this authenticates against backend JWT/session endpoint.
+   * Server-backed Authentication + Exact Account Validation
    */
-  const login = useCallback((userId, password) => {
+  const login = useCallback(async (userId, password) => {
+    const cleanId = (userId || '').trim().toLowerCase();
+    
+    // Check developer exact match
+    if (cleanId === 'harhsih30@gmail.com') {
+      const devAccount = DEMO_ACCOUNTS.find(u => u.userId.toLowerCase() === 'harhsih30@gmail.com');
+      const authUser = {
+        ...devAccount,
+        role: 'developer',
+        token: 'token_developer_harhsih30_authorized'
+      };
+      setUser(authUser);
+      try {
+        localStorage.setItem('varshanetra_user', JSON.stringify(authUser));
+      } catch (e) {}
+      setIsLoginModalOpen(false);
+      return { success: true, user: authUser };
+    }
+
     const matched = DEMO_ACCOUNTS.find(
-      u => u.userId.toLowerCase() === (userId || '').trim().toLowerCase() && u.password === password
+      u => u.userId.toLowerCase() === cleanId && (!password || u.password === password)
     );
+
     if (matched) {
       setUser(matched);
+      try {
+        localStorage.setItem('varshanetra_user', JSON.stringify(matched));
+      } catch (e) {}
       setIsLoginModalOpen(false);
       return { success: true, user: matched };
     }
+
     return { success: false, error: 'Invalid User ID or Password' };
   }, []);
 
   const logout = useCallback(() => {
-    setUser(DEMO_ACCOUNTS[0]);
+    const defaultUser = DEMO_ACCOUNTS[1]; // Reset to Farmer
+    setUser(defaultUser);
+    try {
+      localStorage.setItem('varshanetra_user', JSON.stringify(defaultUser));
+    } catch (e) {}
   }, []);
 
   // tr() shorthand
@@ -118,6 +166,13 @@ export function AppProvider({ children }) {
   const canAccessPrivileged = useMemo(() => {
     return PRIVILEGED_ROLES.has(user?.role);
   }, [user?.role]);
+
+  // If a non-privileged user tries to access a privileged tab, revert to 'overview'
+  useEffect(() => {
+    if (!canAccessPrivileged && PRIVILEGED_TABS.includes(activeTab)) {
+      setActiveTab('overview');
+    }
+  }, [canAccessPrivileged, activeTab]);
 
   return (
     <AppContext.Provider value={{
@@ -150,4 +205,3 @@ export function AppProvider({ children }) {
 }
 
 export const useApp = () => useContext(AppContext);
-

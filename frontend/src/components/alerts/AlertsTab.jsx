@@ -337,7 +337,7 @@ function NotifyPanel({ lang }) {
   const forwardViaEmail = () => {
     const emailTarget = recipients.includes('@')
       ? recipients
-      : 'harshsih30@gmail.com';
+      : 'harhsih30@gmail.com';
 
     const effectiveMsg = getEffectiveMessage();
 
@@ -478,10 +478,10 @@ function NotifyPanel({ lang }) {
               </button>
               <button
                 type="button"
-                onClick={() => { setRecipients('harshsih30@gmail.com'); setChannel('EMAIL'); }}
+                onClick={() => { setRecipients('harhsih30@gmail.com'); setChannel('EMAIL'); }}
                 style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid #ddd6fe', background: '#ede9fe', color: '#6d28d9', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                ✉️ harshsih30@gmail.com
+                ✉️ harhsih30@gmail.com
               </button>
             </div>
           </div>

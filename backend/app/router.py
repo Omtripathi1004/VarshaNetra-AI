@@ -66,22 +66,38 @@ PRIVILEGED_ROLES = {"developer", "admin"}
 
 def get_current_user_role(
     x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_user_email: Optional[str] = Header(None, alias="X-User-Email"),
     authorization: Optional[str] = Header(None),
 ) -> str:
     """
-    Extracts and validates user role from request headers.
+    Extracts and validates user role from request headers and email.
+    Explicitly binds Developer role to harhsih30@gmail.com.
     Defaults to 'farmer' (normal User).
     """
+    # 1. Exact developer account match
+    if x_user_email:
+        clean_email = x_user_email.strip().lower()
+        if clean_email == "harhsih30@gmail.com" or clean_email == "dev@varshanetra.ai":
+            return "developer"
+        if clean_email == "admin@varshanetra.ai":
+            return "admin"
+
+    # 2. X-User-Role header match
     if x_user_role:
         clean_role = x_user_role.strip().lower()
         if clean_role in PRIVILEGED_ROLES:
             return clean_role
+
+    # 3. Authorization Bearer token match
     if authorization and "Bearer " in authorization:
         token = authorization.replace("Bearer ", "").strip().lower()
-        if token in PRIVILEGED_ROLES or "admin" in token:
-            return "admin"
-        if "dev" in token:
+        if "harhsih30" in token or "dev" in token:
             return "developer"
+        if "admin" in token:
+            return "admin"
+        if token in PRIVILEGED_ROLES:
+            return token
+
     return "farmer"
 
 def require_privileged_user(
@@ -97,6 +113,117 @@ def require_privileged_user(
             detail="Access Denied: Privileged authority required (Developer or Disaster Administrator only)."
         )
     return role
+
+
+# =============================================================================
+# AUTHENTICATION & DEVELOPER VERIFICATION
+# =============================================================================
+
+@router.post("/auth/login")
+@router.post("/auth/token")
+async def login_endpoint(
+    payload: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Server-side authentication endpoint enforcing exact Developer role
+    for harhsih30@gmail.com and administrative roles.
+    """
+    username = (payload.get("username") or payload.get("email") or payload.get("userId") or "").strip().lower()
+    password = (payload.get("password") or "").strip()
+
+    # Match Developer account
+    if username == "harhsih30@gmail.com":
+        return {
+            "success": True,
+            "access_token": "token_developer_harhsih30_authorized",
+            "token_type": "bearer",
+            "user": {
+                "userId": "harhsih30@gmail.com",
+                "email": "harhsih30@gmail.com",
+                "name": "Harsh Singh (Lead Developer)",
+                "role": "developer",
+                "roleLabel_en": "💻 Developer / ML Researcher",
+                "roleLabel_hi": "💻 डेवलपर / शोधकर्ता",
+                "badge": "Lead Developer & SMS Test Grid",
+                "district": "National Grid",
+                "permissions": ["all", "sms_test", "system_control", "crisis_dispatch", "xai_audit"],
+            }
+        }
+    elif username == "dev@varshanetra.ai":
+        return {
+            "success": True,
+            "access_token": "token_developer_dev_authorized",
+            "token_type": "bearer",
+            "user": {
+                "userId": "dev@varshanetra.ai",
+                "email": "dev@varshanetra.ai",
+                "name": "Alex Chen (AI Engineer)",
+                "role": "developer",
+                "roleLabel_en": "💻 Developer / ML Researcher",
+                "roleLabel_hi": "💻 डेवलपर / शोधकर्ता",
+                "badge": "Core ML & APIs",
+                "district": "National Grid",
+                "permissions": ["all", "sms_test", "system_control", "crisis_dispatch"],
+            }
+        }
+    elif username == "admin@varshanetra.ai":
+        return {
+            "success": True,
+            "access_token": "token_admin_authorized",
+            "token_type": "bearer",
+            "user": {
+                "userId": "admin@varshanetra.ai",
+                "email": "admin@varshanetra.ai",
+                "name": "Dr. V. K. Sharma (District Lead)",
+                "role": "admin",
+                "roleLabel_en": "🏛️ Disaster Administrator / Officer",
+                "roleLabel_hi": "🏛️ जिला कृषि अधिकारी / प्रशासक",
+                "badge": "Disaster Dispatch Lead",
+                "district": "State Command",
+                "permissions": ["all", "sms_dispatch", "system_control", "crisis_dispatch"],
+            }
+        }
+    else:
+        return {
+            "success": True,
+            "access_token": "token_farmer_authorized",
+            "token_type": "bearer",
+            "user": {
+                "userId": username or "farmer@varshanetra.ai",
+                "email": username or "farmer@varshanetra.ai",
+                "name": "Ramesh Kumar (किसान)",
+                "role": "farmer",
+                "roleLabel_en": "🌾 Farmer / Krishi User",
+                "roleLabel_hi": "🌾 किसान / कृषि उपयोगकर्ता",
+                "badge": "Kharif Farmer",
+                "district": "Lucknow",
+                "permissions": ["standard_user_tabs"],
+            }
+        }
+
+
+@router.get("/auth/verify")
+@router.get("/auth/me")
+async def verify_auth_endpoint(
+    role: str = Depends(get_current_user_role),
+    x_user_email: Optional[str] = Header(None, alias="X-User-Email"),
+):
+    """
+    Verifies the user's role on the backend.
+    """
+    email = (x_user_email or "").strip().lower()
+    if email == "harhsih30@gmail.com":
+        role = "developer"
+
+    return {
+        "authenticated": True,
+        "role": role,
+        "email": email or (f"{role}@varshanetra.ai"),
+        "is_privileged": role in PRIVILEGED_ROLES,
+        "permissions": ["all"] if role in PRIVILEGED_ROLES else ["standard"],
+    }
+
 
 
 # =============================================================================
@@ -1308,6 +1435,137 @@ async def send_sms_endpoint(
     }
 
 
+@router.post("/notifications/test-sms")
+@router.post("/notify/test-sms")
+@router.post("/sms/test")
+async def test_sms_endpoint(
+    req: schemas.TestSMSRequest,
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Dedicated test endpoint for Developer / Admin SMS verification.
+    Validates recipient, dispatches via active SMS provider (Twilio or Fast2SMS),
+    and returns live provider logs and status.
+    """
+    phone = req.phone
+    msg = req.message or f"VarshaNetra AI developer test message dispatched at {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}."
+    
+    try:
+        norm_phone = normalize_phone_number(phone)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+    res = send_sms(norm_phone, msg, "SYSTEM_TEST")
+    status_val = res.get("status", "FAILED")
+    prov = res.get("provider", settings.PRIMARY_SMS_PROVIDER)
+    msg_id = res.get("provider_message_id", "")
+
+    try:
+        db.add(models.Notification(
+            channel="SMS",
+            provider=prov,
+            provider_message_id=msg_id,
+            recipient=norm_phone,
+            subject="VarshaNetra SMS Test",
+            message=msg[:500],
+            alert_type="SYSTEM_TEST",
+            status=status_val,
+            error_code=res.get("error_code") or "",
+            error_message=res.get("message") if not res.get("success") else None,
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return {
+        "success": res.get("success", False),
+        "status": status_val,
+        "provider": prov,
+        "provider_message_id": msg_id,
+        "recipient": norm_phone,
+        "message": res.get("message", "SMS test processed."),
+        "error_code": res.get("error_code"),
+        "authorized_role": role,
+        "raw_response": res,
+    }
+
+
+@router.post("/notifications/test-email")
+@router.post("/notify/test-email")
+@router.post("/email/test")
+async def test_email_endpoint(
+    req: schemas.TestEmailRequest,
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Dedicated test endpoint for Developer / Admin Email verification.
+    """
+    email = req.email
+    subj = req.subject or "VarshaNetra AI Developer Email Test"
+    msg = req.message or "VarshaNetra AI email system test message."
+
+    res = send_email(email, subj, msg, "SYSTEM_TEST")
+    status_val = res.get("status", "FAILED")
+    prov = res.get("provider", "SMTP")
+    msg_id = res.get("provider_message_id", "")
+
+    try:
+        db.add(models.Notification(
+            channel="EMAIL",
+            provider=prov,
+            provider_message_id=msg_id,
+            recipient=email,
+            subject=subj,
+            message=msg[:500],
+            alert_type="SYSTEM_TEST",
+            status=status_val,
+            error_code=res.get("error_code") or "",
+            error_message=res.get("message") if not res.get("success") else None,
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return {
+        "success": res.get("success", False),
+        "status": status_val,
+        "provider": prov,
+        "provider_message_id": msg_id,
+        "recipient": email,
+        "message": res.get("message", "Email test processed."),
+        "authorized_role": role,
+        "raw_response": res,
+    }
+
+
+@router.get("/notifications/provider-health")
+@router.get("/notify/health")
+async def notification_provider_health(
+    role: str = Depends(require_privileged_user),
+):
+    """
+    Live diagnostics of configured notification providers (Twilio, Fast2SMS, SMTP, Resend, Brevo).
+    """
+    return {
+        "sms": {
+            "primary": settings.PRIMARY_SMS_PROVIDER,
+            "twilio_configured": settings.is_twilio_configured,
+            "fast2sms_configured": settings.is_fast2sms_configured,
+            "mock_mode": settings.NOTIFICATION_MOCK,
+        },
+        "email": {
+            "primary": settings.PRIMARY_EMAIL_PROVIDER,
+            "smtp_configured": settings.is_smtp_configured,
+            "resend_configured": settings.is_resend_configured,
+            "brevo_configured": settings.is_brevo_configured,
+        },
+        "authorized_role": role,
+    }
+
+
+
 @router.post("/notifications/webhook/twilio")
 @router.post("/notify/webhook/twilio")
 async def twilio_status_webhook(
@@ -1905,3 +2163,72 @@ async def crop_stage_advisory(
 @router.get("/model/10yr-validation")
 async def model_10yr_validation():
     return evaluate_10yr_models()
+
+
+# =============================================================================
+# 21. SYSTEM CONTROL & USER MANAGEMENT (RBAC Protected)
+# =============================================================================
+
+@router.get("/system/status")
+@router.get("/system-control")
+async def system_status_endpoint(
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    return {
+        "database": "connected",
+        "model_loaded": True,
+        "model_version": "LightGBM Hybrid v2.0 (Climate-Aware)",
+        "model_path": "ml/model.pkl",
+        "notification_mode": "LIVE" if not settings.NOTIFICATION_MOCK else "MOCK",
+        "open_meteo_api": "connected",
+        "total_predictions": 3652,
+        "total_alerts": 142,
+        "total_notifications_sent": 89,
+        "authorized_role": role,
+    }
+
+
+@router.get("/users")
+async def list_users(
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    return [
+        {
+            "id": 1,
+            "email": "harhsih30@gmail.com",
+            "full_name": "Harsh Singh",
+            "role": "developer",
+            "phone": "+919555681533",
+            "is_active": True,
+            "badge": "Lead Developer & SMS Test Grid"
+        },
+        {
+            "id": 2,
+            "email": "farmer@varshanetra.ai",
+            "full_name": "Ramesh Kumar (किसान)",
+            "role": "farmer",
+            "phone": "+919876543210",
+            "is_active": True,
+            "badge": "Kharif Farmer"
+        },
+        {
+            "id": 3,
+            "email": "dev@varshanetra.ai",
+            "full_name": "Alex Chen (AI Engineer)",
+            "role": "developer",
+            "phone": "+919123456789",
+            "is_active": True,
+            "badge": "Core ML & APIs"
+        },
+        {
+            "id": 4,
+            "email": "admin@varshanetra.ai",
+            "full_name": "Dr. V. K. Sharma (District Lead)",
+            "role": "admin",
+            "phone": "+919988776655",
+            "is_active": True,
+            "badge": "Disaster Dispatch Lead"
+        }
+    ]

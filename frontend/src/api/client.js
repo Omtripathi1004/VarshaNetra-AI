@@ -5,6 +5,21 @@ const BASE = '/api';
 const OPEN_METEO_BASE = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_GEO = 'https://geocoding-api.open-meteo.com/v1/search';
 
+// Automatic Request Interceptor for Role & Email RBAC Headers
+axios.interceptors.request.use((config) => {
+  try {
+    const savedUser = JSON.parse(localStorage.getItem('varshanetra_user') || '{}');
+    if (savedUser?.role) {
+      config.headers['X-User-Role'] = savedUser.role;
+    }
+    if (savedUser?.userId) {
+      config.headers['X-User-Email'] = savedUser.userId;
+      config.headers['Authorization'] = `Bearer token_${savedUser.role}_${savedUser.userId}`;
+    }
+  } catch (e) {}
+  return config;
+});
+
 // Helper to build query params
 const locParams = (loc) => {
   if (!loc) return {};
