@@ -385,10 +385,16 @@ export default function OverviewTab() {
                 {location.display_name}
               </h3>
             </div>
-            <span className="badge badge-info" style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700 }}>
-              📍 {activeDay.date} • Open-Meteo Synced
+            <span className="badge badge-info" style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, background: activeDay.isLiveObservation ? 'rgba(16, 185, 129, 0.2)' : 'rgba(2, 132, 199, 0.2)', color: activeDay.isLiveObservation ? '#34d399' : '#38bdf8', border: activeDay.isLiveObservation ? '1px solid #059669' : '1px solid #0284c7' }}>
+              📍 {activeDay.isLiveObservation ? (lang === 'hi' ? 'वर्तमान मौसम प्रेक्षण (Live IST)' : 'Live Observation (Asia/Kolkata)') : (lang === 'hi' ? 'नवीनतम उपलब्ध पूर्वानुमान' : 'Latest available forecast')}
             </span>
           </div>
+
+          {loading && (
+            <div style={{ marginTop: '0.5rem', padding: '0.35rem 0.85rem', background: 'rgba(56, 189, 248, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>
+              🔄 {lang === 'hi' ? 'वर्तमान मौसम अपडेट हो रहा है...' : 'Updating current weather...'}
+            </div>
+          )}
 
           {/* Current Temp, Condition & Feels Like */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.8rem', flexWrap: 'wrap', gap: '1rem' }}>

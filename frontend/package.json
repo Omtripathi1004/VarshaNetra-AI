@@ -8,19 +8,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-chartjs-2": "^5.2.0",
-    "chart.js": "^4.4.0",
-    "recharts": "^2.12.0",
     "axios": "^1.6.0",
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^4.2.1",
+    "chart.js": "^4.4.0",
     "framer-motion": "^11.0.0",
-    "lucide-react": "^0.344.0"
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.344.0",
+    "maplibre-gl": "^6.6.0",
+    "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
+    "recharts": "^2.12.0"
   },
   "devDependencies": {
-    "vite": "^5.2.0",
-    "@vitejs/plugin-react": "^4.2.1"
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.2.0"
   }
 }
