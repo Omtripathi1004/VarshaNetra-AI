@@ -30,6 +30,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Vercel Serverless Path Normalization Middleware
+@app.middleware("http")
+async def normalize_vercel_path(request: Request, call_next):
+    _path = request.query_params.get("_path")
+    if _path:
+        if not _path.startswith("/"):
+            _path = "/" + _path
+        request.scope["path"] = _path
+    else:
+        matched = request.headers.get("x-matched-path") or request.headers.get("x-vercel-matched-path") or request.headers.get("x-forwarded-path")
+        if matched and not matched.startswith("/api/index"):
+            request.scope["path"] = matched
+        else:
+            path = request.scope.get("path", "")
+            for pfx in ["/api/index.py", "/api/index"]:
+                if path.startswith(pfx):
+                    rem = path[len(pfx):]
+                    request.scope["path"] = rem if rem else "/"
+                    break
+    return await call_next(request)
+
 # Include backend router with all standard prefixes
 app.include_router(router, prefix="/api/v1")
 app.include_router(router, prefix="/v1")
@@ -46,22 +67,6 @@ async def health(request: Request):
         "path": request.scope.get("path"),
         "engines": ["open_meteo", "false_onset_hero", "noaa_teleconnections", "10yr_ml_validation", "crop_stage_matrix"]
     }
-
-@app.get("/api/debug-files")
-async def debug_files():
-    res = {"root_dir": root_dir, "static_dir": static_dir, "dirs_checked": {}}
-    for d in possible_dirs:
-        if os.path.exists(d):
-            try:
-                res["dirs_checked"][d] = os.listdir(d)
-                assets_d = os.path.join(d, "assets")
-                if os.path.exists(assets_d):
-                    res["dirs_checked"][d + "/assets"] = os.listdir(assets_d)
-            except Exception as e:
-                res["dirs_checked"][d] = str(e)
-        else:
-            res["dirs_checked"][d] = "NOT_EXISTS"
-    return res
 
 # Locate static build output (frontend/dist, dist, or public)
 possible_dirs = [
@@ -95,7 +100,7 @@ async def serve_root():
 
 @app.get("/{full_path:path}")
 async def serve_spa_or_file(full_path: str):
-    # Don't hijack API or documentation routes
+    # Do not hijack API or docs
     if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
