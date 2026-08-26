@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 const HINDI_DAYS = {
   'Sunday': 'रविवार',
@@ -36,23 +36,33 @@ const HINDI_MONTHS = {
 };
 
 /**
- * Custom React Hook that automatically updates date & time every 60 seconds.
+ * Gets the current date in Asia/Kolkata (IST, UTC+5:30)
+ */
+function getKolkataDate() {
+  const now = new Date();
+  // Formatted string in Asia/Kolkata
+  const kolkataStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+  return new Date(kolkataStr);
+}
+
+/**
+ * Custom React Hook that automatically updates date & time in Asia/Kolkata (IST) every 30 seconds.
  */
 export function useLiveDate() {
   const [dateInfo, setDateInfo] = useState(() => {
-    const now = new Date();
-    const day = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const dayShort = now.toLocaleDateString('en-US', { weekday: 'short' });
-    const month = now.toLocaleDateString('en-US', { month: 'short' });
-    const dateNum = now.getDate();
-    const year = now.getFullYear();
+    const kNow = getKolkataDate();
+    const day = kNow.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Kolkata' });
+    const dayShort = kNow.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Kolkata' });
+    const month = kNow.toLocaleDateString('en-US', { month: 'short', timeZone: 'Asia/Kolkata' });
+    const dateNum = kNow.getDate();
+    const year = kNow.getFullYear();
 
-    const fullDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const fullDate = kNow.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' });
     const dayHi = HINDI_DAYS[day] || day;
     const dayShortHi = HINDI_DAYS_SHORT[dayShort] || dayShort;
     const monthHi = HINDI_MONTHS[month] || month;
     const fullDateHi = `${dateNum} ${monthHi} ${year}`;
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const timeStr = kNow.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 
     return {
       day,
@@ -62,25 +72,26 @@ export function useLiveDate() {
       fullDate,
       fullDateHi,
       timeStr,
-      rawDate: now,
+      rawDate: kNow,
+      kolkataHour: kNow.getHours(),
     };
   });
 
   useEffect(() => {
     const update = () => {
-      const now = new Date();
-      const day = now.toLocaleDateString('en-US', { weekday: 'long' });
-      const dayShort = now.toLocaleDateString('en-US', { weekday: 'short' });
-      const month = now.toLocaleDateString('en-US', { month: 'short' });
-      const dateNum = now.getDate();
-      const year = now.getFullYear();
+      const kNow = getKolkataDate();
+      const day = kNow.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Kolkata' });
+      const dayShort = kNow.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Kolkata' });
+      const month = kNow.toLocaleDateString('en-US', { month: 'short', timeZone: 'Asia/Kolkata' });
+      const dateNum = kNow.getDate();
+      const year = kNow.getFullYear();
 
-      const fullDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const fullDate = kNow.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' });
       const dayHi = HINDI_DAYS[day] || day;
       const dayShortHi = HINDI_DAYS_SHORT[dayShort] || dayShort;
       const monthHi = HINDI_MONTHS[month] || month;
       const fullDateHi = `${dateNum} ${monthHi} ${year}`;
-      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = kNow.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 
       setDateInfo({
         day,
@@ -90,12 +101,13 @@ export function useLiveDate() {
         fullDate,
         fullDateHi,
         timeStr,
-        rawDate: now,
+        rawDate: kNow,
+        kolkataHour: kNow.getHours(),
       });
     };
 
     update();
-    const interval = setInterval(update, 60000);
+    const interval = setInterval(update, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -103,26 +115,28 @@ export function useLiveDate() {
 }
 
 /**
- * Dynamically computes a 7-day forecast array rooted at the current live date.
+ * Dynamically computes a normalized 7-day forecast array rooted at current Asia/Kolkata live date.
  */
 export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang = 'en') {
-  const now = new Date();
-  const currentTemp = currentWeather?.temperature_c ? Math.round(currentWeather.temperature_c) : 28;
-  const currentRainProb = rainfallPrediction?.probability_pct ?? 45;
-  const currentExpectedRain = rainfallPrediction?.expected_mm ?? 4.2;
+  const kNow = getKolkataDate();
+  const currentHour = kNow.getHours();
+  const hasLiveWeather = currentWeather && currentWeather.temperature_c != null;
+  const currentTemp = hasLiveWeather ? Math.round(currentWeather.temperature_c) : 28;
+  const currentRainProb = rainfallPrediction?.probability_pct ?? (hasLiveWeather && currentWeather.precipitation_mm > 0 ? 80 : 45);
+  const currentExpectedRain = rainfallPrediction?.expected_mm ?? (hasLiveWeather ? currentWeather.precipitation_mm || 3.5 : 4.2);
 
   const patterns = [
     {
       condition_en: currentWeather?.weather_description_en || 'Partly Cloudy',
       condition_hi: currentWeather?.weather_description_hi || 'आंशिक बादल',
-      icon: '☁️',
-      max: currentTemp + 4,
+      icon: currentRainProb > 70 ? '⛈️' : currentRainProb > 40 ? '🌧️' : '⛅',
+      max: currentTemp + 3,
       min: Math.max(18, currentTemp - 4),
-      feels_like: currentTemp + 3,
+      feels_like: currentTemp + 2,
       rain_prob: currentRainProb,
       rain_mm: currentExpectedRain,
       wind_kmh: currentWeather?.wind_speed_kmh || 14,
-      humidity: currentWeather?.humidity_pct || 78,
+      humidity: currentWeather?.humidity_pct || 76,
       soil_moisture: currentWeather?.soil_moisture_0_1cm || 0.32,
       alert_en: 'Active Weather Telemetry • Sowing & Field Drainage Monitored',
       alert_hi: 'सक्रिय मौसम डेटा • बुवाई व जल निकासी पर नज़र रखें',
@@ -186,15 +200,15 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
   const days = [];
 
   for (let i = 0; i < 7; i++) {
-    const target = new Date(now);
-    target.setDate(now.getDate() + i);
+    const target = new Date(kNow);
+    target.setDate(kNow.getDate() + i);
 
-    const full_en = target.toLocaleDateString('en-US', { weekday: 'long' });
-    const day_en = target.toLocaleDateString('en-US', { weekday: 'short' });
+    const full_en = target.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Kolkata' });
+    const day_en = target.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Kolkata' });
     const full_hi = HINDI_DAYS[full_en] || full_en;
     const day_hi = HINDI_DAYS_SHORT[day_en] || day_en;
 
-    const month_en = target.toLocaleDateString('en-US', { month: 'short' });
+    const month_en = target.toLocaleDateString('en-US', { month: 'short', timeZone: 'Asia/Kolkata' });
     const month_hi = HINDI_MONTHS[month_en] || month_en;
     const dateNum = target.getDate();
 
@@ -221,8 +235,8 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       const slotDate = new Date(baseDate);
       slotDate.setHours(slotHour, 0, 0, 0);
 
-      const hourProb = Math.min(95, Math.max(5, Math.round(p.rain_prob + (Math.sin(hIdx) * 18))));
-      const hourMm = Number(Math.max(0, (p.rain_mm * (hourProb / (p.rain_prob * 3 || 1))).toFixed(1)));
+      const hourProb = Math.min(95, Math.max(5, Math.round(p.rain_prob + (Math.sin(hIdx) * 16))));
+      const hourMm = Number(Math.max(0, (p.rain_mm * (hourProb / (p.rain_prob * 2.8 || 1))).toFixed(1)));
       const tempVal = Math.round(p.min + ((p.max - p.min) * (Math.sin((hIdx * Math.PI) / 4) + 1) / 2));
       const humidityVal = Math.min(98, Math.max(45, Math.round(p.humidity + (Math.cos(hIdx) * 8))));
 
@@ -230,7 +244,7 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
         isoTimestamp: slotDate.toISOString(),
         timestampDate: slotDate,
         hour: slotHour,
-        temp: isNaN(tempVal) ? 'N/A' : tempVal,
+        temp: isNaN(tempVal) ? 28 : tempVal,
         icon: hourProb > 70 ? '⛈️' : hourProb > 40 ? '🌧️' : hourProb > 20 ? '🌦️' : '☁️',
         rain: `${hourProb}%`,
         rain_mm: isNaN(hourMm) ? 0 : hourMm,
@@ -241,11 +255,11 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       });
     }
 
-    // Sort strictly in ascending chronological order via Date objects
+    // Sort strictly in ascending chronological order via Date timestamps
     rawIntervals.sort((a, b) => a.timestampDate.getTime() - b.timestampDate.getTime());
 
-    // Format display times in Asia/Kolkata timezone
-    const hourly = rawIntervals.map((item, idx) => {
+    // Format display times in Asia/Kolkata timezone with proper 12 AM / 12 PM
+    const hourly = rawIntervals.map((item) => {
       const timeFormatted = item.timestampDate.toLocaleTimeString('en-IN', {
         timeZone: 'Asia/Kolkata',
         hour: 'numeric',
@@ -260,14 +274,15 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
         hour12: false,
       });
 
-      const isCurrentSlot = i === 0 && Math.abs(now.getHours() - item.hour) < 2;
+      const isCurrentSlot = i === 0 && Math.abs(currentHour - item.hour) < 2;
 
       return {
         ...item,
-        time: isCurrentSlot ? (lang === 'hi' ? 'अभी' : 'Now') : timeFormatted,
+        time: isCurrentSlot ? (lang === 'hi' ? 'अभी (वर्तमान)' : 'Now (Live)') : timeFormatted,
         time12: timeFormatted,
         time24: time24Formatted,
         displayTime: timeFormatted,
+        isCurrentSlot,
       };
     });
 
@@ -293,9 +308,9 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
       alert_en: p.alert_en,
       alert_hi: p.alert_hi,
       hourly,
+      isLiveObservation: i === 0 && hasLiveWeather,
     });
   }
 
   return days;
 }
-

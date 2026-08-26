@@ -269,7 +269,7 @@ export default function OverviewTab() {
       <div style={{ marginBottom: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div>
           <h2 style={{ color: '#047857', margin: 0, fontWeight: 800, fontSize: '1.45rem' }}>
-            🌾 {lang === 'hi' ? 'वरदानेत्र AI — किसान निर्णय सहायता प्रणाली' : 'VarshaNetra AI — Hyperlocal Monsoon Decision System'}
+            🌾 {lang === 'hi' ? 'VarshaNetra AI — किसान निर्णय सहायता प्रणाली' : 'VarshaNetra AI — Hyperlocal Monsoon Decision System'}
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem', fontWeight: 500 }}>
             📍 {location.display_name} • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr})
