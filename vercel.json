@@ -31,7 +31,7 @@
       "destination": "/api/index.py?_path=/openapi.json"
     },
     {
-      "source": "/((?!api|docs|openapi.json).*)",
+      "source": "/((?!api|docs|openapi.json|assets|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
