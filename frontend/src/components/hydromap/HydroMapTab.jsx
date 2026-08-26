@@ -160,6 +160,7 @@ export default function HydroMapTab() {
   const mapRef = useRef(null);
   const gpsMarkerRef = useRef(null);
   const clickMarkerRef = useRef(null);
+  const beaconMarkersRef = useRef([]);
 
   // Basemap Mode: 'normal' (default) | 'satellite' | 'hybrid'
   const [basemapMode, setBasemapMode] = useState('normal');
@@ -832,6 +833,77 @@ export default function HydroMapTab() {
       clickMarkerRef.current.setLngLat([clickedCoord.lon, clickedCoord.lat]);
     }
   }, [clickedCoord, mapLoaded]);
+
+  // Animated Hazard Beacon Blinkers for all Multi-Tier Risk Zones (🔴 🟠 🟡 🟢 ⚪)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    const map = mapRef.current;
+
+    // Clear old beacon markers
+    if (beaconMarkersRef.current) {
+      beaconMarkersRef.current.forEach(m => m.remove());
+      beaconMarkersRef.current = [];
+    }
+
+    if (!layersState.riskZones) return;
+
+    // Calculate Polygon Centroid
+    const getCentroid = (coords) => {
+      let ring = coords;
+      if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+        ring = coords[0];
+      }
+      let sumLon = 0, sumLat = 0, count = 0;
+      for (let pt of ring) {
+        if (Array.isArray(pt) && typeof pt[0] === 'number') {
+          sumLon += pt[0];
+          sumLat += pt[1];
+          count++;
+        }
+      }
+      return count > 0 ? [sumLon / count, sumLat / count] : [78.96, 22.59];
+    };
+
+    VARSHANETRA_RISK_ZONES_GEOJSON.features.forEach(feat => {
+      const props = feat.properties;
+      if (riskFilter !== 'ALL' && props.risk_level !== riskFilter) return;
+
+      const centroid = getCentroid(feat.geometry.coordinates);
+      const color = props.risk_level === 'RED' ? '#dc2626' :
+                    props.risk_level === 'ORANGE' ? '#ea580c' :
+                    props.risk_level === 'YELLOW' ? '#eab308' :
+                    props.risk_level === 'GREEN' ? '#16a34a' : '#64748b';
+      const dotEmoji = props.risk_level === 'RED' ? '🔴' :
+                       props.risk_level === 'ORANGE' ? '🟠' :
+                       props.risk_level === 'YELLOW' ? '🟡' :
+                       props.risk_level === 'GREEN' ? '🟢' : '⚪';
+
+      const el = document.createElement('div');
+      el.className = 'risk-beacon-marker';
+      el.title = `${props.name} (${props.risk_label || props.risk_level})`;
+      el.innerHTML = `
+        <div class="risk-beacon-pulse" style="background: ${color}33; border: 1.5px solid ${color}99;"></div>
+        <div class="risk-beacon-dot" style="background: ${color}; color: ${color};"></div>
+        <div class="risk-beacon-badge" style="border-color: ${color}; color: #ffffff;">${dotEmoji} ${props.name.split(' ')[0]}</div>
+      `;
+
+      el.onclick = (e) => {
+        e.stopPropagation();
+        setSelectedFeature({
+          ...props,
+          type: 'RISK_ZONE'
+        });
+        setSelectedAdminEntity(null);
+        setClickedCoord({ lat: centroid[1], lon: centroid[0] });
+      };
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat(centroid)
+        .addTo(map);
+
+      beaconMarkersRef.current.push(marker);
+    });
+  }, [mapLoaded, layersState.riskZones, riskFilter]);
 
   // Handle Location Selection with Hierarchy Zoom
   const handleSelectSearchResult = useCallback(async (res) => {
