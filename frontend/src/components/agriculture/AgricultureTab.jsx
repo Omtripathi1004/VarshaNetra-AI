@@ -18,24 +18,32 @@ const CROP_CLIMATE_DYNAMICS = [
   { id: 'bajra', name: 'Bajra (Pearl Millet)', season: 'KHARIF', opt_temp_min: 25, opt_temp_max: 38, opt_rain_mm: 450, current_suitability: 89, water_demand_mm: [50, 90, 140, 120, 50, 10], monsoon_supply_mm: [70, 100, 130, 110, 40, 10] },
   { id: 'jowar', name: 'Jowar (Sorghum)', season: 'KHARIF', opt_temp_min: 24, opt_temp_max: 38, opt_rain_mm: 450, current_suitability: 85, water_demand_mm: [55, 95, 150, 130, 60, 15], monsoon_supply_mm: [75, 105, 135, 115, 45, 10] },
   { id: 'sugarcane', name: 'Sugarcane', season: 'KHARIF', opt_temp_min: 24, opt_temp_max: 38, opt_rain_mm: 1800, current_suitability: 87, water_demand_mm: [200, 280, 360, 340, 260, 120], monsoon_supply_mm: [210, 290, 340, 320, 220, 80] },
-  { id: 'pulses', name: 'Pulses (Arhar / Tur)', season: 'KHARIF', opt_temp_min: 20, opt_temp_max: 32, opt_rain_mm: 650, current_suitability: 82, water_demand_mm: [60, 100, 160, 150, 70, 20], monsoon_supply_mm: [75, 115, 150, 140, 60, 15] },
+  { id: 'pulses', name: 'Pigeon Pea (Arhar / Tur)', season: 'KHARIF', opt_temp_min: 20, opt_temp_max: 32, opt_rain_mm: 650, current_suitability: 82, water_demand_mm: [60, 100, 160, 150, 70, 20], monsoon_supply_mm: [75, 115, 150, 140, 60, 15] },
+  { id: 'ragi', name: 'Finger Millet (Ragi)', season: 'KHARIF', opt_temp_min: 20, opt_temp_max: 34, opt_rain_mm: 600, current_suitability: 88, water_demand_mm: [50, 85, 135, 115, 55, 15], monsoon_supply_mm: [70, 100, 130, 110, 50, 10] },
   { id: 'urad', name: 'Urad (Black Gram)', season: 'KHARIF', opt_temp_min: 22, opt_temp_max: 35, opt_rain_mm: 500, current_suitability: 80, water_demand_mm: [55, 90, 145, 130, 60, 15], monsoon_supply_mm: [70, 110, 140, 130, 55, 15] },
   { id: 'jute', name: 'Jute', season: 'KHARIF', opt_temp_min: 24, opt_temp_max: 37, opt_rain_mm: 1300, current_suitability: 86, water_demand_mm: [120, 180, 260, 240, 150, 40], monsoon_supply_mm: [140, 200, 270, 230, 130, 30] },
+  { id: 'tea', name: 'Tea Plantation', season: 'KHARIF', opt_temp_min: 18, opt_temp_max: 30, opt_rain_mm: 1800, current_suitability: 90, water_demand_mm: [140, 200, 280, 260, 160, 60], monsoon_supply_mm: [160, 220, 300, 280, 180, 80] },
+  { id: 'coffee', name: 'Coffee Plantation', season: 'KHARIF', opt_temp_min: 15, opt_temp_max: 28, opt_rain_mm: 1600, current_suitability: 87, water_demand_mm: [120, 180, 240, 220, 140, 50], monsoon_supply_mm: [140, 200, 260, 240, 150, 60] },
+  { id: 'coconut', name: 'Coconut Palm', season: 'KHARIF', opt_temp_min: 22, opt_temp_max: 34, opt_rain_mm: 1400, current_suitability: 89, water_demand_mm: [100, 150, 220, 200, 120, 40], monsoon_supply_mm: [120, 170, 240, 210, 130, 50] },
+  { id: 'rubber', name: 'Natural Rubber', season: 'KHARIF', opt_temp_min: 24, opt_temp_max: 35, opt_rain_mm: 2000, current_suitability: 88, water_demand_mm: [150, 220, 300, 280, 180, 70], monsoon_supply_mm: [170, 240, 320, 300, 200, 90] },
+  { id: 'mango', name: 'Mango Orchard', season: 'KHARIF', opt_temp_min: 20, opt_temp_max: 38, opt_rain_mm: 800, current_suitability: 85, water_demand_mm: [70, 110, 160, 140, 80, 30], monsoon_supply_mm: [80, 120, 150, 130, 70, 20] },
+  { id: 'banana', name: 'Banana Plantation', season: 'KHARIF', opt_temp_min: 20, opt_temp_max: 36, opt_rain_mm: 1500, current_suitability: 89, water_demand_mm: [130, 190, 270, 250, 160, 60], monsoon_supply_mm: [150, 210, 280, 260, 170, 70] },
 
   // Rabi
   { id: 'wheat', name: 'Wheat', season: 'RABI', opt_temp_min: 12, opt_temp_max: 24, opt_rain_mm: 400, current_suitability: 88, water_demand_mm: [60, 90, 140, 130, 70, 20], monsoon_supply_mm: [40, 30, 20, 15, 10, 5] },
   { id: 'mustard', name: 'Mustard (Sarson)', season: 'RABI', opt_temp_min: 14, opt_temp_max: 26, opt_rain_mm: 350, current_suitability: 89, water_demand_mm: [40, 70, 110, 90, 40, 10], monsoon_supply_mm: [30, 20, 15, 10, 10, 5] },
   { id: 'chickpea', name: 'Chickpea (Chana)', season: 'RABI', opt_temp_min: 12, opt_temp_max: 28, opt_rain_mm: 300, current_suitability: 85, water_demand_mm: [45, 75, 120, 100, 45, 10], monsoon_supply_mm: [35, 25, 15, 10, 10, 5] },
+  { id: 'lentil', name: 'Lentil (Masoor)', season: 'RABI', opt_temp_min: 12, opt_temp_max: 26, opt_rain_mm: 280, current_suitability: 86, water_demand_mm: [40, 70, 115, 95, 40, 10], monsoon_supply_mm: [30, 25, 15, 10, 10, 5] },
   { id: 'potato', name: 'Potato (Aloo)', season: 'RABI', opt_temp_min: 12, opt_temp_max: 25, opt_rain_mm: 300, current_suitability: 86, water_demand_mm: [50, 80, 130, 110, 50, 15], monsoon_supply_mm: [30, 20, 15, 10, 10, 5] },
   { id: 'barley', name: 'Barley (Jau)', season: 'RABI', opt_temp_min: 10, opt_temp_max: 24, opt_rain_mm: 250, current_suitability: 84, water_demand_mm: [40, 65, 105, 90, 40, 10], monsoon_supply_mm: [30, 20, 15, 10, 10, 5] },
   { id: 'onion', name: 'Onion & Garlic', season: 'RABI', opt_temp_min: 14, opt_temp_max: 28, opt_rain_mm: 350, current_suitability: 83, water_demand_mm: [50, 85, 135, 115, 55, 15], monsoon_supply_mm: [35, 25, 20, 15, 10, 5] },
+  { id: 'tomato', name: 'Tomato', season: 'RABI', opt_temp_min: 15, opt_temp_max: 30, opt_rain_mm: 400, current_suitability: 87, water_demand_mm: [60, 95, 140, 120, 65, 20], monsoon_supply_mm: [40, 30, 25, 20, 10, 5] },
 
   // Zaid
   { id: 'sunflower', name: 'Sunflower', season: 'ZAID', opt_temp_min: 18, opt_temp_max: 34, opt_rain_mm: 350, current_suitability: 87, water_demand_mm: [60, 95, 145, 125, 60, 15], monsoon_supply_mm: [50, 40, 30, 25, 15, 10] },
   { id: 'moong', name: 'Moong (Green Gram)', season: 'ZAID', opt_temp_min: 22, opt_temp_max: 36, opt_rain_mm: 300, current_suitability: 91, water_demand_mm: [45, 75, 115, 95, 40, 10], monsoon_supply_mm: [50, 45, 35, 25, 15, 10] },
   { id: 'cucurbits', name: 'Watermelon & Melons', season: 'ZAID', opt_temp_min: 24, opt_temp_max: 38, opt_rain_mm: 200, current_suitability: 88, water_demand_mm: [40, 70, 110, 90, 35, 10], monsoon_supply_mm: [40, 35, 25, 20, 10, 5] },
-  { id: 'vegetables', name: 'Vegetables (Tomato/Chilli)', season: 'ZAID', opt_temp_min: 18, opt_temp_max: 30, opt_rain_mm: 700, current_suitability: 85, water_demand_mm: [70, 110, 160, 140, 80, 30], monsoon_supply_mm: [80, 120, 150, 130, 70, 20] },
-  { id: 'fodder', name: 'Green Fodder (Berseem)', season: 'ZAID', opt_temp_min: 15, opt_temp_max: 32, opt_rain_mm: 300, current_suitability: 86, water_demand_mm: [50, 80, 125, 105, 50, 15], monsoon_supply_mm: [45, 35, 25, 20, 15, 10] },
+
 ];
 
 const STAGE_LABELS = ['Land Prep', 'Sowing', 'Vegetative', 'Flowering', 'Grain Fill', 'Harvest'];

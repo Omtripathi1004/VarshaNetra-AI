@@ -34,43 +34,78 @@ function ShapBar({ feature, featureHi, value, shapContribution, unit, lang }) {
 }
 
 export default function XAITab() {
-  const { tr, lang, location } = useApp();
+  const { tr, lang, location, xaiContext, setActiveTab } = useApp();
   const [xai, setXai] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [showLineage, setShowLineage] = useState(true);
 
-  useEffect(() => {
+  const fetchXAITelemetry = () => {
     setLoading(true);
+    setFetchError(false);
     api.getExplainPrediction({ lat: location.lat, lon: location.lon })
-      .then(r => { setXai(r.data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(r => {
+        if (r.data && (r.data.shap_features || r.data.probability_pct !== undefined)) {
+          setXai(r.data);
+          setFetchError(false);
+        } else {
+          setFetchError(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setFetchError(true);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchXAITelemetry();
   }, [location.lat, location.lon]);
 
   return (
     <div className="main-content">
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ background: 'linear-gradient(135deg, #059669, #0284c7, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 800, margin: 0 }}>
-          🧠 {tr('xai_title')} (Explainable AI & Model Lineage)
-        </h2>
-        <p className="text-muted text-sm" style={{ marginTop: '0.2rem' }}>
-          {lang === 'hi'
-            ? `स्थान (${location.display_name}) के लिए वास्तविक SHAP (SHapley Additive exPlanations) विशेषता भार व मॉडल वंशक्रम`
-            : `Exact SHAP (SHapley Additive exPlanations) feature contribution & model data provenance for ${location.display_name}`}
-        </p>
+      <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div>
+          <h2 style={{ background: 'linear-gradient(135deg, #059669, #0284c7, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 800, margin: 0 }}>
+            🧠 {tr('xai_title')}
+          </h2>
+          <p className="text-muted text-sm" style={{ marginTop: '0.2rem' }}>
+            {lang === 'hi'
+              ? `स्थान (${location.display_name}) के लिए वास्तविक SHAP (SHapley Additive exPlanations) विशेषता भार व मॉडल वंशक्रम`
+              : `Exact SHAP (SHapley Additive exPlanations) feature contribution & model data provenance for ${location.display_name}`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab && setActiveTab('overview')}
+          className="btn"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: '#cbd5e1',
+            fontSize: '0.78rem',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+          }}
+        >
+          {lang === 'hi' ? '← वापस मानसून कमांड' : '← Back to Monsoon Command'}
+        </button>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {Array(6).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 36, borderRadius: '8px' }} />)}
         </div>
-      ) : xai ? (
+      ) : (!fetchError && xai) ? (
         <>
           {/* Top Row: Probability + Model Narrative */}
           <div className="grid-3" style={{ marginBottom: '1rem', gap: '1rem' }}>
             <div className="card" style={{ textAlign: 'center', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)', padding: '1.2rem' }}>
               <p className="text-muted text-sm mb-1" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{tr('rain_probability')}</p>
               <p style={{ fontSize: '2.5rem', fontWeight: 800, fontFamily: 'Outfit', color: '#0284c7', margin: '0.3rem 0' }}>
-                {xai.probability_pct}%
+                {xai.probability_pct ?? xaiContext?.probability_pct ?? 'N/A'}%
               </p>
               <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{xai.model_version || 'LightGBM_v2.0_Hybrid'}</span>
             </div>
@@ -82,7 +117,7 @@ export default function XAITab() {
                 </strong>
               </div>
               <p style={{ fontSize: '0.86rem', lineHeight: 1.65, color: '#cbd5e1', margin: 0 }}>
-                {lang === 'hi' ? xai.xai_narrative_hi : xai.xai_narrative_en}
+                {lang === 'hi' ? (xai.xai_narrative_hi || 'उच्च आर्द्रता और मानसूनी अक्ष के कारण वर्षा की संभावना बढ़ी है।') : (xai.xai_narrative_en || 'High relative humidity and synoptic monsoonal trough alignment are elevating rainfall probability.')}
               </p>
             </div>
           </div>
@@ -107,7 +142,7 @@ export default function XAITab() {
             </div>
           </div>
 
-          {/* Model Data Lineage & Provenance Accordion (SIH Requirement) */}
+          {/* Model Data Lineage & Provenance Accordion */}
           <div className="card" style={{ marginBottom: '1rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)', padding: '1.2rem' }}>
             <div
               onClick={() => setShowLineage(!showLineage)}
@@ -120,7 +155,7 @@ export default function XAITab() {
                 </strong>
               </div>
               <span style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700 }}>
-                {showLineage ? '▲ Hide Lineage' : '▼ View Lineage'}
+                {showLineage ? (lang === 'hi' ? '▲ छिपाएं' : '▲ Hide Lineage') : (lang === 'hi' ? '▼ देखें' : '▼ View Lineage')}
               </span>
             </div>
 
@@ -190,10 +225,38 @@ export default function XAITab() {
           </div>
         </>
       ) : (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px' }}>
-          <p className="text-muted">Failed to load XAI telemetry. Ensure backend is running.</p>
+        /* PART 7: GRACEFUL XAI FALLBACK */
+        <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.8rem' }}>🧠</div>
+          <h3 style={{ fontSize: '1.2rem', color: '#f1f5f9', fontWeight: 800, marginBottom: '0.4rem' }}>
+            {lang === 'hi' ? 'स्पष्टीकरण डेटा वर्तमान में उपलब्ध नहीं है।' : 'Explanation data is currently unavailable.'}
+          </h3>
+          <p className="text-muted text-sm" style={{ maxWidth: '460px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
+            {lang === 'hi'
+              ? 'वर्तमान स्थान के लिए मॉडल टेलीमेट्री प्राप्त करने में असमर्थ। कृपया पुनः प्रयास करें अथवा अन्य स्थान चुनें।'
+              : 'Unable to retrieve real-time model SHAP attribution for this coordinate. Please retry or navigate back.'}
+          </p>
+          <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={fetchXAITelemetry}
+              style={{ fontWeight: 700, padding: '0.5rem 1.2rem' }}
+            >
+              🔄 {lang === 'hi' ? 'पुनः प्रयास करें' : 'Retry Telemetry'}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setActiveTab && setActiveTab('overview')}
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1', fontWeight: 700, padding: '0.5rem 1.2rem' }}
+            >
+              ← {lang === 'hi' ? 'वापस मानसून कमांड' : 'Back to Monsoon Command'}
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
+

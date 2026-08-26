@@ -42,7 +42,42 @@ const PRIVILEGED_TABS = ['alerts', 'command', 'system'];
 const PRIVILEGED_ROLES = new Set(['developer', 'admin']);
 
 export function AppProvider({ children }) {
-  const [lang, setLang] = useState('en');
+  // Language with localStorage persistence
+  const [lang, setLangState] = useState(() => {
+    try {
+      return localStorage.getItem('varshanetra_lang') || 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const setLang = useCallback((newLang) => {
+    setLangState(newLang);
+    try {
+      localStorage.setItem('varshanetra_lang', newLang);
+    } catch (e) {
+      console.warn('Failed to save language to localStorage:', e);
+    }
+  }, []);
+
+  const toggleLang = useCallback(() => {
+    setLangState(prev => {
+      const next = prev === 'en' ? 'hi' : 'en';
+      try {
+        localStorage.setItem('varshanetra_lang', next);
+      } catch (e) {
+        console.warn('Failed to save language to localStorage:', e);
+      }
+      return next;
+    });
+  }, []);
+
+  // Global Active Tab state to allow switching from any component (e.g. XAI button in Overview)
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Shared prediction / XAI context passed when navigating from Overview to XAI
+  const [xaiContext, setXaiContext] = useState(null);
+
   const [location, setLocation] = useState({
     lat: 26.85, lon: 80.95,
     state: 'Uttar Pradesh', district: 'Lucknow',
@@ -56,8 +91,7 @@ export function AppProvider({ children }) {
 
   /**
    * SECURITY: Exact-match login only.
-   * The previous role-prefix fallback has been removed.
-   * In production, this should authenticate against a backend JWT/session endpoint.
+   * In production, this authenticates against backend JWT/session endpoint.
    */
   const login = useCallback((userId, password) => {
     const matched = DEMO_ACCOUNTS.find(
@@ -68,7 +102,6 @@ export function AppProvider({ children }) {
       setIsLoginModalOpen(false);
       return { success: true, user: matched };
     }
-    // No role-prefix fallback — exact credentials required
     return { success: false, error: 'Invalid User ID or Password' };
   }, []);
 
@@ -76,10 +109,8 @@ export function AppProvider({ children }) {
     setUser(DEMO_ACCOUNTS[0]);
   }, []);
 
-  const toggleLang = () => setLang(l => l === 'en' ? 'hi' : 'en');
-
   // tr() shorthand
-  const tr = (key) => t(lang, key);
+  const tr = useCallback((key) => t(lang, key), [lang]);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -91,7 +122,12 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       lang,
+      setLang,
       toggleLang,
+      activeTab,
+      setActiveTab,
+      xaiContext,
+      setXaiContext,
       location,
       setLocation,
       tr,
@@ -114,3 +150,4 @@ export function AppProvider({ children }) {
 }
 
 export const useApp = () => useContext(AppContext);
+

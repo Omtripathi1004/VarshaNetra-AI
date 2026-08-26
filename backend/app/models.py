@@ -95,12 +95,17 @@ class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True)
     channel = Column(String)  # SMS / EMAIL / WHATSAPP
+    provider = Column(String, default="")  # TWILIO / FAST2SMS / SMTP / RESEND / MOCK
+    provider_message_id = Column(String, default="", nullable=True)
     recipient = Column(String)
     subject = Column(String, default="")
     message = Column(Text)
     alert_type = Column(String, default="")
-    status = Column(String, default="SENT")  # SENT / FAILED / MOCK
+    status = Column(String, default="QUEUED")  # ACCEPTED / QUEUED / SENT / DELIVERED / FAILED / CONFIGURATION_ERROR
+    error_code = Column(String, default="", nullable=True)
+    error_message = Column(Text, default="", nullable=True)
     sent_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
 
 class CropProfile(Base):

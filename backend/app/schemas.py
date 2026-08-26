@@ -240,6 +240,17 @@ class SMSRequest(BaseModel):
     message: Optional[str] = None
 
 
+class TestSMSRequest(BaseModel):
+    phone: str
+    message: Optional[str] = "VarshaNetra AI SMS test successful."
+
+
+class TestEmailRequest(BaseModel):
+    email: str
+    subject: Optional[str] = "VarshaNetra AI Email Test"
+    message: Optional[str] = "VarshaNetra AI email test successful."
+
+
 class NotifyRequest(BaseModel):
     channel: str                    # SMS / EMAIL / WHATSAPP
     recipients: List[str]

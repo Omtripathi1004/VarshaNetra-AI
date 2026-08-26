@@ -12,6 +12,7 @@ export default function AgriCommandTab() {
   const [notifChannel, setNotifChannel] = useState('SMS');
   const [notifRecipient, setNotifRecipient] = useState('+919555681533');
   const [notifSent, setNotifSent] = useState(false);
+  const [notifResult, setNotifResult] = useState(null);
   const [isRelaying, setIsRelaying] = useState(false);
   const [notifError, setNotifError] = useState('');
 
@@ -169,29 +170,42 @@ export default function AgriCommandTab() {
       )
     );
 
-    setDispatchLogs((prev) => [
-      {
-        id: Date.now(),
-        action: `${actionName} Broadcast Triggered`,
-        target: panchayat,
-        carrier: 'VarshaNetra Multi-Gateway',
-        status: 'DELIVERED',
-        latency: '34ms',
-        time: 'Just now',
-      },
-      ...prev,
-    ]);
-
     try {
-      await api.sendNotification(
+      const res = await api.sendNotification(
         'ALL',
         ['harshsih30@gmail.com', '+91 95556 81533'],
         alertText,
         `🚨 VarshaNetra Emergency Dispatch: ${panchayat}`,
         'EMERGENCY_DISPATCH'
       );
+      const resData = res?.data || {};
+      const statusVal = resData.status || (resData.success ? 'ACCEPTED' : 'FAILED');
+      setDispatchLogs((prev) => [
+        {
+          id: Date.now(),
+          action: `${actionName} Broadcast Triggered`,
+          target: panchayat,
+          carrier: 'VarshaNetra Multi-Gateway',
+          status: statusVal,
+          latency: '34ms',
+          time: 'Just now',
+        },
+        ...prev,
+      ]);
     } catch (e) {
       console.warn('Emergency dispatch notice:', e);
+      setDispatchLogs((prev) => [
+        {
+          id: Date.now(),
+          action: `${actionName} Broadcast Failed`,
+          target: panchayat,
+          carrier: 'VarshaNetra Multi-Gateway',
+          status: 'FAILED',
+          latency: '—',
+          time: 'Just now',
+        },
+        ...prev,
+      ]);
     }
 
     if (actionName.includes('SMS') || actionName.includes('Blast')) {
@@ -302,17 +316,21 @@ Backup irrigation alerted.`;
       }
 
       setNotifSent(true);
+      setNotifResult(result);
+
+      const statusVal = result?.status || 'ACCEPTED';
+      const carrierName =
+        notifChannel === 'EMAIL'
+          ? (result?.provider === 'GMAIL_SMTP' ? 'Gmail SMTP' : result?.provider || 'SMTP Gateway')
+          : (result?.provider === 'TWILIO' ? 'Twilio SMS' : result?.provider || 'SMS Gateway');
 
       setDispatchLogs((prev) => [
         {
           id: Date.now(),
-          action: `${notifChannel} Broadcast Sent`,
+          action: `${notifChannel} Broadcast Dispatched`,
           target: notifRecipient,
-          carrier:
-            notifChannel === 'EMAIL'
-              ? 'SMTP Email Gateway'
-              : 'SMS Provider Gateway',
-          status: result?.status || 'SENT',
+          carrier: carrierName,
+          status: statusVal,
           latency: result?.latency || '—',
           time: 'Just now',
         },
@@ -321,9 +339,11 @@ Backup irrigation alerted.`;
 
       setTimeout(() => {
         setNotifSent(false);
-      }, 5000);
+      }, 7000);
     } catch (error) {
       console.error('Notification failed:', error);
+      setNotifSent(false);
+      setNotifResult(null);
 
       const errorMessage =
         error?.response?.data?.detail ||
@@ -1082,22 +1102,35 @@ Backup irrigation alerted.`;
                   : `🚨 Send Urgent ${notifChannel}`}
             </button>
 
-            {notifSent && (
+            {notifSent && notifResult && (
               <div
                 style={{
                   marginTop: '0.7rem',
                   padding: '0.6rem 0.85rem',
-                  background: 'rgba(5, 150, 105, 0.08)',
-                  border: '1px solid #86efac',
+                  background:
+                    notifResult.status === 'PARTIAL_SUCCESS'
+                      ? 'rgba(245, 158, 11, 0.08)'
+                      : 'rgba(5, 150, 105, 0.08)',
+                  border: `1px solid ${
+                    notifResult.status === 'PARTIAL_SUCCESS'
+                      ? '#fde68a'
+                      : '#86efac'
+                  }`,
                   borderRadius: '8px',
                   fontSize: '0.8rem',
-                  color: '#047857',
+                  color:
+                    notifResult.status === 'PARTIAL_SUCCESS'
+                      ? '#b45309'
+                      : '#047857',
                   fontWeight: 600,
                 }}
               >
-                ✓ Notification successfully accepted by the
-                configured backend gateway for{' '}
-                <strong>{notifRecipient}</strong>.
+                {notifResult.status === 'PARTIAL_SUCCESS' ? '⚠️ ' : '✓ '}
+                {notifResult.message || (
+                  notifResult.status === 'PARTIAL_SUCCESS'
+                    ? 'Partial success: Email accepted, SMS failed.'
+                    : `Notification accepted by ${notifResult.provider || 'configured gateway'} for ${notifRecipient}.`
+                )}
               </div>
             )}
 
@@ -1179,7 +1212,22 @@ Backup irrigation alerted.`;
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <span className="badge badge-success">
+                    <span
+                      className={`badge ${
+                        log.status === 'ACCEPTED' ||
+                        log.status === 'DELIVERED' ||
+                        log.status === 'RESOLVED'
+                          ? 'badge-success'
+                          : log.status === 'PARTIAL_SUCCESS' ||
+                            log.status === 'QUEUED'
+                            ? 'badge-warning'
+                            : log.status === 'FAILED' ||
+                              log.status === 'CONFIGURATION_ERROR' ||
+                              log.status === 'REJECTED'
+                              ? 'badge-danger'
+                              : 'badge-info'
+                      }`}
+                    >
                       {log.status}
                     </span>
 

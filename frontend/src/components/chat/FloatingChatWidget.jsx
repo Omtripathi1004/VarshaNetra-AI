@@ -29,18 +29,30 @@ export default function FloatingChatWidget() {
 
     if (!isRegenerate) {
       setInput('');
-      setMsgs(m => [...m, { id: `user_${Date.now()}`, role: 'user', text: textToSend }]);
+      setMsgs(m => [...m, { id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`, role: 'user', text: textToSend }]);
     }
     setLoading(true);
 
     try {
       const loc = { lat: location?.lat, lon: location?.lon, state: location?.state, district: location?.district };
       const reqId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const res = await api.chat(textToSend, lang, loc, { request_id: reqId, is_regenerate: isRegenerate });
+      
+      // Build clean conversation history (last 6 turns, omitting errors)
+      const historyTurns = msgs
+        .filter(m => m.text && !m.isError && m.text !== msgs[0]?.text)
+        .slice(-6)
+        .map(m => ({ role: m.role, text: m.text }));
+
+      const res = await api.chat(textToSend, lang, loc, {
+        request_id: reqId,
+        is_regenerate: isRegenerate,
+        history: historyTurns,
+      });
+
       const reply = lang === 'hi' ? (res.data?.reply_hi || res.data?.reply) : (res.data?.reply_en || res.data?.reply);
       
       setMsgs(m => {
-        const base = isRegenerate ? m.slice(0, -1) : m;
+        const base = isRegenerate ? m.filter(msg => msg.id !== m[m.length - 1]?.id) : m;
         return [...base, {
           id: reqId,
           role: 'bot',
@@ -51,11 +63,13 @@ export default function FloatingChatWidget() {
       });
     } catch {
       setMsgs(m => [...m, {
-        id: `err_${Date.now()}`,
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         role: 'bot',
+        isError: true,
+        question: textToSend,
         text: lang === 'hi'
-          ? '⚠️ सर्वर से संपर्क करने में असमर्थ। कृपया पुनः प्रयास करें।'
-          : '⚠️ Unable to reach the server. Please try again.'
+          ? '⚠️ VarshaNetra AI इस समय उत्तर उत्पन्न नहीं कर सका। कृपया पुनः प्रयास करें।'
+          : '⚠️ VarshaNetra AI could not generate a response right now. Please try again.'
       }]);
     }
     setLoading(false);

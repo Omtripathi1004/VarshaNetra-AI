@@ -419,8 +419,125 @@ export const INDIA_LOCATIONS = {
       "Uttarkashi": ["Barkot Gram", "Purola Panchayat", "Bhatwari Gram", "Dunda Panchayat", "Mori Uttarkashi Gram", "Chinyalisaur Panchayat", "Naugaon Gram"],
       "Pithoragarh": ["Dharchula Gram", "Didihat Panchayat", "Berinag Gram", "Gangolihat Panchayat", "Munsyari Gram", "Kanalichhina Panchayat", "Munakot Gram"],
     }
+  },
+  "Jammu and Kashmir": {
+    districts: ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Udhampur", "Pulwama", "Kupwara", "Kathua", "Budgam", "Ganderbal"],
+    cities: ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Udhampur", "Pulwama", "Kupwara", "Kathua", "Sopore", "Pahalgam"],
+    villages: {
+      "Srinagar": ["Shalteng Gram", "Harwan Panchayat", "Khonmoh Gram", "Pantha Chowk Panchayat", "Nowgam Gram"],
+      "Jammu": ["RS Pura Gram", "Akhnoor Panchayat", "Bishnah Gram", "Nagrota Panchayat", "Marh Gram", "Dansal Panchayat"],
+      "Anantnag": ["Bijbehara Gram", "Dooru Panchayat", "Kokernag Gram", "Shangus Panchayat", "Pahalgam Rural Gram", "Mattan Panchayat"],
+      "Baramulla": ["Sopore Rural Gram", "Pattan Panchayat", "Uri Gram", "Tangmarg Panchayat", "Rafiabad Gram", "Kreeri Panchayat"],
+      "Udhampur": ["Ramnagar Gram", "Chenani Panchayat", "Majalta Gram", "Tikri Panchayat", "Panchari Gram"],
+    }
+  },
+  "Ladakh": {
+    districts: ["Leh", "Kargil"],
+    cities: ["Leh", "Kargil", "Diskit", "Drass", "Padum", "Nyoma", "Khalatse"],
+    villages: {
+      "Leh": ["Choglamsar Gram", "Thiksey Panchayat", "Shey Gram", "Diskit Nubra Panchayat", "Hunder Gram", "Khalatse Panchayat", "Alchi Gram"],
+      "Kargil": ["Drass Gram", "Sankoo Panchayat", "Shakar Chiktan Gram", "Taisuru Panchayat", "Padum Zanskar Gram"],
+    }
+  },
+  "Meghalaya": {
+    districts: ["East Khasi Hills (Shillong)", "West Garo Hills (Tura)", "West Jaintia Hills (Jowai)", "Ri Bhoi (Nongpoh)", "South West Khasi Hills (Mawkyrwat)"],
+    cities: ["Shillong", "Tura", "Jowai", "Nongpoh", "Cherrapunji (Sohra)", "Mairang", "Williamnagar"],
+    villages: {
+      "East Khasi Hills (Shillong)": ["Cherrapunji Sohra Gram", "Mawkynrew Panchayat", "Pynursla Gram", "Mawphlang Panchayat", "Mawsynram Gram", "Laitlyngkot Panchayat"],
+      "West Garo Hills (Tura)": ["Rongram Gram", "Dalu Panchayat", "Selsella Gram", "Dadenggre Panchayat", "Tikrikilla Gram"],
+      "Ri Bhoi (Nongpoh)": ["Umsning Gram", "Umling Panchayat", "Jirang Gram", "Bhoirymbong Panchayat"],
+    }
+  },
+  "Tripura": {
+    districts: ["West Tripura (Agartala)", "Gomati (Udaipur)", "North Tripura (Dharmanagar)", "South Tripura (Belonia)", "Dhalai (Ambassa)", "Khowai", "Sepahijala", "Unakoti"],
+    cities: ["Agartala", "Udaipur", "Dharmanagar", "Belonia", "Ambassa", "Khowai", "Bishalgarh", "Kailashahar"],
+    villages: {
+      "West Tripura (Agartala)": ["Dukli Gram", "Mohanpur Panchayat", "Jirania Gram", "Mandwi Panchayat", "Lefunga Gram", "Hezamara Panchayat"],
+      "Gomati (Udaipur)": ["Matabari Gram", "Kakraban Panchayat", "Killa Gram", "Ompi Panchayat", "Amarpur Gram"],
+    }
+  },
+  "Manipur": {
+    districts: ["Imphal West", "Imphal East", "Thoubal", "Bishnupur", "Churachandpur", "Kakching", "Senapati", "Ukhrul"],
+    cities: ["Imphal", "Thoubal", "Bishnupur", "Churachandpur", "Kakching", "Mayang Imphal", "Moirang", "Ukhrul"],
+    villages: {
+      "Imphal West": ["Wangoi Gram", "Lamsang Panchayat", "Patsoi Gram", "Sekmai Panchayat"],
+      "Thoubal": ["Lilong Gram", "Yairipok Panchayat", "Wangjing Gram", "Heirok Panchayat"],
+      "Churachandpur": ["Tuibong Gram", "Singngat Panchayat", "Samulamlan Gram", "Henglep Panchayat"],
+    }
+  },
+  "Mizoram": {
+    districts: ["Aizawl", "Lunglei", "Champhai", "Kolasib", "Serchhip", "Mamit", "Lawngtlai", "Siaha"],
+    cities: ["Aizawl", "Lunglei", "Champhai", "Kolasib", "Serchhip", "Mamit", "Bairabi", "Saitual"],
+    villages: {
+      "Aizawl": ["Tlangnuam Gram", "Darlawn Panchayat", "Aibawk Gram", "Thingsulthliah Panchayat"],
+      "Lunglei": ["Hnahthial Gram", "Lunglei Rural Panchayat", "Bunghmun Gram", "Lungsen Panchayat"],
+    }
+  },
+  "Nagaland": {
+    districts: ["Kohima", "Dimapur", "Mokokchung", "Tuensang", "Wokha", "Zunheboto", "Mon", "Phek", "Peren"],
+    cities: ["Kohima", "Dimapur", "Mokokchung", "Tuensang", "Wokha", "Zunheboto", "Mon", "Chumukedima"],
+    villages: {
+      "Kohima": ["Jakhama Gram", "Chiephobozou Panchayat", "Sechu Zubza Gram", "Tseminyu Panchayat"],
+      "Dimapur": ["Medziphema Gram", "Dhansiripar Panchayat", "Niuland Gram", "Kuhuboto Panchayat"],
+    }
+  },
+  "Arunachal Pradesh": {
+    districts: ["Papum Pare (Itanagar)", "East Siang (Pasighat)", "West Kameng (Bomdila)", "Tawang", "Changlang", "Lower Subansiri (Ziro)", "Lohit (Tezu)"],
+    cities: ["Itanagar", "Naharlagun", "Pasighat", "Bomdila", "Tawang", "Ziro", "Tezu", "Roing", "Aalo"],
+    villages: {
+      "Papum Pare (Itanagar)": ["Doimukh Gram", "Banderdewa Panchayat", "Sagalee Gram", "Balijan Panchayat", "Mengio Gram"],
+      "East Siang (Pasighat)": ["Ruksin Gram", "Mebo Panchayat", "Bilat Gram", "Sille-Oyan Panchayat"],
+      "Tawang": ["Lumla Gram", "Jang Panchayat", "Mukto Gram", "Kitpi Panchayat"],
+    }
+  },
+  "Sikkim": {
+    districts: ["East Sikkim (Gangtok)", "South Sikkim (Namchi)", "West Sikkim (Geyzing)", "North Sikkim (Mangan)"],
+    cities: ["Gangtok", "Namchi", "Geyzing", "Mangan", "Singtam", "Rangpo", "Jorethang", "Ravangla"],
+    villages: {
+      "East Sikkim (Gangtok)": ["Ranka Gram", "Khamdong Panchayat", "Pakyong Gram", "Rhenock Panchayat", "Martam Gram"],
+      "South Sikkim (Namchi)": ["Jorethang Gram", "Ravangla Panchayat", "Temi Tarku Gram", "Melli Panchayat"],
+    }
+  },
+  "Goa": {
+    districts: ["North Goa (Panaji)", "South Goa (Margao)"],
+    cities: ["Panaji", "Margao", "Vasco da Gama", "Mapusa", "Ponda", "Bicholim", "Curchorem", "Pernem"],
+    villages: {
+      "North Goa (Panaji)": ["Tiswadi Gram", "Bardez Panchayat", "Pernem Gram", "Bicholim Panchayat", "Sattari Gram"],
+      "South Goa (Margao)": ["Salcete Gram", "Mormugao Panchayat", "Ponda Rural Gram", "Quepem Panchayat", "Canacona Gram", "Sanguem Panchayat"],
+    }
+  },
+  "Chandigarh": {
+    districts: ["Chandigarh"],
+    cities: ["Chandigarh Central", "Sector 17", "Manimajra", "Industrial Area", "Sarangpur"],
+    villages: {
+      "Chandigarh": ["Manimajra Gram", "Dhanas Panchayat", "Maloya Gram", "Khuda Alisher Panchayat", "Behlana Gram", "Kaimbwala Panchayat", "Dadu Majra Gram"],
+    }
+  },
+  "Andaman and Nicobar": {
+    districts: ["South Andaman (Port Blair)", "North and Middle Andaman (Mayabunder)", "Nicobar (Car Nicobar)"],
+    cities: ["Port Blair", "Garacharma", "Bambooflat", "Mayabunder", "Diglipur", "Rangat", "Car Nicobar"],
+    villages: {
+      "South Andaman (Port Blair)": ["Ferrargunj Gram", "Prothrapur Panchayat", "Garacharma Gram", "Chouldhari Panchayat", "Havelock Island Gram", "Neil Island Panchayat"],
+      "North and Middle Andaman (Mayabunder)": ["Diglipur Gram", "Rangat Panchayat", "Billiground Gram", "Kalighat Panchayat", "Kadamtala Gram"],
+    }
+  },
+  "Lakshadweep": {
+    districts: ["Lakshadweep (Kavaratti)"],
+    cities: ["Kavaratti", "Agatti", "Amini", "Andrott", "Minicoy", "Kadmat", "Kalpeni"],
+    villages: {
+      "Lakshadweep (Kavaratti)": ["Kavaratti Island Gram", "Agatti Panchayat", "Minicoy Gram", "Andrott Panchayat", "Amini Island Gram", "Kadmat Panchayat"],
+    }
+  },
+  "Puducherry": {
+    districts: ["Puducherry", "Karaikal", "Mahe", "Yanam"],
+    cities: ["Puducherry", "Oulgaret", "Karaikal", "Mahe", "Yanam", "Villianur"],
+    villages: {
+      "Puducherry": ["Villianur Gram", "Ariyankuppam Panchayat", "Bahour Gram", "Mannadipet Panchayat", "Nettapakkam Gram"],
+      "Karaikal": ["Kottucherry Gram", "Nedungadu Panchayat", "Neravy Gram", "Thirunallar Panchayat"],
+    }
   }
 };
+
 
 export const DEFAULT_DISTRICT_VILLAGES = [
   "Central Block Panchayat",

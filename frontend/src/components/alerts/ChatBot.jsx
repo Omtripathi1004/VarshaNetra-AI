@@ -20,20 +20,52 @@ export default function ChatBotPanel() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [msgs]);
 
-  const send = async (msgText) => {
-    const textToSend = typeof msgText === 'string' ? msgText : input.trim();
+  const send = async (msgText, isRegenerate = false, prevQuestion = null) => {
+    const textToSend = typeof msgText === 'string' ? msgText.trim() : (prevQuestion || input.trim());
     if (!textToSend || loading) return;
-    setInput('');
-    setMsgs(m => [...m, { role: 'user', text: textToSend }]);
+    
+    if (!isRegenerate) {
+      setInput('');
+      setMsgs(m => [...m, { id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`, role: 'user', text: textToSend }]);
+    }
     setLoading(true);
 
     try {
       const loc = { lat: location?.lat, lon: location?.lon, state: location?.state, district: location?.district };
-      const res = await api.chat(textToSend, lang, loc);
-      const reply = lang === 'hi' ? (res.data.reply_hi || res.data.reply) : (res.data.reply_en || res.data.reply);
-      setMsgs(m => [...m, { role: 'bot', text: reply, intent: res.data.intent_detected }]);
+      const reqId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const historyTurns = msgs
+        .filter(m => m.text && !m.isError && m.text !== msgs[0]?.text)
+        .slice(-6)
+        .map(m => ({ role: m.role, text: m.text }));
+
+      const res = await api.chat(textToSend, lang, loc, {
+        request_id: reqId,
+        is_regenerate: isRegenerate,
+        history: historyTurns,
+      });
+
+      const reply = lang === 'hi' ? (res.data?.reply_hi || res.data?.reply) : (res.data?.reply_en || res.data?.reply);
+      setMsgs(m => {
+        const base = isRegenerate ? m.filter(msg => msg.id !== m[m.length - 1]?.id) : m;
+        return [...base, {
+          id: reqId,
+          role: 'bot',
+          question: textToSend,
+          text: reply || (lang === 'hi' ? 'सलाहकार से उत्तर प्राप्त हुआ।' : 'Decision advisory response generated.'),
+          intent: res.data?.intent_detected || 'WHAT',
+        }];
+      });
     } catch {
-      setMsgs(m => [...m, { role: 'bot', text: 'Connection error. Please ensure the backend is running.' }]);
+      setMsgs(m => [...m, {
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        role: 'bot',
+        isError: true,
+        question: textToSend,
+        text: lang === 'hi'
+          ? '⚠️ VarshaNetra AI इस समय उत्तर उत्पन्न नहीं कर सका। कृपया पुनः प्रयास करें।'
+          : '⚠️ VarshaNetra AI could not generate a response right now. Please try again.'
+      }]);
     }
     setLoading(false);
   };
@@ -90,9 +122,25 @@ export default function ChatBotPanel() {
           {msgs.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role}`}>
               {m.role === 'bot' && (
-                <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginBottom: '0.2rem', display: 'block', fontWeight: 600 }}>
-                  🤖 VarshaNetra AI {m.intent ? `· ${m.intent.toUpperCase()}` : ''}
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>
+                    🤖 VarshaNetra AI {m.intent ? `· ${m.intent.toUpperCase()}` : ''}
+                  </span>
+                  {m.question && (
+                    <button
+                      onClick={() => send(null, true, m.question)}
+                      disabled={loading}
+                      style={{
+                        background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '4px',
+                        padding: '0.1rem 0.35rem', fontSize: '0.62rem', fontWeight: 700,
+                        color: '#0284c7', cursor: 'pointer',
+                      }}
+                      title="Regenerate answer"
+                    >
+                      🔄 {lang === 'hi' ? 'पुनः' : 'Retry'}
+                    </button>
+                  )}
+                </div>
               )}
               <div
                 className="chat-bubble"

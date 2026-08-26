@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import os
+import sys
+import math
+import random
+import logging
+import asyncio
+import uuid
 from datetime import datetime, timezone, date, timedelta
 from typing import Any, Dict, Optional, List
-import uuid
 
+import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -11,6 +18,7 @@ from fastapi import (
     Query,
     Body,
     Request,
+    Response,
     Header,
     status,
 )
@@ -27,20 +35,29 @@ from .services import (
     compute_risk,
     generate_chat_response,
     send_notification,
+    send_email,
+    send_sms,
+    send_twilio_sms,
+    send_fast2sms,
+    validate_email,
+    normalize_phone_number,
+    mask_recipient,
     run_simulation,
     load_ml_model,
     compute_multi_horizon_outlook,
     compute_crop_stage_advisory,
     CROP_CATALOG,
     CROP_STAGES,
+    CROP_DB,
 )
 from .ml_engine import evaluate_10yr_models
 from .climate import get_all_climate_teleconnections
 
 from . import models
 from . import schemas
-from .schemas import NotifyRequest, SMSRequest
+from .schemas import NotifyRequest, SMSRequest, TestSMSRequest, TestEmailRequest
 
+logger = logging.getLogger("varshanetra.router")
 
 router = APIRouter()
 
@@ -567,13 +584,11 @@ async def crop_advisor(
 async def all_crops(
     season: Optional[str] = Query(None),
 ):
-    from .services import CROP_DB
-
     if season:
         return [
             crop
             for crop in CROP_DB
-            if crop["season"] == season.upper()
+            if crop.get("season") == season.upper()
         ]
 
     return CROP_DB
@@ -686,18 +701,21 @@ async def risk_geojson(
 
     features = []
 
+    # Authoritative distinct Regional Agro-Climatic Hazard Zones across India
     REAL_REGIONS = [
-        {"name": "Upper Gangetic Basin (Lucknow - Kanpur)", "lat": 26.85, "lon": 80.95, "radius": 0.45, "level": "HIGH", "hazard": "Heavy Rain & Waterlogging", "score": 78, "color": "#ef4444"},
-        {"name": "Varanasi - Chandauli Agri Corridor", "lat": 25.32, "lon": 83.01, "radius": 0.35, "level": "MODERATE", "hazard": "Moderate Soil Saturation", "score": 52, "color": "#fbbf24"},
-        {"name": "Western Ghats Catchment (Pune - Haveli)", "lat": 18.52, "lon": 73.86, "radius": 0.50, "level": "HIGH", "hazard": "Intense Monsoon Surge", "score": 82, "color": "#ef4444"},
-        {"name": "North Bihar Flood Plain (Patna - Vaishali)", "lat": 25.60, "lon": 85.12, "radius": 0.40, "level": "CRITICAL", "hazard": "Riverine Flood Watch", "score": 91, "color": "#dc2626"},
-        {"name": "Saurashtra Plain (Rajkot - Gondal)", "lat": 22.30, "lon": 70.80, "radius": 0.45, "level": "LOW", "hazard": "Normal Agri Operations", "score": 22, "color": "#10b981"},
-        {"name": "Malwa Plateau (Indore - Ujjain)", "lat": 22.72, "lon": 75.85, "radius": 0.38, "level": "LOW", "hazard": "Optimal Soil Conditions", "score": 18, "color": "#10b981"},
-        {"name": "Eastern Coastal Belt (Chennai - Kanchipuram)", "lat": 13.08, "lon": 80.27, "radius": 0.42, "level": "MODERATE", "hazard": "Coastal Wind & Showers", "score": 48, "color": "#38bdf8"},
+        {"name": "Upper Gangetic Basin (Lucknow - Kanpur)", "coords": [[80.3, 26.3], [81.5, 26.3], [81.8, 27.2], [80.5, 27.2], [80.3, 26.3]], "level": "HIGH", "hazard": "Heavy Rain & Waterlogging", "score": 78, "color": "#ef4444"},
+        {"name": "Varanasi - Chandauli Agri Corridor", "coords": [[82.6, 25.0], [83.4, 25.0], [83.5, 25.6], [82.7, 25.6], [82.6, 25.0]], "level": "MODERATE", "hazard": "Moderate Soil Saturation", "score": 52, "color": "#fbbf24"},
+        {"name": "Western Ghats Catchment (Pune - Konkan)", "coords": [[73.2, 18.0], [74.3, 18.0], [74.2, 19.0], [73.1, 19.0], [73.2, 18.0]], "level": "HIGH", "hazard": "Intense Monsoon Surge", "score": 82, "color": "#ef4444"},
+        {"name": "North Bihar Flood Plain (Patna - Muzaffarpur)", "coords": [[84.8, 25.4], [85.7, 25.4], [85.8, 26.3], [84.9, 26.3], [84.8, 25.4]], "level": "CRITICAL", "hazard": "Riverine Flood Watch", "score": 91, "color": "#dc2626"},
+        {"name": "Brahmaputra Valley (Guwahati - Tezpur - Assam)", "coords": [[91.4, 26.0], [92.9, 26.4], [92.8, 27.0], [91.3, 26.6], [91.4, 26.0]], "level": "HIGH", "hazard": "High Moisture & Flash Inundation", "score": 79, "color": "#ef4444"},
+        {"name": "Saurashtra Plain (Rajkot - Junagadh)", "coords": [[70.3, 21.4], [71.3, 21.4], [71.2, 22.5], [70.2, 22.5], [70.3, 21.4]], "level": "LOW", "hazard": "Normal Agri Operations", "score": 22, "color": "#10b981"},
+        {"name": "Malwa Plateau (Indore - Ujjain)", "coords": [[75.4, 22.4], [76.3, 22.4], [76.2, 23.3], [75.3, 23.3], [75.4, 22.4]], "level": "LOW", "hazard": "Optimal Soil Conditions", "score": 18, "color": "#10b981"},
+        {"name": "Coromandel Coastal Belt (Chennai - Kanchipuram)", "coords": [[79.8, 12.6], [80.5, 12.6], [80.4, 13.5], [79.7, 13.5], [79.8, 12.6]], "level": "MODERATE", "hazard": "Coastal Wind & Showers", "score": 48, "color": "#38bdf8"},
+        {"name": "Cauvery Delta Basin (Thanjavur - Trichy)", "coords": [[78.6, 10.4], [79.6, 10.4], [79.5, 11.2], [78.5, 11.2], [78.6, 10.4]], "level": "LOW", "hazard": "Optimal Paddy Inundation", "score": 28, "color": "#10b981"},
+        {"name": "Kashmir Valley Catchment (Srinagar - Anantnag)", "coords": [[74.5, 33.6], [75.4, 33.8], [75.2, 34.4], [74.4, 34.2], [74.5, 33.6]], "level": "MODERATE", "hazard": "Mountain Slope Runoff Watch", "score": 46, "color": "#fbbf24"},
     ]
 
     for reg in REAL_REGIONS:
-        r_lat, r_lon, rad = reg["lat"], reg["lon"], reg["radius"]
         features.append({
             "type": "Feature",
             "properties": {
@@ -709,27 +727,24 @@ async def risk_geojson(
             },
             "geometry": {
                 "type": "Polygon",
-                "coordinates": [[
-                    [r_lon - rad, r_lat - rad * 0.7],
-                    [r_lon + rad, r_lat - rad * 0.7],
-                    [r_lon + rad * 1.2, r_lat + rad * 0.7],
-                    [r_lon - rad * 0.8, r_lat + rad * 0.8],
-                    [r_lon - rad, r_lat - rad * 0.7],
-                ]]
+                "coordinates": [reg["coords"]]
             }
         })
 
-    for zone in risk["zones"]:
-        score = zone["score"]
-        color = "#10b981" if score < 25 else "#38bdf8" if score < 50 else "#f59e0b" if score < 75 else "#ef4444"
-        d = 0.25
+    # Add single dedicated local district perimeter polygon if outside default regions
+    is_covered = any(abs(rlat - reg["coords"][0][1]) < 0.8 and abs(rlon - reg["coords"][0][0]) < 0.8 for reg in REAL_REGIONS)
+    if not is_covered:
+        composite_score = risk.get("composite_score", 45)
+        composite_level = risk.get("composite_level", "MODERATE")
+        color = "#10b981" if composite_score < 30 else "#38bdf8" if composite_score < 50 else "#f59e0b" if composite_score < 75 else "#ef4444"
+        d = 0.28
         features.append({
             "type": "Feature",
             "properties": {
-                "name": f"{label} - {zone['hazard']}",
-                "hazard": zone["hazard"],
-                "risk_score": score,
-                "risk_level": zone["level"],
+                "name": f"{label} ({risk.get('primary_hazard', 'Localized Agro Risk')})",
+                "hazard": risk.get("primary_hazard", "Localized Weather Exposure"),
+                "risk_score": composite_score,
+                "risk_level": composite_level,
                 "color": color,
             },
             "geometry": {
@@ -737,12 +752,13 @@ async def risk_geojson(
                 "coordinates": [[
                     [rlon - d, rlat - d],
                     [rlon + d, rlat - d],
-                    [rlon + d, rlat + d],
-                    [rlon - d, rlat + d],
+                    [rlon + d * 1.1, rlat + d * 0.9],
+                    [rlon - d * 0.9, rlat + d],
                     [rlon - d, rlat - d],
                 ]]
             }
         })
+
 
     return {"type": "FeatureCollection", "features": features}
 
@@ -866,8 +882,229 @@ async def resolve_emergency(
 
 
 # =============================================================================
-# 9. NOTIFICATIONS — REAL EMAIL / SMS / WHATSAPP (RBAC PROTECTED)
+# 9. NOTIFICATIONS — REAL SMS / EMAIL / WHATSAPP (RBAC PROTECTED)
 # =============================================================================
+
+@router.get("/notifications/provider-health")
+@router.get("/notify/provider-health")
+@router.get("/v1/notifications/provider-health")
+async def notification_provider_health(
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Authority-only Endpoint: Checks configuration and health of all notification gateways.
+    NEVER exposes passwords, tokens, or API keys.
+    """
+    # Query last SMS and Email delivery status from DB
+    last_sms = (
+        db.query(models.Notification)
+        .filter(models.Notification.channel == "SMS")
+        .order_by(models.Notification.sent_at.desc())
+        .first()
+    )
+
+    last_email = (
+        db.query(models.Notification)
+        .filter(models.Notification.channel == "EMAIL")
+        .order_by(models.Notification.sent_at.desc())
+        .first()
+    )
+
+    return {
+        "status": "HEALTHY",
+        "mock_mode": settings.NOTIFICATION_MOCK,
+        "authorized_operator": role,
+        "sms": {
+            "primary_provider": (settings.PRIMARY_SMS_PROVIDER or "TWILIO").upper(),
+            "secondary_provider": (settings.SECONDARY_SMS_PROVIDER or "FAST2SMS").upper(),
+            "is_configured": settings.is_sms_configured,
+            "twilio": {
+                "configured": settings.is_twilio_configured,
+                "credentials_present": bool(settings.effective_twilio_sid and settings.effective_twilio_token),
+                "from_number_configured": bool(settings.effective_twilio_from),
+            },
+            "fast2sms": {
+                "configured": settings.is_fast2sms_configured,
+                "api_key_present": bool(settings.effective_fast2sms_key),
+            },
+            "last_sms": {
+                "status": last_sms.status if last_sms else None,
+                "provider": last_sms.provider if last_sms else None,
+                "recipient_masked": mask_recipient(last_sms.recipient) if last_sms else None,
+                "message_id": last_sms.provider_message_id if last_sms else None,
+                "sent_at": str(last_sms.sent_at) if last_sms else None,
+            }
+        },
+        "email": {
+            "primary_provider": (getattr(settings, "PRIMARY_EMAIL_PROVIDER", "SMTP") or "SMTP").upper(),
+            "is_configured": settings.is_email_configured,
+            "smtp": {
+                "configured": settings.is_smtp_configured,
+                "host": settings.effective_smtp_host,
+                "port": settings.effective_smtp_port,
+                "user_configured": bool(settings.effective_smtp_user),
+            },
+            "resend": {
+                "configured": settings.is_resend_configured,
+            },
+            "brevo": {
+                "configured": settings.is_brevo_configured,
+            },
+            "last_email": {
+                "status": last_email.status if last_email else None,
+                "provider": last_email.provider if last_email else None,
+                "recipient_masked": mask_recipient(last_email.recipient) if last_email else None,
+                "sent_at": str(last_email.sent_at) if last_email else None,
+            }
+        }
+    }
+
+
+@router.post("/notifications/test-email")
+@router.post("/notify/test-email")
+@router.post("/v1/notifications/test-email")
+async def test_email_endpoint(
+    req: schemas.TestEmailRequest,
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Authority-only Email Verification Endpoint:
+    Validates recipient email and performs a real dispatch via configured Email provider (Gmail SMTP / Resend / Brevo).
+    Returns REAL provider response (ACCEPTED / FAILED / CONFIGURATION_ERROR / REJECTED).
+    """
+    clean_email = (req.email or "").strip()
+    if not validate_email(clean_email):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Malformed or invalid email address: '{clean_email}'."
+        )
+
+    test_subj = (req.subject or "VarshaNetra AI Email Test").strip()
+    test_msg = (req.message or "VarshaNetra AI email test successful.").strip()
+
+    # Dispatch via send_email
+    res = send_email(clean_email, test_subj, test_msg, "TEST")
+
+    status_val = res.get("status", "FAILED")
+    prov = res.get("provider", "SMTP")
+    msg_id = res.get("provider_message_id")
+    err_code = res.get("error_code") or ""
+    err_msg = res.get("message") if not res.get("success") else None
+
+    # Log to DB
+    try:
+        db_record = models.Notification(
+            channel="EMAIL",
+            provider=prov,
+            provider_message_id=msg_id,
+            recipient=clean_email,
+            subject=test_subj,
+            message=test_msg,
+            alert_type="TEST",
+            status=status_val,
+            error_code=err_code,
+            error_message=err_msg,
+        )
+        db.add(db_record)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    if status_val == "CONFIGURATION_ERROR":
+        raise HTTPException(
+            status_code=503,
+            detail=res.get("message", "Email provider is not configured.")
+        )
+    elif status_val == "FAILED":
+        raise HTTPException(
+            status_code=502,
+            detail=res.get("message", "Email provider dispatch failed.")
+        )
+
+    return {
+        "success": res.get("success", False),
+        "status": status_val,
+        "provider": prov,
+        "provider_message_id": msg_id,
+        "recipient": mask_recipient(clean_email),
+        "message": res.get("message", "Email test processed."),
+        "authorized_by": role,
+        "raw_response": res
+    }
+
+
+@router.post("/notifications/test-sms")
+@router.post("/notify/test-sms")
+@router.post("/v1/notifications/test-sms")
+async def test_sms_endpoint(
+    req: schemas.TestSMSRequest,
+    role: str = Depends(require_privileged_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Authority-only SMS Verification Endpoint:
+    Normalizes phone number and performs a real dispatch via configured SMS provider.
+    Returns honest provider response (ACCEPTED / QUEUED / FAILED / CONFIGURATION_ERROR).
+    """
+    try:
+        norm_phone = normalize_phone_number(req.phone)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+    test_msg = (req.message or "VarshaNetra AI SMS test successful.").strip()
+
+    # Dispatch via send_sms
+    res = send_sms(norm_phone, test_msg, "TEST")
+
+    status_val = res.get("status", "FAILED")
+    prov = res.get("provider", settings.PRIMARY_SMS_PROVIDER)
+    msg_id = res.get("provider_message_id", "")
+    err_code = res.get("error_code") or ""
+    err_msg = res.get("message") if not res.get("success") else None
+
+    # Log to DB
+    try:
+        db_record = models.Notification(
+            channel="SMS",
+            provider=prov,
+            provider_message_id=msg_id,
+            recipient=norm_phone,
+            subject="VarshaNetra SMS Test",
+            message=test_msg,
+            alert_type="TEST",
+            status=status_val,
+            error_code=err_code,
+            error_message=err_msg,
+        )
+        db.add(db_record)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    if status_val == "CONFIGURATION_ERROR":
+        raise HTTPException(
+            status_code=503,
+            detail=res.get("message", "SMS provider is not configured.")
+        )
+    elif status_val == "FAILED":
+        raise HTTPException(
+            status_code=502,
+            detail=res.get("message", "SMS provider dispatch failed.")
+        )
+
+    return {
+        "success": res.get("success", False),
+        "status": status_val,
+        "provider": prov,
+        "provider_message_id": msg_id,
+        "recipient": mask_recipient(norm_phone),
+        "message": res.get("message", "SMS test processed."),
+        "authorized_by": role,
+        "raw_response": res
+    }
+
 
 @router.post("/notify/send")
 @router.post("/notifications/send")
@@ -881,46 +1118,27 @@ async def notify(
     Sends notification using the configured provider.
     Server-side authorization enforced: requires Developer or Disaster Administrator role.
     """
-
     channel = (req.channel or "SMS").upper()
-
     recipients = [
         str(recipient).strip()
         for recipient in (req.recipients or [])
         if str(recipient).strip()
     ]
-
     message = (req.message or "").strip()
+    subject = (req.subject or "⚠️ VarshaNetra Emergency Alert").strip()
+    alert_type = (req.alert_type or "GENERAL").upper()
 
-    subject = (
-        req.subject
-        or "⚠️ VarshaNetra Emergency Alert"
-    ).strip()
-
-    alert_type = (
-        req.alert_type
-        or "GENERAL"
-    ).upper()
-
-    valid_channels = {
-        "SMS",
-        "EMAIL",
-        "WHATSAPP",
-    }
-
+    valid_channels = {"SMS", "EMAIL", "WHATSAPP", "ALL"}
     if channel not in valid_channels:
         raise HTTPException(
             status_code=400,
-            detail=(
-                f"Invalid channel '{channel}'. "
-                "Allowed channels: SMS, EMAIL, WHATSAPP"
-            ),
+            detail=f"Invalid channel '{channel}'. Allowed channels: SMS, EMAIL, WHATSAPP, ALL",
         )
 
     if not recipients:
         raise HTTPException(
             status_code=400,
-            detail="At least one recipient is required.",
+            detail="Recipient phone number or email address is required.",
         )
 
     if not message:
@@ -932,7 +1150,6 @@ async def notify(
     # ---------------------------------------------------------
     # SEND REAL NOTIFICATION
     # ---------------------------------------------------------
-
     try:
         result = send_notification(
             channel,
@@ -942,29 +1159,87 @@ async def notify(
             alert_type,
         )
 
+        status_val = result.get("status", "FAILED")
+        prov = result.get("provider", "GATEWAY")
+        msg_id = result.get("provider_message_id", "")
+
         try:
-            for recipient in recipients:
-                db.add(
-                    models.Notification(
-                        channel=channel,
-                        recipient=recipient,
-                        subject=subject,
-                        message=message,
-                        alert_type=alert_type,
-                        status=result.get("status", "SENT"),
+            # Check for channel-specific results or unified results
+            all_results = result.get("results") or []
+            if not all_results and result.get("email_summary") and result.get("sms_summary"):
+                all_results = (result["email_summary"].get("results") or []) + (result["sms_summary"].get("results") or [])
+
+            if all_results:
+                for r in all_results:
+                    recip = r.get("recipient") or (recipients[0] if recipients else "")
+                    ch_type = r.get("channel") or ("EMAIL" if "@" in recip else "SMS")
+                    r_status = r.get("status", status_val)
+                    r_prov = r.get("provider", prov)
+                    r_id = r.get("provider_message_id") or msg_id
+                    r_err = r.get("message") if not r.get("success") else None
+                    db.add(
+                        models.Notification(
+                            channel=ch_type,
+                            provider=r_prov,
+                            provider_message_id=r_id,
+                            recipient=recip,
+                            subject=subject,
+                            message=message,
+                            alert_type=alert_type,
+                            status=r_status,
+                            error_code=r.get("error_code") or "",
+                            error_message=r_err,
+                        )
                     )
-                )
+            else:
+                for recipient in recipients:
+                    db.add(
+                        models.Notification(
+                            channel=channel,
+                            provider=prov,
+                            provider_message_id=msg_id,
+                            recipient=recipient,
+                            subject=subject,
+                            message=message,
+                            alert_type=alert_type,
+                            status=status_val,
+                            error_message=result.get("message") if not result.get("success") else None,
+                        )
+                    )
             db.commit()
         except Exception:
             db.rollback()
 
+        if status_val == "REJECTED":
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("message", "Invalid recipient or channel configuration.")
+            )
+        elif status_val == "CONFIGURATION_ERROR":
+            raise HTTPException(
+                status_code=503,
+                detail=result.get("message", "Notification provider is not configured.")
+            )
+        elif status_val == "FAILED" and not result.get("success"):
+            raise HTTPException(
+                status_code=502,
+                detail=result.get("message", "No notification provider successfully accepted the message.")
+            )
+
         return {
-            "message": f"Dispatched via {channel} (Authorized by {role})",
+            "success": result.get("success", False),
+            "status": status_val,
+            "channel": channel,
+            "provider": prov,
+            "provider_message_id": msg_id,
+            "message": f"Dispatched via {channel} (Authorized by {role}): {result.get('message', '')}",
             "recipients_count": len(recipients),
             "authorized_role": role,
             "provider_result": result,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -983,39 +1258,95 @@ async def send_sms_endpoint(
     Dedicated serverless SMS dispatch endpoint supporting 10-digit / E.164 phone numbers.
     Role-secured: requires Developer or Disaster Administrator.
     """
-    raw_phone = req.phoneNumber.strip().replace(" ", "").replace("-", "")
-    if not raw_phone:
-        raise HTTPException(status_code=400, detail="Mobile number is required.")
-    
-    # E.164 formatting
-    sanitized = raw_phone if raw_phone.startswith("+") else (f"+91{raw_phone}" if len(raw_phone) == 10 else f"+{raw_phone}")
-    
+    try:
+        sanitized = normalize_phone_number(req.phoneNumber)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
     msg_text = req.message or f"[VarshaNetra Alert] {req.alertType or 'Rainfall Advisory'} registered for {req.location or 'your agrozone'}."
-    
-    # Dispatch via send_notification
-    res = send_notification("SMS", [sanitized], "VarshaNetra Alert", msg_text, req.alertType or "GENERAL")
-    
+
+    # Dispatch via send_sms
+    res = send_sms(sanitized, msg_text, req.alertType or "GENERAL")
+
+    status_val = res.get("status", "FAILED")
+    prov = res.get("provider", settings.PRIMARY_SMS_PROVIDER)
+    msg_id = res.get("provider_message_id", "")
+
     try:
         db.add(models.Notification(
             channel="SMS",
+            provider=prov,
+            provider_message_id=msg_id,
             recipient=sanitized,
             subject="VarshaNetra Alert",
             message=msg_text[:500],
             alert_type=req.alertType or "GENERAL",
-            status=res.get("status", "SENT"),
+            status=status_val,
+            error_code=res.get("error_code") or "",
+            error_message=res.get("message") if not res.get("success") else None,
         ))
         db.commit()
     except Exception:
         db.rollback()
-        
+
+    if status_val == "REJECTED":
+        raise HTTPException(status_code=400, detail=res.get("message", "Invalid phone number."))
+    elif status_val == "CONFIGURATION_ERROR":
+        raise HTTPException(status_code=503, detail=res.get("message", "SMS provider is not configured."))
+    elif status_val == "FAILED" and not res.get("success"):
+        raise HTTPException(status_code=502, detail=res.get("message", "SMS provider dispatch failed."))
+
     return {
-        "success": True,
-        "message": f"SMS alert successfully dispatched for {sanitized}!",
+        "success": res.get("success", False),
+        "status": status_val,
+        "provider": prov,
+        "provider_message_id": msg_id,
+        "message": res.get("message", f"SMS alert processed for {sanitized}!"),
         "sanitizedPhone": sanitized,
         "authorizedRole": role,
         "data": res
     }
 
+
+@router.post("/notifications/webhook/twilio")
+@router.post("/notify/webhook/twilio")
+async def twilio_status_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Twilio Status Callback Webhook:
+    Receives real-time delivery status updates from Twilio and updates the Notification table.
+    """
+    form_data = await request.form()
+    message_sid = form_data.get("MessageSid") or form_data.get("SmsSid")
+    message_status = (form_data.get("MessageStatus") or form_data.get("SmsStatus") or "").upper()
+    error_code = form_data.get("ErrorCode")
+    error_message = form_data.get("ErrorMessage")
+
+    if not message_sid:
+        return {"status": "ignored", "reason": "No MessageSid provided"}
+
+    notif = (
+        db.query(models.Notification)
+        .filter(models.Notification.provider_message_id == message_sid)
+        .first()
+    )
+
+    if notif:
+        notif.status = message_status
+        if error_code:
+            notif.error_code = str(error_code)
+        if error_message:
+            notif.error_message = str(error_message)
+        notif.updated_at = datetime.now(timezone.utc)
+        try:
+            db.commit()
+            logger.info(f"[Twilio Webhook] Updated message {message_sid} to {message_status}")
+        except Exception:
+            db.rollback()
+
+    return {"status": "ok", "message_sid": message_sid, "updated_status": message_status}
 
 
 # =============================================================================
@@ -1023,6 +1354,7 @@ async def send_sms_endpoint(
 # =============================================================================
 
 @router.get("/notify/log")
+@router.get("/notifications/log")
 async def notification_log(
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -1038,10 +1370,14 @@ async def notification_log(
         {
             "id": record.id,
             "channel": record.channel,
+            "provider": record.provider,
+            "provider_message_id": record.provider_message_id,
             "recipient": record.recipient,
             "subject": record.subject,
             "alert_type": record.alert_type,
             "status": record.status,
+            "error_code": record.error_code,
+            "error_message": record.error_message,
             "sent_at": str(record.sent_at),
         }
         for record in records
@@ -1061,6 +1397,7 @@ async def notification_log(
     methods=["GET", "POST"],
 )
 async def chatbot(
+    response: Response,
     message: Optional[str] = Query(None),
     language: Optional[str] = Query(None),
     lat: Optional[float] = Query(None),
@@ -1071,7 +1408,14 @@ async def chatbot(
     village: Optional[str] = Query(None),
     payload: Optional[Dict[str, Any]] = Body(None),
 ):
+    # Enforce anti-caching for real-time dynamic AI chat responses
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+
     req_id = str(uuid.uuid4())
+    session_id = "default_session"
+    history = None
+
     if payload:
         message = (
             payload.get("message")
@@ -1095,6 +1439,8 @@ async def chatbot(
         city = payload.get("city") or city
         village = payload.get("village") or village
         req_id = payload.get("request_id") or req_id
+        session_id = payload.get("session_id") or session_id
+        history = payload.get("history")
 
     target_message = (
         message
@@ -1142,12 +1488,15 @@ async def chatbot(
         pass
 
     chat_resp = generate_chat_response(
-        target_message,
-        target_language,
-        weather,
-        monsoon_data,
-        crops_data,
-        prediction_data,
+        message=target_message,
+        language=target_language,
+        w=weather,
+        monsoon=monsoon_data,
+        crops=crops_data,
+        prediction=prediction_data,
+        history=history,
+        request_id=req_id,
+        session_id=session_id,
     )
     chat_resp["request_id"] = req_id
     return chat_resp

@@ -211,19 +211,63 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
 
     const p = patterns[i % patterns.length];
 
-    // Generate dynamic 8-interval 24h hourly forecast
-    const hourlyTimes = ['12 am', '3 am', '6 am', '9 am', '12 pm', '3 pm', '6 pm', '9 pm'];
-    const hourly = hourlyTimes.map((t, hIdx) => {
-      const isNow = i === 0 && hIdx === 0;
-      const hourProb = Math.min(95, Math.max(5, Math.round(p.rain_prob + (Math.sin(hIdx) * 20))));
+    // Generate dynamic 8-interval chronological 24h hourly forecast with real ISO timestamps
+    const baseDate = new Date(target);
+    baseDate.setMinutes(0, 0, 0);
+
+    const rawIntervals = [];
+    for (let hIdx = 0; hIdx < 8; hIdx++) {
+      const slotHour = hIdx * 3;
+      const slotDate = new Date(baseDate);
+      slotDate.setHours(slotHour, 0, 0, 0);
+
+      const hourProb = Math.min(95, Math.max(5, Math.round(p.rain_prob + (Math.sin(hIdx) * 18))));
       const hourMm = Number(Math.max(0, (p.rain_mm * (hourProb / (p.rain_prob * 3 || 1))).toFixed(1)));
-      return {
-        time: isNow ? (lang === 'hi' ? 'अभी' : 'Now') : t,
-        temp: Math.round(p.min + ((p.max - p.min) * (Math.sin(hIdx / 2) + 1) / 2)),
+      const tempVal = Math.round(p.min + ((p.max - p.min) * (Math.sin((hIdx * Math.PI) / 4) + 1) / 2));
+      const humidityVal = Math.min(98, Math.max(45, Math.round(p.humidity + (Math.cos(hIdx) * 8))));
+
+      rawIntervals.push({
+        isoTimestamp: slotDate.toISOString(),
+        timestampDate: slotDate,
+        hour: slotHour,
+        temp: isNaN(tempVal) ? 'N/A' : tempVal,
         icon: hourProb > 70 ? '⛈️' : hourProb > 40 ? '🌧️' : hourProb > 20 ? '🌦️' : '☁️',
         rain: `${hourProb}%`,
-        rain_mm: hourMm,
+        rain_mm: isNaN(hourMm) ? 0 : hourMm,
         prob_pct: hourProb,
+        humidity: humidityVal,
+        condition_en: hourProb > 60 ? 'Rain Showers' : hourProb > 30 ? 'Passing Clouds' : 'Partly Cloudy',
+        condition_hi: hourProb > 60 ? 'वर्षा बौछारें' : hourProb > 30 ? 'बादल छाए' : 'आंशिक बादल',
+      });
+    }
+
+    // Sort strictly in ascending chronological order via Date objects
+    rawIntervals.sort((a, b) => a.timestampDate.getTime() - b.timestampDate.getTime());
+
+    // Format display times in Asia/Kolkata timezone
+    const hourly = rawIntervals.map((item, idx) => {
+      const timeFormatted = item.timestampDate.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).toLowerCase();
+
+      const time24Formatted = item.timestampDate.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      const isCurrentSlot = i === 0 && Math.abs(now.getHours() - item.hour) < 2;
+
+      return {
+        ...item,
+        time: isCurrentSlot ? (lang === 'hi' ? 'अभी' : 'Now') : timeFormatted,
+        time12: timeFormatted,
+        time24: time24Formatted,
+        displayTime: timeFormatted,
       };
     });
 
@@ -254,3 +298,4 @@ export function generateDynamicWeekData(currentWeather, rainfallPrediction, lang
 
   return days;
 }
+

@@ -10,7 +10,13 @@ if backend_dir not in sys.path:
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from backend.app.core.database import init_db
 from backend.app.router import router
+
+try:
+    init_db()
+except Exception as e:
+    print("API DB init warning:", e)
 
 app = FastAPI(title="VarshaNetra Serverless API", docs_url="/docs", openapi_url="/openapi.json")
 
@@ -30,21 +36,34 @@ app.include_router(router, prefix="")
 
 @app.middleware("http")
 async def normalize_vercel_path(request: Request, call_next):
-    path = request.scope.get("path", "")
-    for pfx in ["/api/index.py", "/api/index"]:
-        if path.startswith(pfx):
-            request.scope["path"] = path[len(pfx):] or "/"
-            break
+    _path = request.query_params.get("_path")
+    if _path:
+        if not _path.startswith("/"):
+            _path = "/" + _path
+        request.scope["path"] = _path
+    else:
+        matched = request.headers.get("x-matched-path") or request.headers.get("x-vercel-matched-path") or request.headers.get("x-forwarded-path")
+        if matched and not matched.startswith("/api/index"):
+            request.scope["path"] = matched
+        else:
+            path = request.scope.get("path", "")
+            for pfx in ["/api/index.py", "/api/index"]:
+                if path.startswith(pfx):
+                    rem = path[len(pfx):]
+                    request.scope["path"] = rem if rem else "/"
+                    break
     return await call_next(request)
 
+@app.get("/")
 @app.get("/health")
 @app.get("/api/health")
 @app.get("/api/v1/health")
-async def health():
+async def health(request: Request):
     return {
         "status": "HEALTHY",
         "service": "VarshaNetra-AI-API",
         "version": "2.0.0",
+        "path": request.scope.get("path"),
         "engines": ["open_meteo", "false_onset_hero", "noaa_teleconnections", "10yr_ml_validation", "crop_stage_matrix"]
     }
 

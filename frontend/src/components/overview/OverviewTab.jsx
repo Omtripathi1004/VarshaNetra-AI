@@ -109,7 +109,7 @@ const AGRI_HUBS = [
 ];
 
 export default function OverviewTab() {
-  const { tr, lang, location, setLocation } = useApp();
+  const { tr, lang, location, setLocation, setActiveTab, setXaiContext } = useApp();
   const [userRole, setUserRole] = useState('farmer'); // 'farmer' | 'developer' | 'admin'
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState(null);
@@ -369,59 +369,59 @@ export default function OverviewTab() {
           padding: 0,
           overflow: 'hidden',
           borderRadius: '20px',
-          border: '1px solid rgba(255,255,255,0.09)',
-          background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(11, 15, 25, 0.98) 100%)',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
         }}
       >
         {/* Top Header & Alert Banner */}
         <div style={{ padding: '1.25rem 1.5rem 0.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#047857' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#34d399' }}>
                 {lang === 'hi' ? `${activeDay.full_hi} का मौसम पूर्वानुमान` : `${activeDay.full_en}'s Weather Forecast`}
               </span>
-              <h3 style={{ margin: '0.1rem 0 0', fontSize: '1.2rem', color: '#f1f5f9', fontWeight: 800 }}>
+              <h3 style={{ margin: '0.15rem 0 0', fontSize: '1.35rem', color: '#38bdf8', fontWeight: 900 }}>
                 {location.display_name}
               </h3>
             </div>
-            <span className="badge badge-info" style={{ padding: '0.35rem 0.75rem' }}>
+            <span className="badge badge-info" style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700 }}>
               📍 {activeDay.date} • Open-Meteo Synced
             </span>
           </div>
 
           {/* Current Temp, Condition & Feels Like */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.8rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ fontSize: '4.2rem', fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: '#f1f5f9', lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.1rem' }}>
+              <span style={{ fontSize: '4.4rem', fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: '#38bdf8', lineHeight: 1 }}>
                 {activeDay.temp}°
               </span>
-              <span style={{ fontSize: '3rem' }}>{activeDay.icon}</span>
+              <span style={{ fontSize: '3.2rem' }}>{activeDay.icon}</span>
             </div>
 
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#e2e8f0' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>
                 {lang === 'hi' ? activeDay.condition_hi : activeDay.condition_en}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.88rem', color: '#94a3b8', fontWeight: 600 }}>
                 {lang === 'hi' ? `महसूस होता है ${activeDay.feels_like}°` : `Feels like ${activeDay.feels_like}°`} • {lang === 'hi' ? `हवा ${activeDay.wind_kmh} किमी/घं` : `Wind ${activeDay.wind_kmh} km/h`}
               </div>
             </div>
           </div>
 
-          {/* Weather Alert Pill Banner (Red/Orange Pill like screenshot) */}
+          {/* Weather Alert Pill Banner */}
           <div
             style={{
-              background: activeDay.rain_prob >= 70 ? '#fef2f2' : '#f0fdf4',
-              border: activeDay.rain_prob >= 70 ? '1px solid #fecaca' : '1px solid #bbf7d0',
+              background: activeDay.rain_prob >= 70 ? 'rgba(239, 68, 68, 0.18)' : 'rgba(16, 185, 129, 0.18)',
+              border: activeDay.rain_prob >= 70 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
               borderRadius: '999px',
-              padding: '0.45rem 1rem',
+              padding: '0.5rem 1.1rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               marginBottom: '1.2rem',
-              fontSize: '0.82rem',
-              color: activeDay.rain_prob >= 70 ? '#b91c1c' : '#047857',
+              fontSize: '0.85rem',
+              color: activeDay.rain_prob >= 70 ? '#fca5a5' : '#6ee7b7',
               fontWeight: 700,
             }}
           >
@@ -431,18 +431,18 @@ export default function OverviewTab() {
                 {lang === 'hi' ? activeDay.alert_hi : activeDay.alert_en}
               </span>
             </div>
-            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>● {activeDay.rain_prob}% Rain</span>
+            <span style={{ fontSize: '0.78rem', opacity: 0.9 }}>● {activeDay.rain_prob}% Rain</span>
           </div>
 
-          {/* Hourly Weather Cards Horizontal Scroll (Updated dynamically for selected day) */}
+          {/* Hourly Weather Cards Horizontal Scroll */}
           <div style={{ marginBottom: '1.2rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.55rem' }}>
               {lang === 'hi' ? `${activeDay.full_hi} — 24 घंटे का पूर्वानुमान` : `${activeDay.full_en} — Hourly Weather Breakdown`}
             </span>
             <div
               style={{
                 display: 'flex',
-                gap: '0.6rem',
+                gap: '0.65rem',
                 overflowX: 'auto',
                 paddingBottom: '0.5rem',
                 scrollbarWidth: 'thin'
@@ -453,22 +453,23 @@ export default function OverviewTab() {
                   key={i}
                   style={{
                     flex: '0 0 auto',
-                    width: '68px',
-                    padding: '0.65rem 0.3rem',
-                    background: i === 0 ? '#e0f2fe' : '#ffffff',
-                    border: i === 0 ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
+                    width: '72px',
+                    padding: '0.7rem 0.35rem',
+                    background: i === 0 ? 'rgba(2, 132, 199, 0.28)' : 'rgba(255, 255, 255, 0.05)',
+                    border: i === 0 ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '12px',
                     textAlign: 'center',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.3rem'
+                    gap: '0.3rem',
+                    boxShadow: i === 0 ? '0 4px 14px rgba(2, 132, 199, 0.25)' : 'none',
                   }}
                 >
-                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#f1f5f9' }}>{hc.temp}°</span>
-                  <span style={{ fontSize: '1.25rem' }}>{hc.icon}</span>
-                  <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700 }}>{hc.rain}</span>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>{hc.time}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc' }}>{hc.temp}°</span>
+                  <span style={{ fontSize: '1.3rem' }}>{hc.icon}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>{hc.rain}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>{hc.time}</span>
                 </div>
               ))}
             </div>
@@ -767,25 +768,35 @@ export default function OverviewTab() {
             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
               🔍 {lang === 'hi' ? 'शीर्ष योगदान कारक: उच्च वायुमंडलीय आर्द्रता (78%) + मानसूनी द्रोणिका अक्ष' : 'Top Contributors: Relative Humidity (78%) + Soil Moisture Flux + MJO Phase 3'}
             </span>
-            <a
-              href="#xai"
-              onClick={(e) => { e.preventDefault(); const btn = document.querySelector('[data-tab="xai"]') || document.body; }}
+            <button
+              type="button"
+              onClick={() => {
+                if (setXaiContext) setXaiContext(prediction);
+                if (setActiveTab) setActiveTab('xai');
+              }}
               style={{
                 fontSize: '0.75rem',
                 fontWeight: 700,
                 color: '#0284c7',
-                textDecoration: 'none',
-                background: '#e0f2fe',
-                padding: '0.2rem 0.6rem',
-                borderRadius: '6px',
-                border: '1px solid #bae6fd'
+                background: 'rgba(2, 132, 199, 0.16)',
+                padding: '0.3rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.2s ease',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(2, 132, 199, 0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(2, 132, 199, 0.16)'; }}
             >
               🧠 {lang === 'hi' ? 'यह भविष्यवाणी क्यों? (XAI देखें)' : 'Why this prediction? (Open XAI)'} →
-            </a>
+            </button>
           </div>
         </div>
       </div>
+
 
       {/* 5 REGIONAL AGRICULTURAL SITUATION HUBS (As Requested) */}
       <div style={{ marginBottom: '1.4rem' }}>

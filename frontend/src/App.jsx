@@ -186,8 +186,7 @@ function LoginModal() {
 }
 
 function AppInner() {
-  const { tr, lang, toggleLang, user, setIsLoginModalOpen, isChatOpen, setIsChatOpen, canAccessPrivileged, USER_TABS, PRIVILEGED_TABS } = useApp();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { tr, lang, toggleLang, user, activeTab, setActiveTab, setIsLoginModalOpen, isChatOpen, setIsChatOpen, canAccessPrivileged, USER_TABS, PRIVILEGED_TABS } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef(null);
   const triggerRef = useRef(null);
@@ -200,8 +199,8 @@ function AppInner() {
   // RBAC: if current activeTab is not allowed, redirect to overview
   useEffect(() => {
     const allowed = visibleTabs.some(t => t.id === activeTab);
-    if (!allowed) setActiveTab('overview');
-  }, [user?.role, canAccessPrivileged]);
+    if (!allowed && setActiveTab) setActiveTab('overview');
+  }, [user?.role, canAccessPrivileged, activeTab]);
 
   // Drawer close handlers
   const closeDrawer = useCallback(() => {
@@ -236,17 +235,16 @@ function AppInner() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', color: '#f1f5f9' }}>
-      {/* Navbar */}
-      <nav className="navbar" style={{ padding: '0.6rem 1.4rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
-        <div className="navbar-brand">
-          <span className="logo">🌾</span>
-          <span>{tr ? tr('app_name') : 'VarshaNetra AI'}</span>
+      {/* Navbar with independent responsive layout containers */}
+      <nav className="navbar" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+        {/* Left: Brand Logo & Title */}
+        <div className="navbar-brand" style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => setActiveTab && setActiveTab('overview')}>
+          <span className="logo" style={{ fontSize: '1.4rem' }}>🌾</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{lang === 'hi' ? 'वर्षानेत्र AI' : 'VarshaNetra AI'}</span>
         </div>
 
-        <div className="navbar-spacer" />
-
-        {/* OBSERVE→PREDICT→EXPLAIN→DECIDE→ACT Pipeline Indicator */}
-        <div className="workflow-pipeline" style={{
+        {/* Center: OBSERVE→PREDICT→EXPLAIN→DECIDE→ACT Pipeline Indicator (Desktop Only) */}
+        <div className="workflow-pipeline desktop-only" style={{
           display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.62rem',
           fontWeight: 700, color: '#64748b', letterSpacing: '0.3px',
         }}>
@@ -266,81 +264,94 @@ function AppInner() {
           })}
         </div>
 
-        {/* OCCUPATION / USER PROFILE PILL IN NAVBAR */}
-        <div
-          onClick={() => setIsLoginModalOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px',
-            padding: '0.3rem 0.8rem', cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'all 0.2s',
-          }}
-          title="Click to Switch Role / Login"
-        >
-          <span style={{ fontSize: '1rem' }}>{roleIcon}</span>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f1f5f9', lineHeight: 1.1 }}>
-              {user?.name || 'Ramesh Kumar'}
-            </span>
-            <span style={{ fontSize: '0.66rem', color: user?.role === 'admin' ? '#dc2626' : user?.role === 'developer' ? '#0284c7' : '#059669', fontWeight: 700 }}>
-              {roleBadge}
-            </span>
+        {/* Right Action Container: Independent non-overlapping items */}
+        <div className="navbar-right-container" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+          {/* User Role Pill */}
+          <div
+            onClick={() => setIsLoginModalOpen(true)}
+            className="user-role-pill"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px',
+              padding: '0.3rem 0.65rem', cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'all 0.2s',
+            }}
+            title="Click to Switch Role / Login"
+          >
+            <span style={{ fontSize: '0.95rem' }}>{roleIcon}</span>
+            <div className="user-role-details" style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#f1f5f9', lineHeight: 1.1 }}>
+                {user?.name?.split(' ')[0] || 'User'}
+              </span>
+              <span style={{ fontSize: '0.62rem', color: user?.role === 'admin' ? '#dc2626' : user?.role === 'developer' ? '#0284c7' : '#059669', fontWeight: 700 }}>
+                {roleBadge}
+              </span>
+            </div>
+            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>▼</span>
           </div>
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>▼</span>
+
+          {/* Desktop AI Chat Button */}
+          <button
+            className={`btn-chat-toggle desktop-only ${isChatOpen ? 'active' : ''}`}
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            title={lang === 'hi' ? 'वर्षानेत्र AI सलाहकार' : 'AI Decision Advisor'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              padding: '0.35rem 0.75rem',
+              background: isChatOpen ? 'linear-gradient(135deg, #059669 0%, #0284c7 100%)' : 'rgba(255,255,255,0.05)',
+              color: isChatOpen ? '#ffffff' : '#cbd5e1',
+              border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px',
+              fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: '0.95rem' }}>🤖</span>
+            <span>{lang === 'hi' ? 'AI चैट' : 'AI Chat'}</span>
+          </button>
+
+          {/* Language Switcher Button (Independent Container) */}
+          <button
+            id="lang-switcher-btn"
+            className={`btn-lang ${lang === 'hi' ? 'active' : ''}`}
+            onClick={toggleLang}
+            title={lang === 'en' ? 'Switch to Hindi (हिन्दी)' : 'अंग्रेजी (English) में बदलें'}
+            style={{
+              padding: '0.35rem 0.75rem',
+              borderRadius: '8px',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              minWidth: '46px',
+              textAlign: 'center',
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: lang === 'hi' ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255,255,255,0.06)',
+              color: '#ffffff',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {lang === 'en' ? 'हिन्दी' : 'EN'}
+          </button>
+
+          {/* THREE-DOT VERTICAL NAVIGATION BUTTON (Independent Container) */}
+          <button
+            id="three-dot-menu-btn"
+            ref={triggerRef}
+            onClick={() => setDrawerOpen(prev => !prev)}
+            aria-label="Open navigation menu"
+            aria-expanded={drawerOpen}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: drawerOpen ? 'linear-gradient(135deg, #a855f7, #06b6d4)' : 'rgba(255,255,255,0.06)',
+              color: drawerOpen ? '#fff' : '#cbd5e1',
+              border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', fontSize: '1.2rem',
+              fontWeight: 900, transition: 'all 0.2s', flexShrink: 0,
+              boxShadow: drawerOpen ? '0 2px 8px rgba(168,85,247,0.3)' : '0 1px 3px rgba(0,0,0,0.2)',
+            }}
+          >
+            ⋮
+          </button>
         </div>
-
-        {/* Chatbot Header Button */}
-        <button
-          className={`btn-chat-toggle ${isChatOpen ? 'active' : ''}`}
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          title={lang === 'hi' ? 'VarshaNetra AI सलाहकार' : 'AI Decision Advisor'}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.45rem',
-            padding: '0.35rem 0.85rem',
-            background: isChatOpen ? 'linear-gradient(135deg, #059669 0%, #0284c7 100%)' : 'rgba(255,255,255,0.05)',
-            color: isChatOpen ? '#ffffff' : '#cbd5e1',
-            border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px',
-            fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'all 0.2s',
-          }}
-        >
-          <span style={{ fontSize: '1rem' }}>🤖</span>
-          <span>{lang === 'hi' ? 'AI चैट' : 'AI Chat'}</span>
-          {!isChatOpen && (
-            <span style={{
-              width: '6px', height: '6px', borderRadius: '50%',
-              background: '#10b981', boxShadow: '0 0 4px #10b981'
-            }} />
-          )}
-        </button>
-
-        <button
-          className={`btn-lang ${lang === 'hi' ? 'active' : ''}`}
-          onClick={toggleLang}
-          title="Toggle Language"
-          style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.76rem' }}
-        >
-          {lang === 'en' ? 'हिन्दी' : 'EN'}
-        </button>
-
-        {/* THREE-DOT VERTICAL NAVIGATION BUTTON */}
-        <button
-          ref={triggerRef}
-          onClick={() => setDrawerOpen(prev => !prev)}
-          aria-label="Open navigation menu"
-          aria-expanded={drawerOpen}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '36px', height: '36px', borderRadius: '10px',
-            background: drawerOpen ? 'linear-gradient(135deg, #a855f7, #06b6d4)' : 'rgba(255,255,255,0.05)',
-            color: drawerOpen ? '#fff' : '#cbd5e1',
-            border: '1px solid rgba(255,255,255,0.09)', cursor: 'pointer', fontSize: '1.2rem',
-            fontWeight: 900, transition: 'all 0.2s',
-            boxShadow: drawerOpen ? '0 2px 8px rgba(168,85,247,0.3)' : '0 1px 3px rgba(0,0,0,0.2)',
-          }}
-        >
-          ⋮
-        </button>
       </nav>
 
       {/* Location Bar */}
@@ -348,6 +359,7 @@ function AppInner() {
 
       {/* DRAWER OVERLAY */}
       {drawerOpen && (
+
         <div
           className="drawer-overlay"
           onClick={closeDrawer}

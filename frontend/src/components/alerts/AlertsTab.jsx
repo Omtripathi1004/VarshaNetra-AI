@@ -244,9 +244,14 @@ function NotifyPanel({ lang }) {
           message: effectiveMsg,
         });
         dispatchRes = res;
+        const isOk = res.data?.success === true;
+        const s = res.data?.status || (isOk ? 'ACCEPTED' : 'FAILED');
         setResult({
-          status: 'DELIVERED',
-          message: res.data?.message || `SMS alerts successfully registered and dispatched to ${firstPhone}!`,
+          status: s,
+          success: isOk,
+          provider: res.data?.provider || 'TWILIO',
+          provider_message_id: res.data?.provider_message_id || res.data?.data?.provider_message_id,
+          message: res.data?.message || (isOk ? `SMS accepted by ${res.data?.provider || 'Gateway'}` : 'SMS dispatch failed.'),
           sent_at: new Date().toLocaleTimeString(),
         });
       } else {
@@ -258,12 +263,16 @@ function NotifyPanel({ lang }) {
           alertType
         );
         dispatchRes = res;
-        setResult(
-          res.data || {
-            status: 'SENT',
-            message: 'Notification request sent successfully.',
-          }
-        );
+        const isOk = res.data?.success === true;
+        const s = res.data?.status || (isOk ? 'ACCEPTED' : 'FAILED');
+        setResult({
+          status: s,
+          success: isOk,
+          provider: res.data?.provider || 'GATEWAY',
+          provider_message_id: res.data?.provider_message_id,
+          message: res.data?.message || (isOk ? `Notification accepted via ${channel}` : 'Notification dispatch failed.'),
+          sent_at: new Date().toLocaleTimeString(),
+        });
       }
 
       // Record Audit Log Entry
@@ -276,18 +285,20 @@ function NotifyPanel({ lang }) {
         targetRegion: location.display_name,
         channel,
         recipients,
-        status: 'DISPATCHED_SUCCESS',
+        status: dispatchRes?.data?.success ? 'DISPATCHED_ACCEPTED' : 'DISPATCH_FAILED',
       };
       setAuditLog(prev => [logEntry, ...prev]);
 
     } catch (e) {
       const errDetail =
         e.response?.data?.detail ||
+        e.response?.data?.message ||
         e.message ||
         'Failed to dispatch notification';
 
       setResult({
-        status: 'FAILED',
+        status: e.response?.status === 503 ? 'CONFIGURATION_ERROR' : 'FAILED',
+        success: false,
         message:
           typeof errDetail === 'string'
             ? errDetail
@@ -341,9 +352,12 @@ function NotifyPanel({ lang }) {
   };
 
   const isSuccess =
-    result?.status?.includes('DELIVERED') ||
-    result?.status?.includes('SENT') ||
-    result?.status === 'SUCCESS';
+    result?.status === 'ACCEPTED' ||
+    result?.status === 'DELIVERED' ||
+    result?.status === 'QUEUED' ||
+    (result?.success === true && result?.status !== 'PARTIAL_SUCCESS');
+  const isPartial = result?.status === 'PARTIAL_SUCCESS';
+  const isConfigError = result?.status === 'CONFIGURATION_ERROR';
 
   return (
     <div className="card">
@@ -623,27 +637,40 @@ function NotifyPanel({ lang }) {
         {result && (
           <div
             style={{
-              padding: '0.75rem',
+              padding: '0.75rem 0.9rem',
               marginTop: '0.6rem',
               background: isSuccess
                 ? 'rgba(52,211,153,0.1)'
-                : 'rgba(248,113,113,0.1)',
-              border: `1px solid ${isSuccess
-                  ? 'rgba(52,211,153,0.3)'
-                  : 'rgba(248,113,113,0.3)'
-                }`,
+                : (isPartial ? 'rgba(234,179,8,0.12)' : (isConfigError ? 'rgba(249,115,22,0.12)' : 'rgba(248,113,113,0.1)')),
+              border: `1px solid ${
+                isSuccess
+                  ? 'rgba(52,211,153,0.35)'
+                  : (isPartial ? 'rgba(234,179,8,0.4)' : (isConfigError ? 'rgba(249,115,22,0.4)' : 'rgba(248,113,113,0.35)'))
+              }`,
               borderRadius: 'var(--radius-md)',
             }}
           >
-            <p className={isSuccess ? 'text-green' : 'text-red'}>
-              {isSuccess ? '✅' : '❌'} {result.message}
-            </p>
-
-            {result.sent_at && (
-              <p className="text-xs text-muted">
-                {result.sent_at}
-              </p>
-            )}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.1rem', lineHeight: 1.2 }}>
+                {isSuccess ? '✅' : (isPartial ? '⚠️' : (isConfigError ? '⚙️' : '❌'))}
+              </span>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.84rem', color: isSuccess ? '#10b981' : (isPartial ? '#f59e0b' : (isConfigError ? '#f97316' : '#ef4444')) }}>
+                  {result.message}
+                </p>
+                {result.provider && (
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Provider: <strong>{result.provider}</strong> | Status: <strong>{result.status}</strong>
+                    {result.provider_message_id && <span> | Ref: <code>{result.provider_message_id}</code></span>}
+                  </p>
+                )}
+                {result.sent_at && (
+                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
+                    Timestamp: {result.sent_at}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
