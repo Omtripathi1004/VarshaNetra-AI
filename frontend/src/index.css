@@ -831,5 +831,31 @@ label.field-label { display: block; font-size: 0.75rem; color: var(--text-muted)
   pointer-events: none;
 }
 
+/* ── Map Mobile Responsive Optimization ────────────────────── */
+@media (max-width: 768px) {
+  .map-layer-control-panel {
+    top: 8px;
+    right: 8px;
+    width: calc(100% - 16px);
+    max-width: 280px;
+    max-height: 360px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.72rem;
+  }
+
+  .map-legend-panel {
+    bottom: 8px;
+    left: 8px;
+    padding: 0.45rem 0.65rem;
+    max-width: 210px;
+    font-size: 0.68rem;
+  }
+
+  .risk-beacon-pulse {
+    width: 32px;
+    height: 32px;
+  }
+}
+
 
 

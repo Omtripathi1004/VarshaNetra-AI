@@ -450,7 +450,8 @@ def get_entity_detailed_profile(
     entity_id: int
 ) -> Optional[Dict[str, Any]]:
     """
-    Returns full authoritative metadata, LGD identifiers, and relationships.
+    Returns full authoritative metadata, official LGD identifiers across the entire hierarchy:
+    state, state_code, district, district_code, block, block_code, gram_panchayat, gram_panchayat_code, village, village_code.
     """
     e_type = entity_type.upper()
 
@@ -458,56 +459,110 @@ def get_entity_detailed_profile(
         v = db.query(AdminVillage).filter_by(id=entity_id).first()
         if not v:
             return None
+        
+        # Resolve parent LGD codes
+        dist_obj = db.query(AdminDistrict).filter_by(name=v.district_name).first()
+        state_obj = db.query(AdminState).filter_by(name=v.state_name).first()
+        block_obj = db.query(AdminBlock).filter_by(name=v.block_name, district_name=v.district_name).first() if v.block_name else None
+        
         note = "Administrative record available; boundary geometry currently unavailable."
         return {
             "entity_type": "VILLAGE",
+            "village": v.name,
+            "village_code": v.lgd_code,
             "name": v.name,
             "name_hi": v.name_hi,
-            "village_code_lgd": v.lgd_code,
-            "census_code": v.census_code or "N/A",
-            "block": v.block_name,
-            "sub_district": v.sub_district_name,
+            "gram_panchayat": v.panchayat_name or "N/A",
+            "gram_panchayat_code": v.panchayat_lgd_code or "N/A",
+            "block": v.block_name or "N/A",
+            "block_code": block_obj.lgd_code if block_obj else "N/A",
+            "sub_district": v.sub_district_name or "N/A",
             "district": v.district_name,
+            "district_code": dist_obj.lgd_code if dist_obj else "N/A",
             "state": v.state_name,
-            "associated_panchayat": v.panchayat_name,
-            "associated_panchayat_lgd_code": v.panchayat_lgd_code,
+            "state_code": state_obj.lgd_code if state_obj else "N/A",
+            "census_code": v.census_code or "N/A",
             "latitude": v.latitude,
             "longitude": v.longitude,
             "soil_type": v.soil_type,
+            "irrigation_status": v.irrigation_status,
             "geometry_status": note,
-            "geometry_note": note
+            "geometry_note": note,
+            "data_source": "Local Government Directory (LGD), Ministry of Panchayati Raj, Govt of India"
         }
 
     elif e_type in ("PANCHAYAT", "GRAM_PANCHAYAT"):
         gp = db.query(AdminPanchayat).filter_by(id=entity_id).first()
         if not gp:
             return None
+        
+        dist_obj = db.query(AdminDistrict).filter_by(name=gp.district_name).first()
+        state_obj = db.query(AdminState).filter_by(name=gp.state_name).first()
+        block_obj = db.query(AdminBlock).filter_by(name=gp.block_name, district_name=gp.district_name).first() if gp.block_name else None
+
         associated_villages = [
-            {"id": vill.id, "name": vill.name, "lgd_code": vill.lgd_code}
+            {"id": vill.id, "village": vill.name, "name": vill.name, "village_code": vill.lgd_code, "lgd_code": vill.lgd_code}
             for vill in db.query(AdminVillage).filter_by(panchayat_id=gp.id).all()
         ]
+        
         note = "Administrative record available; boundary geometry currently unavailable."
         return {
             "entity_type": "GRAM_PANCHAYAT",
+            "gram_panchayat": gp.name,
+            "gram_panchayat_code": gp.lgd_code,
             "name": gp.name,
             "name_hi": gp.name_hi,
             "panchayat_type": gp.panchayat_type,
-            "lgd_code": gp.lgd_code,
-            "block": gp.block_name,
+            "block": gp.block_name or "N/A",
+            "block_code": block_obj.lgd_code if block_obj else (gp.block_lgd_code or "N/A"),
             "district": gp.district_name,
+            "district_code": dist_obj.lgd_code if dist_obj else (gp.district_lgd_code or "N/A"),
             "state": gp.state_name,
+            "state_code": state_obj.lgd_code if state_obj else "N/A",
             "latitude": gp.latitude,
             "longitude": gp.longitude,
             "associated_villages": associated_villages,
             "associated_villages_count": len(associated_villages),
             "geometry_status": note,
-            "geometry_note": note
+            "geometry_note": note,
+            "data_source": "Local Government Directory (LGD), Ministry of Panchayati Raj, Govt of India"
+        }
+
+    elif e_type == "BLOCK":
+        b = db.query(AdminBlock).filter_by(id=entity_id).first()
+        if not b:
+            return None
+        dist_obj = db.query(AdminDistrict).filter_by(name=b.district_name).first()
+        state_obj = db.query(AdminState).filter_by(name=b.state_name).first()
+        gp_count = db.query(AdminPanchayat).filter_by(block_name=b.name, district_name=b.district_name).count()
+        v_count = db.query(AdminVillage).filter_by(block_name=b.name, district_name=b.district_name).count()
+
+        note = "Point coordinate available; boundary geometry currently unavailable in public domain."
+        return {
+            "entity_type": "BLOCK",
+            "block": b.name,
+            "block_code": b.lgd_code,
+            "name": b.name,
+            "name_hi": b.name_hi,
+            "district": b.district_name,
+            "district_code": dist_obj.lgd_code if dist_obj else "N/A",
+            "state": b.state_name,
+            "state_code": state_obj.lgd_code if state_obj else "N/A",
+            "headquarters": b.headquarters,
+            "latitude": b.latitude,
+            "longitude": b.longitude,
+            "gram_panchayats_count": gp_count,
+            "villages_count": v_count,
+            "geometry_status": note,
+            "geometry_note": note,
+            "data_source": "Local Government Directory (LGD), Ministry of Panchayati Raj, Govt of India"
         }
 
     elif e_type == "DISTRICT":
         d = db.query(AdminDistrict).filter_by(id=entity_id).first()
         if not d:
             return None
+        state_obj = db.query(AdminState).filter_by(name=d.state_name).first()
         sub_districts = [sd.name for sd in db.query(AdminSubDistrict).filter_by(district_id=d.id).all()]
         blocks = [b.name for b in db.query(AdminBlock).filter_by(district_id=d.id).all()]
         gp_count = db.query(AdminPanchayat).filter_by(district_name=d.name).count()
@@ -516,10 +571,12 @@ def get_entity_detailed_profile(
 
         return {
             "entity_type": "DISTRICT",
+            "district": d.name,
+            "district_code": d.lgd_code,
             "name": d.name,
             "name_hi": d.name_hi,
-            "district_lgd_code": d.lgd_code,
             "state": d.state_name,
+            "state_code": state_obj.lgd_code if state_obj else "N/A",
             "headquarters": d.headquarters,
             "latitude": d.latitude,
             "longitude": d.longitude,
@@ -529,7 +586,36 @@ def get_entity_detailed_profile(
             "villages_count": v_count,
             "has_boundary_geometry": d.has_boundary_geom,
             "geometry_status": note,
-            "geometry_note": note
+            "geometry_note": note,
+            "data_source": "Survey of India & Local Government Directory (LGD), Ministry of Panchayati Raj, Govt of India"
+        }
+
+    elif e_type == "STATE":
+        s = db.query(AdminState).filter_by(id=entity_id).first()
+        if not s:
+            return None
+        d_count = db.query(AdminDistrict).filter_by(state_name=s.name).count()
+        gp_count = db.query(AdminPanchayat).filter_by(state_name=s.name).count()
+        v_count = db.query(AdminVillage).filter_by(state_name=s.name).count()
+
+        note = "Authoritative Survey of India State boundary geometry available."
+        return {
+            "entity_type": "STATE",
+            "state": s.name,
+            "state_code": s.lgd_code,
+            "name": s.name,
+            "name_hi": s.name_hi,
+            "category": s.category,
+            "census_code": s.census_code,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "districts_count": d_count,
+            "gram_panchayats_count": gp_count,
+            "villages_count": v_count,
+            "has_boundary_geometry": True,
+            "geometry_status": note,
+            "geometry_note": note,
+            "data_source": "Survey of India & Local Government Directory (LGD), Ministry of Panchayati Raj, Govt of India"
         }
 
     return None

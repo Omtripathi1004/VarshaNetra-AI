@@ -455,7 +455,7 @@ export const INDIA_VILLAGES_GEOJSON = {
 };
 
 // 7. AUTHORITATIVE MULTI-TIER RISK ZONES (Independent GeoJSON Polygons)
-// 🔴 RED (Very High / Critical) | 🟠 ORANGE (High) | 🟡 YELLOW (Moderate) | 🟢 GREEN (Low) | ⚪ GREY (No Data)
+// 🔴 RED (Very High / Critical) | 🔵 BLUE (High) | 🟡 YELLOW (Moderate) | 🟢 GREEN (Low) | ⚪ GREY (No Data)
 export const VARSHANETRA_RISK_ZONES_GEOJSON = {
   type: "FeatureCollection",
   features: [
@@ -539,7 +539,7 @@ export const VARSHANETRA_RISK_ZONES_GEOJSON = {
       }
     },
 
-    // 🟠 ORANGE — HIGH RISK ZONES
+    // 🔵 BLUE — HIGH RISK ZONES
     {
       type: "Feature",
       properties: {
@@ -547,11 +547,11 @@ export const VARSHANETRA_RISK_ZONES_GEOJSON = {
         name: "Central Gangetic Plain (Lucknow-Varanasi Trough)",
         name_hi: "मध्य गंगा मैदान (लखनऊ-वाराणसी द्रोणिका)",
         admin_level: "State Agro-Climatic Region",
-        risk_level: "ORANGE",
+        risk_level: "BLUE",
         risk_label: "High Risk",
         risk_score: 76,
-        color: "#ea580c",
-        stroke_color: "#f97316",
+        color: "#2563eb",
+        stroke_color: "#3b82f6",
         rainfall_24h_mm: "45–80 mm",
         rainfall_7d_forecast: "190 mm (Heavy Showers)",
         prediction_confidence: "92.0%",
@@ -573,11 +573,11 @@ export const VARSHANETRA_RISK_ZONES_GEOJSON = {
         name: "Vidarbha & Northern Telangana Black Soil Belt",
         name_hi: "विदर्भ एवं उत्तरी तेलंगाना काली मिट्टी क्षेत्र",
         admin_level: "Semi-Arid Agro Basin",
-        risk_level: "ORANGE",
+        risk_level: "BLUE",
         risk_label: "High Risk",
         risk_score: 68,
-        color: "#ea580c",
-        stroke_color: "#f97316",
+        color: "#2563eb",
+        stroke_color: "#3b82f6",
         rainfall_24h_mm: "35–65 mm",
         rainfall_7d_forecast: "160 mm",
         prediction_confidence: "90.5%",
@@ -599,11 +599,11 @@ export const VARSHANETRA_RISK_ZONES_GEOJSON = {
         name: "Odisha Coastal Delta & Mahanadi Basin",
         name_hi: "ओडिशा तटीय डेल्टा व महानदी बेसिन",
         admin_level: "Coastal Agro Delta",
-        risk_level: "ORANGE",
+        risk_level: "BLUE",
         risk_label: "High Risk",
         risk_score: 73,
-        color: "#ea580c",
-        stroke_color: "#f97316",
+        color: "#2563eb",
+        stroke_color: "#3b82f6",
         rainfall_24h_mm: "50–90 mm",
         rainfall_7d_forecast: "210 mm",
         prediction_confidence: "93.1%",
@@ -966,6 +966,26 @@ export const WEATHER_OVERLAYS_GEOJSON = {
         type: "Feature",
         properties: { band: "High Humidity (65-85% RH)", color: "#38bdf8", opacity: 0.30 },
         geometry: { type: "Polygon", coordinates: [[[80.2, 27.4], [89.8, 26.8], [88.9, 21.6], [80.5, 25.3], [80.2, 27.4]]] }
+      }
+    ]
+  },
+  soil_moisture: {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { level: "Saturated Topsoil (85-100% Saturation)", color: "#0d9488", opacity: 0.40 },
+        geometry: { type: "Polygon", coordinates: [[[83.3, 27.5], [88.1, 26.5], [87.8, 24.5], [83.3, 25.2], [83.3, 27.5]]] }
+      },
+      {
+        type: "Feature",
+        properties: { level: "Optimal Field Moisture (50-85%)", color: "#14b8a6", opacity: 0.30 },
+        geometry: { type: "Polygon", coordinates: [[[77.1, 29.9], [83.3, 27.5], [81.8, 24.8], [77.5, 27.5], [77.1, 29.9]]] }
+      },
+      {
+        type: "Feature",
+        properties: { level: "Moisture Deficit (<50%)", color: "#d97706", opacity: 0.25 },
+        geometry: { type: "Polygon", coordinates: [[[69.5, 27.5], [76.5, 28.5], [76.5, 24.5], [69.5, 27.5]]] }
       }
     ]
   }
