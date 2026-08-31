@@ -23,6 +23,10 @@
       "dest": "/api/index.py?_path=/openapi.json"
     },
     {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
