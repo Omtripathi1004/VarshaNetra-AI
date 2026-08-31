@@ -7,10 +7,6 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Build outputs
-dist/
-public/
-
 # Local databases & logs
 *.db
 *.sqlite
