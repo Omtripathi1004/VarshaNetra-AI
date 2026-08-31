@@ -4,23 +4,23 @@
   "routes": [
     {
       "src": "/api/send-sms",
-      "dest": "api/send-sms.js"
+      "dest": "/api/send-sms.js"
     },
     {
       "src": "/api/send-email",
-      "dest": "api/send-email.js"
+      "dest": "/api/send-email.js"
     },
     {
       "src": "/api/(.*)",
-      "dest": "api/index.py"
+      "dest": "/api/index.py"
     },
     {
       "src": "/docs",
-      "dest": "api/index.py"
+      "dest": "/api/index.py"
     },
     {
       "src": "/openapi.json",
-      "dest": "api/index.py"
+      "dest": "/api/index.py"
     },
     {
       "handle": "filesystem"
