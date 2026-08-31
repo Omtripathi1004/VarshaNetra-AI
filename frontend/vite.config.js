@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     build: {
-      outDir: '../backend/dist',
+      outDir: 'dist',
       emptyOutDir: true
     },
     envDir: '../',
