@@ -151,120 +151,127 @@ export default function HydroMapTab() {
         });
       }
 
-      // 2. STATE BOUNDARIES (Zoom 0 to 7.5)
-      if (!map.getSource('vn-states')) {
-        map.addSource('vn-states', {
-          type: 'geojson',
-          data: INDIA_STATES_GEOJSON
-        });
-      }
-      if (!map.getLayer('vn-states-fill')) {
-        map.addLayer({
-          id: 'vn-states-fill',
-          type: 'fill',
-          source: 'vn-states',
-          maxzoom: 7.5,
-          paint: {
-            'fill-color': '#0284c7',
-            'fill-opacity': 0.05
-          }
-        });
-      }
-      if (!map.getLayer('vn-states-border')) {
-        map.addLayer({
-          id: 'vn-states-border',
-          type: 'line',
-          source: 'vn-states',
-          maxzoom: 7.5,
-          paint: {
-            'line-color': '#0369a1',
-            'line-width': 1.8,
-            'line-dasharray': [3, 2]
-          }
-        });
+      // 2. STATE BOUNDARIES (Zoom 0 to 8.5)
+      try {
+        if (!map.getSource('vn-states')) {
+          map.addSource('vn-states', {
+            type: 'geojson',
+            data: INDIA_STATES_GEOJSON
+          });
+        }
+        if (!map.getLayer('vn-states-fill')) {
+          map.addLayer({
+            id: 'vn-states-fill',
+            type: 'fill',
+            source: 'vn-states',
+            maxzoom: 8.5,
+            paint: {
+              'fill-color': '#0284c7',
+              'fill-opacity': 0.12
+            }
+          });
+        }
+        if (!map.getLayer('vn-states-border')) {
+          map.addLayer({
+            id: 'vn-states-border',
+            type: 'line',
+            source: 'vn-states',
+            maxzoom: 8.5,
+            paint: {
+              'line-color': '#0369a1',
+              'line-width': 1.8,
+              'line-dasharray': [3, 2]
+            }
+          });
+        }
+        if (!map.getLayer('vn-states-label')) {
+          map.addLayer({
+            id: 'vn-states-label',
+            type: 'symbol',
+            source: 'vn-states',
+            maxzoom: 8.5,
+            layout: {
+              'text-field': ['get', 'name'],
+              'text-size': 11,
+              'text-transform': 'uppercase',
+              'text-letter-spacing': 0.08,
+              'text-optional': true,
+            },
+            paint: {
+              'text-color': '#0369a1',
+              'text-halo-color': '#ffffff',
+              'text-halo-width': 1.5,
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('States layer setup notice:', err);
       }
 
-      if (!map.getLayer('vn-states-label')) {
-        map.addLayer({
-          id: 'vn-states-label',
-          type: 'symbol',
-          source: 'vn-states',
-          maxzoom: 7.5,
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-size': 11,
-            'text-transform': 'uppercase',
-            'text-letter-spacing': 0.08,
-            'text-optional': true,
-          },
-          paint: {
-            'text-color': '#0369a1',
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 1.5,
-          }
-        });
-      }
-
-      // 3. DISTRICT BOUNDARIES (Zoom 5.5 to 11.5)
-      if (!map.getSource('vn-districts')) {
-        map.addSource('vn-districts', {
-          type: 'geojson',
-          data: INDIA_DISTRICTS_GEOJSON
-        });
-      }
-      if (!map.getLayer('vn-districts-fill')) {
-        map.addLayer({
-          id: 'vn-districts-fill',
-          type: 'fill',
-          source: 'vn-districts',
-          minzoom: 5.5,
-          maxzoom: 11.5,
-          paint: {
-            'fill-color': [
-              'match',
-              ['coalesce', ['get', 'risk_level'], 'NO_DATA'],
-              'CRITICAL', '#dc2626',
-              'HIGH', '#2563eb',
-              'MODERATE', '#eab308',
-              'LOW', '#4ade80',
-              '#64748b'
-            ],
-            'fill-opacity': 0.15
-          }
-        });
-      }
-      if (!map.getLayer('vn-districts-border')) {
-        map.addLayer({
-          id: 'vn-districts-border',
-          type: 'line',
-          source: 'vn-districts',
-          minzoom: 5.5,
-          maxzoom: 11.5,
-          paint: {
-            'line-color': '#0284c7',
-            'line-width': 1.4,
-            'line-opacity': 0.85
-          }
-        });
-      }
-      if (!map.getLayer('vn-districts-label')) {
-        map.addLayer({
-          id: 'vn-districts-label',
-          type: 'symbol',
-          source: 'vn-districts',
-          minzoom: 5.5,
-          maxzoom: 11.5,
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-size': 10,
-            'text-optional': true,
-          },
-          paint: {
-            'text-color': '#1e293b',
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 1.5,
-          }
-        });
+      // 3. DISTRICT BOUNDARIES (Zoom 3.5 to 12.0)
+      try {
+        if (!map.getSource('vn-districts')) {
+          map.addSource('vn-districts', {
+            type: 'geojson',
+            data: INDIA_DISTRICTS_GEOJSON
+          });
+        }
+        if (!map.getLayer('vn-districts-fill')) {
+          map.addLayer({
+            id: 'vn-districts-fill',
+            type: 'fill',
+            source: 'vn-districts',
+            minzoom: 3.5,
+            maxzoom: 12.0,
+            paint: {
+              'fill-color': [
+                'match',
+                ['coalesce', ['get', 'risk_level'], 'NO_DATA'],
+                'CRITICAL', '#dc2626',
+                'HIGH', '#2563eb',
+                'MODERATE', '#eab308',
+                'LOW', '#4ade80',
+                '#64748b'
+              ],
+              'fill-opacity': 0.22
+            }
+          });
+        }
+        if (!map.getLayer('vn-districts-border')) {
+          map.addLayer({
+            id: 'vn-districts-border',
+            type: 'line',
+            source: 'vn-districts',
+            minzoom: 3.5,
+            maxzoom: 12.0,
+            paint: {
+              'line-color': '#0284c7',
+              'line-width': 1.5,
+              'line-opacity': 0.85
+            }
+          });
+        }
+        if (!map.getLayer('vn-districts-label')) {
+          map.addLayer({
+            id: 'vn-districts-label',
+            type: 'symbol',
+            source: 'vn-districts',
+            minzoom: 4.5,
+            maxzoom: 12.0,
+            layout: {
+              'text-field': ['get', 'name'],
+              'text-size': 10,
+              'text-optional': true,
+            },
+            paint: {
+              'text-color': '#0f172a',
+              'text-halo-color': '#ffffff',
+              'text-halo-width': 1.5,
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Districts layer setup notice:', err);
       }
 
       // 4. SUB-DISTRICTS / BLOCKS (Zoom 8.5 to 13.5)

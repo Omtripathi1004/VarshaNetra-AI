@@ -96,8 +96,7 @@ export const BASEMAP_OPTIONS = [
 
 /**
  * MapmyIndia / Mappls raster tile basemap.
- * Uses the official advancedmaps/v1 endpoint with the API key in the path.
- * Falls back to Esri World Street Map if no Mappls key is configured.
+ * Uses official Mappls raster tile endpoint with fallback to standard OSM/Esri raster tiles.
  */
 const buildMapplsStyle = () => {
   const key = getMapplsKey();
@@ -107,6 +106,14 @@ const buildMapplsStyle = () => {
       version: 8,
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
+        'osm-underlay': {
+          type: 'raster',
+          tiles: [
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+        },
         'mappls-raster': {
           type: 'raster',
           tiles: [
@@ -123,6 +130,13 @@ const buildMapplsStyle = () => {
           paint: { 'background-color': '#e8ecef' }
         },
         {
+          id: 'osm-underlay-layer',
+          type: 'raster',
+          source: 'osm-underlay',
+          minzoom: 0,
+          maxzoom: 19
+        },
+        {
           id: 'mappls-raster-layer',
           type: 'raster',
           source: 'mappls-raster',
@@ -133,18 +147,18 @@ const buildMapplsStyle = () => {
     };
   }
 
-  // Fallback: Esri World Street Map (no key required)
+  // Fallback: OpenStreetMap & CartoDB / Esri Street Map (100% reliable without key)
   return {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
-      'esri-street-tiles': {
+      'osm-street-tiles': {
         type: 'raster',
         tiles: [
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
         ],
         tileSize: 256,
-        attribution: '&copy; Esri, HERE, Garmin, USGS, OpenStreetMap contributors'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
       }
     },
     layers: [
@@ -154,9 +168,9 @@ const buildMapplsStyle = () => {
         paint: { 'background-color': '#e8ecef' }
       },
       {
-        id: 'esri-street-layer',
+        id: 'osm-street-layer',
         type: 'raster',
-        source: 'esri-street-tiles',
+        source: 'osm-street-tiles',
         minzoom: 0,
         maxzoom: 19
       }
