@@ -471,6 +471,126 @@ label.field-label { display: block; font-size: 0.75rem; color: var(--text-muted)
 .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: rgba(13, 9, 28, 0.95) !important; }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: rgba(13, 9, 28, 0.95) !important; }
 
+/* ── HydroMap Layer Control & Legend Panels ────────────────── */
+.map-layer-control-panel {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 20;
+  background: rgba(13, 9, 28, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  width: 250px;
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.map-layer-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  margin-top: 0.4rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.map-layer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.map-layer-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.map-layer-item label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.73rem;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.map-legend-panel {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 20;
+  background: rgba(13, 9, 28, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.legend-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Live GPS Pulsing Animation ───────────────────────────── */
+.current-gps-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gps-pulse-ring {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.35);
+  animation: gpsPulse 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.gps-center-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #38bdf8;
+  z-index: 2;
+}
+
+@keyframes gpsPulse {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 /* ── SHAP Feature Importance Bars ────────────────────────── */
 .shap-bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
 .shap-feature-name { min-width: 140px; font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
