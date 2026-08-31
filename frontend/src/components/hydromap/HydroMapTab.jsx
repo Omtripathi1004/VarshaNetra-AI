@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Map, Marker, NavigationControl, FullscreenControl, ScaleControl } from 'maplibre-gl';
+import maplibregl, { Map, Marker, NavigationControl, FullscreenControl, ScaleControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
@@ -17,11 +17,11 @@ import {
 } from '../../data/indiaGeoJson';
 
 // Safe MapLibre module resolvers across ESM & CommonJS
-const MapEngine = maplibregl.Map || maplibregl.default?.Map || maplibregl;
-const MarkerEngine = maplibregl.Marker || maplibregl.default?.Marker;
-const NavControl = maplibregl.NavigationControl || maplibregl.default?.NavigationControl;
-const FullscreenCtrl = maplibregl.FullscreenControl || maplibregl.default?.FullscreenControl;
-const ScaleCtrl = maplibregl.ScaleControl || maplibregl.default?.ScaleControl;
+const MapEngine = Map || maplibregl?.Map || maplibregl?.default?.Map || maplibregl;
+const MarkerEngine = Marker || maplibregl?.Marker || maplibregl?.default?.Marker;
+const NavControl = NavigationControl || maplibregl?.NavigationControl || maplibregl?.default?.NavigationControl;
+const FullscreenCtrl = FullscreenControl || maplibregl?.FullscreenControl || maplibregl?.default?.FullscreenControl;
+const ScaleCtrl = ScaleControl || maplibregl?.ScaleControl || maplibregl?.default?.ScaleControl;
 
 // Default India Geographic Center & Zoom
 const INDIA_DEFAULT_CENTER = [78.9629, 22.5937]; // Longitude, Latitude
