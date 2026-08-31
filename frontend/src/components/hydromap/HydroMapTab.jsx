@@ -617,12 +617,15 @@ export default function HydroMapTab() {
     if (ScaleCtrl) map.addControl(new ScaleCtrl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
 
     // On style load / basemap switch
-    map.on('style.load', () => {
-      setupMapOverlays(map);
-      syncLayerVisibility(map, layersState, riskFilter);
-      setMapLoaded(true);
-      setTimeout(() => map.resize(), 100);
-    });
+    const handleReapplyLayers = () => {
+      if (map.isStyleLoaded()) {
+        setupMapOverlays(map);
+        syncLayerVisibility(map, layersState, riskFilter);
+        setMapLoaded(true);
+      }
+    };
+
+    map.on('styledata', handleReapplyLayers);
 
     map.on('load', () => {
       setupMapOverlays(map);
@@ -749,11 +752,53 @@ export default function HydroMapTab() {
 
   // Seamless Basemap Switcher (Mappls ↔ OSM ↔ Satellite ↔ Hybrid)
   const handleSwitchBasemap = useCallback((mode) => {
-    if (mode === basemapMode || !mapRef.current) return;
+    if (!mapRef.current) return;
     setBasemapMode(mode);
     const nextStyle = getMapStyle(mode);
-    mapRef.current.setStyle(nextStyle);
-  }, [basemapMode]);
+    const map = mapRef.current;
+
+    const onStyleData = () => {
+      if (map.isStyleLoaded()) {
+        map.off('styledata', onStyleData);
+        setupMapOverlays(map);
+        syncLayerVisibility(map, layersState, riskFilter);
+        map.resize();
+      }
+    };
+    map.on('styledata', onStyleData);
+    map.setStyle(nextStyle);
+  }, [basemapMode, layersState, riskFilter, setupMapOverlays, syncLayerVisibility]);
+
+  // Dedicated Risk Tier Filter Handler with Instant Pan/Zoom to Selected Risk Polygon
+  const handleRiskFilterChange = useCallback((tier) => {
+    setRiskFilter(tier);
+    if (!mapRef.current) return;
+    syncLayerVisibility(mapRef.current, layersState, tier);
+
+    if (tier !== 'ALL') {
+      const match = VARSHANETRA_RISK_ZONES_GEOJSON.features.find(f => f.properties.risk_level === tier);
+      if (match && match.geometry && match.geometry.coordinates) {
+        let ring = match.geometry.coordinates;
+        if (Array.isArray(ring[0]) && Array.isArray(ring[0][0])) ring = ring[0];
+        let sumLon = 0, sumLat = 0, count = 0;
+        for (let pt of ring) {
+          if (Array.isArray(pt) && typeof pt[0] === 'number') {
+            sumLon += pt[0];
+            sumLat += pt[1];
+            count++;
+          }
+        }
+        if (count > 0) {
+          mapRef.current.flyTo({
+            center: [sumLon / count, sumLat / count],
+            zoom: 6.5,
+            duration: 1200,
+            essential: true
+          });
+        }
+      }
+    }
+  }, [layersState, syncLayerVisibility]);
 
   // Synchronize layer visibility whenever layersState or riskFilter changes
   useEffect(() => {
@@ -1138,7 +1183,7 @@ export default function HydroMapTab() {
             <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Risk Tier:</span>
             <select
               value={riskFilter}
-              onChange={e => setRiskFilter(e.target.value)}
+              onChange={e => handleRiskFilterChange(e.target.value)}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -1345,7 +1390,7 @@ export default function HydroMapTab() {
             ].map(item => (
               <div
                 key={item.level}
-                onClick={() => setRiskFilter(riskFilter === item.level ? 'ALL' : item.level)}
+                onClick={() => handleRiskFilterChange(riskFilter === item.level ? 'ALL' : item.level)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.45rem',
                   padding: '0.2rem 0.35rem', borderRadius: '6px', cursor: 'pointer',
@@ -1362,7 +1407,7 @@ export default function HydroMapTab() {
             ))}
             {riskFilter !== 'ALL' && (
               <button
-                onClick={() => setRiskFilter('ALL')}
+                onClick={() => handleRiskFilterChange('ALL')}
                 style={{
                   marginTop: '0.15rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)',
                   color: '#38bdf8', borderRadius: '6px', padding: '0.2rem 0.4rem', fontSize: '0.65rem',
