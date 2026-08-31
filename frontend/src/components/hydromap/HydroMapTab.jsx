@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import maplibregl, { Map, Marker, NavigationControl, FullscreenControl, ScaleControl } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
@@ -16,12 +16,12 @@ import {
   WEATHER_OVERLAYS_GEOJSON,
 } from '../../data/indiaGeoJson';
 
-// Safe MapLibre module resolvers across ESM & CommonJS
-const MapEngine = Map || maplibregl?.Map || maplibregl?.default?.Map || maplibregl;
-const MarkerEngine = Marker || maplibregl?.Marker || maplibregl?.default?.Marker;
-const NavControl = NavigationControl || maplibregl?.NavigationControl || maplibregl?.default?.NavigationControl;
-const FullscreenCtrl = FullscreenControl || maplibregl?.FullscreenControl || maplibregl?.default?.FullscreenControl;
-const ScaleCtrl = ScaleControl || maplibregl?.ScaleControl || maplibregl?.default?.ScaleControl;
+// Safe MapLibre module resolvers
+const MapEngine = maplibregl.Map;
+const MarkerEngine = maplibregl.Marker;
+const NavControl = maplibregl.NavigationControl;
+const FullscreenCtrl = maplibregl.FullscreenControl;
+const ScaleCtrl = maplibregl.ScaleControl;
 
 // Default India Geographic Center & Zoom
 const INDIA_DEFAULT_CENTER = [78.9629, 22.5937]; // Longitude, Latitude
