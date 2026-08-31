@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
-import { INDIA_LOCATIONS, ALL_SEARCHABLE_LOCATIONS, DEFAULT_DISTRICT_VILLAGES } from '../../data/indiaLocations';
+import { INDIA_LOCATIONS, ALL_SEARCHABLE_LOCATIONS, DEFAULT_DISTRICT_PANCHAYATS, DEFAULT_DISTRICT_VILLAGES } from '../../data/indiaLocations';
 
 export default function LocationBar() {
   const { tr, lang, location, setLocation } = useApp();
@@ -17,7 +17,8 @@ export default function LocationBar() {
   const [selectedState, setSelectedState] = useState('Uttar Pradesh');
   const [selectedDistrict, setSelectedDistrict] = useState('Lucknow');
   const [selectedCity, setSelectedCity] = useState('Lucknow');
-  const [villageInput, setVillageInput] = useState('');
+  const [selectedPanchayat, setSelectedPanchayat] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('');
 
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
@@ -99,12 +100,20 @@ export default function LocationBar() {
     return INDIA_LOCATIONS[selectedState]?.districts || [];
   }, [selectedState]);
 
-  // Available cities strictly for chosen state
+  // Available cities / blocks strictly for chosen state
   const availableCities = useMemo(() => {
     return INDIA_LOCATIONS[selectedState]?.cities || [];
   }, [selectedState]);
 
-  // Available villages strictly for chosen state & district (4-5 villages)
+  // Available Gram Panchayats strictly for chosen state & district (16+ Panchayats)
+  const availablePanchayats = useMemo(() => {
+    const stateData = INDIA_LOCATIONS[selectedState];
+    if (!stateData) return DEFAULT_DISTRICT_PANCHAYATS;
+    const pList = stateData.panchayats?.[selectedDistrict];
+    return pList && pList.length > 0 ? pList : DEFAULT_DISTRICT_PANCHAYATS;
+  }, [selectedState, selectedDistrict]);
+
+  // Available Revenue Villages strictly for chosen state & district (16+ Villages)
   const availableVillages = useMemo(() => {
     const stateData = INDIA_LOCATIONS[selectedState];
     if (!stateData) return DEFAULT_DISTRICT_VILLAGES;
@@ -112,7 +121,7 @@ export default function LocationBar() {
     return vilList && vilList.length > 0 ? vilList : DEFAULT_DISTRICT_VILLAGES;
   }, [selectedState, selectedDistrict]);
 
-  // State change handler — resets district, city & village strictly to the new state
+  // State change handler — resets district, city, panchayat & village
   const handleStateChange = (stateName) => {
     setSelectedState(stateName);
     const dists = INDIA_LOCATIONS[stateName]?.districts || [];
@@ -121,13 +130,15 @@ export default function LocationBar() {
     const newCity = cities[0] || '';
     setSelectedDistrict(newDist);
     setSelectedCity(newCity);
-    setVillageInput('');
+    setSelectedPanchayat('');
+    setSelectedVillage('');
   };
 
-  // District change handler — resets village to empty or first option for this specific district
+  // District change handler — resets panchayat & village for this specific district
   const handleDistrictChange = (distName) => {
     setSelectedDistrict(distName);
-    setVillageInput('');
+    setSelectedPanchayat('');
+    setSelectedVillage('');
   };
 
   const handleGPS = useCallback(() => {
@@ -204,22 +215,23 @@ export default function LocationBar() {
   const handleApplyCascade = async () => {
     setSearching(true);
     setError('');
+    const chosenLoc = selectedVillage || selectedPanchayat || '';
     const loc = {
       state: selectedState,
       district: selectedDistrict,
       city: selectedCity,
-      village: villageInput.trim(),
+      village: chosenLoc,
     };
     try {
       const res = await api.resolveLocation(loc);
-      const parts = [villageInput.trim(), selectedCity, selectedDistrict, selectedState].filter(Boolean);
+      const parts = [chosenLoc, selectedCity, selectedDistrict, selectedState].filter(Boolean);
       setLocation({
         lat: res.data.latitude,
         lon: res.data.longitude,
         state: selectedState,
         district: selectedDistrict,
         city: selectedCity,
-        village: villageInput.trim(),
+        village: chosenLoc,
         display_name: parts.join(', '),
       });
     } catch {
@@ -353,10 +365,10 @@ export default function LocationBar() {
           </div>
         )}
 
-        {/* 3. Cascading Mode (Strictly isolated by chosen State -> District -> 4-5 Villages) */}
+        {/* 3. Cascading Mode (State -> District -> Block -> 16+ Gram Panchayats -> 16+ Revenue Villages) */}
         {mode === 'cascade' && (
-          <div className="location-manual" style={{ marginTop: '0.3rem' }}>
-            {/* State Select */}
+          <div className="location-manual" style={{ marginTop: '0.3rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+            {/* 1. State Select */}
             <div className="location-input-group">
               <span className="location-label">1. {tr('state')}</span>
               <select
@@ -371,7 +383,7 @@ export default function LocationBar() {
               </select>
             </div>
 
-            {/* District Select (Filtered strictly to this State) */}
+            {/* 2. District Select (Filtered strictly to this State) */}
             <div className="location-input-group">
               <span className="location-label">2. {tr('district')} ({availableDistricts.length})</span>
               <select
@@ -386,9 +398,9 @@ export default function LocationBar() {
               </select>
             </div>
 
-            {/* City / Block Select (Filtered strictly to this State) */}
+            {/* 3. City / Block Select */}
             <div className="location-input-group">
-              <span className="location-label">3. {tr('city')}</span>
+              <span className="location-label">3. {tr('city')} / Block</span>
               <select
                 className="select"
                 value={selectedCity}
@@ -404,16 +416,38 @@ export default function LocationBar() {
               </select>
             </div>
 
-            {/* Village / Panchayat Select (Strictly 4-5 villages for this specific District) */}
+            {/* 4. Gram Panchayat Select (16+ Authentic Panchayats) */}
             <div className="location-input-group">
-              <span className="location-label">4. {tr('village')} / Gram ({availableVillages.length})</span>
+              <span className="location-label">4. 📜 {lang === 'hi' ? 'ग्राम पंचायत' : 'Gram Panchayat'} ({availablePanchayats.length})</span>
               <select
                 className="select"
-                value={villageInput}
-                onChange={(e) => setVillageInput(e.target.value)}
-                style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', minWidth: '160px' }}
+                value={selectedPanchayat}
+                onChange={(e) => {
+                  setSelectedPanchayat(e.target.value);
+                  if (e.target.value) setSelectedVillage('');
+                }}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', minWidth: '180px' }}
               >
-                <option value="">-- {lang === 'hi' ? 'सभी ग्राम / ब्लॉक मुख्यालय' : 'All Villages / Block HQ'} --</option>
+                <option value="">-- {lang === 'hi' ? 'ग्राम पंचायत चुनें' : 'Select Gram Panchayat'} --</option>
+                {availablePanchayats.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 5. Revenue Village Select (16+ Authentic Villages) */}
+            <div className="location-input-group">
+              <span className="location-label">5. 🏡 {tr('village')} ({availableVillages.length})</span>
+              <select
+                className="select"
+                value={selectedVillage}
+                onChange={(e) => {
+                  setSelectedVillage(e.target.value);
+                  if (e.target.value) setSelectedPanchayat('');
+                }}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', minWidth: '180px' }}
+              >
+                <option value="">-- {lang === 'hi' ? 'राजस्व गाँव चुनें' : 'Select Revenue Village'} --</option>
                 {availableVillages.map(v => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -427,7 +461,7 @@ export default function LocationBar() {
                 disabled={searching}
                 style={{ background: 'var(--grad-monsoon)', color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(56,189,248,0.3)' }}
               >
-                {searching ? '⏳ Updating...' : `✓ ${lang === 'hi' ? 'लागू करें' : 'Apply'}`}
+                {searching ? '⏳ Updating...' : `✓ ${lang === 'hi' ? 'स्थान लागू करें' : 'Apply Location'}`}
               </button>
             </div>
           </div>
