@@ -1022,7 +1022,7 @@ export default function HydroMapTab() {
             <span>🗺️</span>
             <span>{tr('hydromap_title')}</span>
             <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 700 }}>
-              MapLibre GL Vector Engine
+              MapmyIndia (Mappls) Engine
             </span>
           </h2>
           <p className="text-xs text-muted" style={{ margin: '0.2rem 0 0' }}>
