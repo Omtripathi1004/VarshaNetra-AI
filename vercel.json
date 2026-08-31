@@ -12,15 +12,15 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "/api/index.py"
+      "dest": "/api/index.py?_path=/$1"
     },
     {
       "src": "/docs",
-      "dest": "/api/index.py"
+      "dest": "/api/index.py?_path=/docs"
     },
     {
       "src": "/openapi.json",
-      "dest": "/api/index.py"
+      "dest": "/api/index.py?_path=/openapi.json"
     },
     {
       "handle": "filesystem"

@@ -58,6 +58,7 @@ async def normalize_vercel_path(request: Request, call_next):
 app.include_router(router, prefix="/api/v1")
 app.include_router(router, prefix="/v1")
 app.include_router(router, prefix="/api")
+app.include_router(router, prefix="")
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
