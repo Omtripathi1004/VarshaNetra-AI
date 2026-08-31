@@ -10,7 +10,6 @@ __pycache__/
 # Build outputs
 dist/
 public/
-frontend/dist/
 
 # Local databases & logs
 *.db
