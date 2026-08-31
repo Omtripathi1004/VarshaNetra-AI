@@ -1,33 +1,26 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/send-sms",
-      "dest": "/api/send-sms.js"
+      "source": "/api/send-sms",
+      "destination": "/api/send-sms.js"
     },
     {
-      "src": "/api/send-email",
-      "dest": "/api/send-email.js"
+      "source": "/api/send-email",
+      "destination": "/api/send-email.js"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py?_path=/$1"
+      "source": "/api/(.*)",
+      "destination": "/api/index.py?_path=/$1"
     },
     {
-      "src": "/docs",
-      "dest": "/api/index.py?_path=/docs"
+      "source": "/docs",
+      "destination": "/api/index.py?_path=/docs"
     },
     {
-      "src": "/openapi.json",
-      "dest": "/api/index.py?_path=/openapi.json"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/openapi.json",
+      "destination": "/api/index.py?_path=/openapi.json"
     }
   ]
 }
