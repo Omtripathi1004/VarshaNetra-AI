@@ -50,6 +50,8 @@ const CROP_CLIMATE_DYNAMICS = [
   { id: 'moong', name: 'Moong / Green Gram (मूंग दाल)', season: 'ZAID', opt_temp_min: 22, opt_temp_max: 36, opt_rain_mm: 300, current_suitability: 91, water_demand_mm: [45, 75, 115, 95, 40, 10], monsoon_supply_mm: [50, 45, 35, 25, 15, 10] },
   { id: 'cucurbits', name: 'Watermelon & Melons (तरबूज और खरबूजा)', season: 'ZAID', opt_temp_min: 24, opt_temp_max: 38, opt_rain_mm: 200, current_suitability: 88, water_demand_mm: [40, 70, 110, 90, 35, 10], monsoon_supply_mm: [40, 35, 25, 20, 10, 5] },
   { id: 'cucumber', name: 'Cucumber & Gourd (खीरा / ककड़ी / लौकी)', season: 'ZAID', opt_temp_min: 22, opt_temp_max: 36, opt_rain_mm: 250, current_suitability: 89, water_demand_mm: [45, 75, 120, 95, 40, 10], monsoon_supply_mm: [45, 35, 25, 20, 10, 5] },
+  { id: 'vegetables', name: 'Mixed Vegetables (मिश्रित हरी सब्जियां)', season: 'ZAID', opt_temp_min: 20, opt_temp_max: 35, opt_rain_mm: 300, current_suitability: 88, water_demand_mm: [50, 80, 130, 105, 45, 15], monsoon_supply_mm: [45, 35, 25, 20, 10, 5] },
+  { id: 'fodder', name: 'Green Fodder / Berseem / Jowar (हरा चारा)', season: 'ZAID', opt_temp_min: 18, opt_temp_max: 38, opt_rain_mm: 300, current_suitability: 86, water_demand_mm: [45, 70, 110, 90, 40, 10], monsoon_supply_mm: [40, 30, 20, 15, 10, 5] },
 ];
 
 const STAGE_LABELS = ['Land Prep', 'Sowing', 'Vegetative', 'Flowering', 'Grain Fill', 'Harvest'];
@@ -197,7 +199,7 @@ export default function AgricultureTab() {
       {/* ALL CROPS & STAGE CONTINGENCY SELECTOR */}
       <div className="card" style={{ marginBottom: '1.5rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)' }}>
         <div className="card-header">
-          <span className="card-title">🌱 {lang === 'hi' ? 'विशिष्ट फसल व विकास अवस्था निर्णय सहायता (22+ फसलें)' : 'Crop Stage Agronomic Advisory Engine (22+ Regional Crops)'}</span>
+          <span className="card-title">🌱 {lang === 'hi' ? 'विशिष्ट फसल व विकास अवस्था निर्णय सहायता (36+ फसलें)' : 'Crop Stage Agronomic Advisory Engine (36+ Regional Crops)'}</span>
           <span className="badge badge-success">Decision Support System</span>
         </div>
 

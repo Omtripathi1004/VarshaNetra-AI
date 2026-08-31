@@ -1177,32 +1177,65 @@ export default function OverviewTab() {
         );
       })()}
 
-      {/* ALL 11 CROPS & GROWTH STAGE DECISION ADVISORY */}
+      {/* ALL 36+ CROPS & GROWTH STAGE DECISION ADVISORY */}
       <div className="card" style={{ marginBottom: '1.4rem' }}>
         <div className="card-header">
-          <span className="card-title">🌾 {lang === 'hi' ? '11+ फसलों व अवस्था अनुसार सटीक कृषि निर्णय' : '11+ Crop & Growth Stage Actionable Decision Matrix'}</span>
+          <span className="card-title">🌾 {lang === 'hi' ? '36+ फसलों व अवस्था अनुसार सटीक कृषि निर्णय' : '36+ Crop & Growth Stage Actionable Decision Matrix'}</span>
           <span className="badge badge-success">Decision Support System</span>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', alignItems: 'center', marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: '200px' }}>
-            <label className="field-label">{lang === 'hi' ? 'फसल चुनें (11 उपलब्ध):' : 'Select Crop (All 11 Available):'}</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: '220px' }}>
+            <label className="field-label">{lang === 'hi' ? 'फसल चुनें (36+ उपलब्ध):' : 'Select Crop (36+ Available):'}</label>
             <select
               className="select"
               value={selectedCrop}
               onChange={e => handleCropStageChange(e.target.value, selectedStage)}
             >
-              <option value="rice">🌾 Paddy (Rice) / धान</option>
-              <option value="cotton">☁️ Cotton / कपास</option>
-              <option value="soybean">🫘 Soybean / सोयाबीन</option>
-              <option value="maize">🌽 Maize / मक्का</option>
-              <option value="groundnut">🥜 Groundnut / मूँगफली</option>
-              <option value="bajra">🌿 Bajra (Pearl Millet) / बाजरा</option>
-              <option value="sugarcane">🎋 Sugarcane / गन्ना</option>
-              <option value="pulses">🥣 Pulses (Arhar / Moong) / दालें</option>
-              <option value="wheat">🌾 Wheat / गेहूं</option>
-              <option value="mustard">🌼 Mustard / सरसों</option>
-              <option value="vegetables">🍅 Vegetables / सब्जियां</option>
+              <optgroup label="Kharif Crops (खरीफ फसलें)">
+                <option value="rice">🌾 Paddy (Rice) / धान</option>
+                <option value="basmati">🌾 Basmati Rice / बासमती चावल</option>
+                <option value="cotton">☁️ Cotton / कपास</option>
+                <option value="soybean">🫘 Soybean / सोयाबीन</option>
+                <option value="maize">🌽 Maize / मक्का</option>
+                <option value="groundnut">🥜 Groundnut / मूँगफली</option>
+                <option value="bajra">🌿 Bajra (Pearl Millet) / बाजरा</option>
+                <option value="jowar">🌾 Jowar (Sorghum) / ज्वार</option>
+                <option value="sugarcane">🎋 Sugarcane / गन्ना</option>
+                <option value="pulses">🥣 Pigeon Pea (Arhar) / अरहर दाल</option>
+                <option value="ragi">🌾 Finger Millet (Ragi) / रागी</option>
+                <option value="urad">🫘 Black Gram (Urad) / उड़द</option>
+                <option value="jute">🌱 Jute / पटसन</option>
+                <option value="tea">🍵 Tea Plantation / चाय</option>
+                <option value="coffee">☕ Coffee Plantation / कॉफ़ी</option>
+                <option value="coconut">🥥 Coconut Palm / नारियल</option>
+                <option value="rubber">🌳 Natural Rubber / रबड़</option>
+                <option value="turmeric">🫚 Turmeric / हल्दी</option>
+                <option value="ginger">🫚 Ginger / अदरक</option>
+                <option value="sesame">🌱 Sesame (Til) / तिल</option>
+                <option value="mango">🥭 Mango Orchard / आम</option>
+                <option value="banana">🍌 Banana Plantation / केला</option>
+              </optgroup>
+              <optgroup label="Rabi Crops (रबी फसलें)">
+                <option value="wheat">🌾 Wheat / गेहूं</option>
+                <option value="mustard">🌼 Mustard (Sarson) / सरसों</option>
+                <option value="chickpea">🫘 Chickpea (Chana) / चना</option>
+                <option value="lentil">🥣 Lentil (Masoor) / मसूर</option>
+                <option value="potato">🥔 Potato / आलू</option>
+                <option value="barley">🌾 Barley (Jau) / जौ</option>
+                <option value="onion">🧅 Onion & Garlic / प्याज़ व लहसुन</option>
+                <option value="tomato">🍅 Tomato / टमाटर</option>
+                <option value="chilli">🌶️ Green Chilli / हरी मिर्च</option>
+                <option value="apple">🍎 Apple Orchard / सेब</option>
+              </optgroup>
+              <optgroup label="Zaid & Summer Crops (जायद फसलें)">
+                <option value="sunflower">🌻 Sunflower / सूरजमुखी</option>
+                <option value="moong">🫘 Moong (Green Gram) / मूंग दाल</option>
+                <option value="cucurbits">🍉 Watermelon & Melons / तरबूज व खरबूजा</option>
+                <option value="cucumber">🥒 Cucumber & Gourd / खीरा व लौकी</option>
+                <option value="vegetables">🥬 Mixed Vegetables / मिश्रित सब्जियां</option>
+                <option value="fodder">🌿 Green Fodder / हरा चारा</option>
+              </optgroup>
             </select>
           </div>
 
