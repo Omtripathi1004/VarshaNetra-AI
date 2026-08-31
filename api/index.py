@@ -58,9 +58,24 @@ async def normalize_vercel_path(request: Request, call_next):
 app.include_router(router, prefix="/api/v1")
 app.include_router(router, prefix="/v1")
 app.include_router(router, prefix="/api")
-app.include_router(router, prefix="")
 
-@app.get("/")
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+for possible_dist in [
+    os.path.join(root_dir, "frontend", "dist"),
+    os.path.join(root_dir, "dist"),
+    os.path.join(backend_dir, "dist"),
+    os.path.join(root_dir, "public"),
+]:
+    assets_path = os.path.join(possible_dist, "assets")
+    if os.path.exists(assets_path):
+        try:
+            app.mount("/assets", StaticFiles(directory=assets_path), name="static_assets")
+            break
+        except Exception:
+            pass
+
 @app.get("/health")
 @app.get("/api/health")
 @app.get("/api/v1/health")
