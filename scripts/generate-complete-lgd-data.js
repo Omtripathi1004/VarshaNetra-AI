@@ -1,12 +1,11 @@
 import fs from 'fs';
-import path from 'path';
 
-// Complete dictionary of Indian States & UTs with all major districts, blocks, 15+ Gram Panchayats, and 15+ Villages
+// Highly optimized, compact dataset with full 16+ Panchayats & 16+ Villages per District
 const STATES_CONFIG = {
   "Uttar Pradesh": {
     districts: ["Lucknow", "Varanasi", "Kanpur Nagar", "Prayagraj (Allahabad)", "Agra", "Gorakhpur", "Bareilly", "Meerut", "Aligarh", "Moradabad", "Saharanpur", "Ayodhya (Faizabad)", "Jhansi", "Muzaffarnagar", "Mathura", "Budaun", "Banda", "Mirzapur", "Sultanpur", "Azamgarh", "Basti", "Deoria", "Ghazipur", "Jaunpur", "Hardoi", "Sitapur", "Lakhimpur Kheri"],
     cities: ["Lucknow", "Varanasi", "Kanpur", "Prayagraj", "Agra", "Gorakhpur", "Bareilly", "Meerut", "Aligarh", "Moradabad", "Saharanpur", "Ayodhya", "Jhansi"],
-    seedPanchayats: ["Natkur GP", "Bijnaur GP", "Kalli Pashchim GP", "Gosainganj GP", "Mohanlalganj GP", "Bakshi Ka Talab GP", "Kakori GP", "Malihabad GP", "Sarojini Nagar GP", "Chinhat GP", "Mall GP", "Itaunja GP", "Mahona GP", "Nagram GP", "Kasmandi Kalan GP", "Banthra Sikanderpur GP", "Amethi Dingur GP"],
+    seedPanchayats: ["Natkur GP", "Bijnaur GP", "Kalli Pashchim GP", "Gosainganj GP", "Mohanlalganj GP", "Bakshi Ka Talab GP", "Kakori GP", "Malihabad GP", "Sarojini Nagar GP", "Chinhat GP", "Mall GP", "Itaunja GP", "Mahona GP", "Nagram GP", "Kasmandi Kalan GP", "Banthra Sikanderpur GP"],
     seedVillages: ["Natkur Village", "Banthra Village", "Kalli Pashchim Village", "Bijnaur Village", "Gosainganj Rural", "Samesi Village", "Khujauli Village", "Kasmandi Village", "Mall Village", "Nagram Village", "Itaunja Village", "Mahona Village", "Juggaur Village", "Anaura Village", "Utetia Village", "Matiyari Village"]
   },
   "Maharashtra": {
@@ -24,19 +23,19 @@ const STATES_CONFIG = {
   "Madhya Pradesh": {
     districts: ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Dewas", "Satna", "Ratlam", "Rewa", "Chhindwara", "Shivpuri", "Vidisha", "Khandwa", "Khargone", "Mandsaur", "Neemuch", "Hoshangabad (Narmadapuram)", "Sehore", "Morena", "Bhind", "Guna", "Damoh"],
     cities: ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Dewas", "Satna", "Ratlam", "Rewa", "Chhindwara", "Shivpuri", "Vidisha"],
-    seedPanchayats: ["Sanwer GP", "Mhow (Dr Ambedkar Nagar) GP", "Depalpur GP", "Hatod GP", "Rau GP", "Betma GP", "Manpur GP", "Kshipra GP", "Dakachya GP", "Kampel GP", "Pedmi GP", "Machal GP", "Gautampura GP", "Hasalpur GP", "Khurdi GP", "Simrol GP"],
+    seedPanchayats: ["Sanwer GP", "Mhow GP", "Depalpur GP", "Hatod GP", "Rau GP", "Betma GP", "Manpur GP", "Kshipra GP", "Dakachya GP", "Kampel GP", "Pedmi GP", "Machal GP", "Gautampura GP", "Hasalpur GP", "Khurdi GP", "Simrol GP"],
     seedVillages: ["Sanwer Village", "Mhow Village", "Depalpur Village", "Hatod Village", "Rau Village", "Betma Village", "Manpur Village", "Kshipra Village", "Dakachya Village", "Kampel Village", "Pedmi Village", "Machal Village", "Gautampura Village", "Hasalpur Village", "Khurdi Village", "Simrol Village"]
   },
   "Rajasthan": {
     districts: ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Bhilwara", "Alwar", "Bharatpur", "Sikar", "Pali", "Sri Ganganagar", "Barmer", "Jaisalmer", "Nagaur", "Chittorgarh", "Jhunjhunu", "Tonk", "Churu", "Dausa", "Sawai Madhopur"],
     cities: ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Bhilwara", "Alwar", "Bharatpur", "Sikar", "Pali", "Sri Ganganagar", "Barmer", "Jaisalmer"],
-    seedPanchayats: ["Sanganer GP", "Amer GP", "Bassai GP", "Chaksu GP", "Jamwa Ramgarh GP", "Kotputli GP", "Phulera GP", "Sambhar GP", "Shahpura GP", "Viratnagar GP", "Dudu GP", "Jotwara GP", "Govindgarh GP", "Jobner GP", "Tunga GP", "Kishangarh Renwal GP"],
+    seedPanchayats: ["Sanganer GP", "Amer GP", "Bassi GP", "Chaksu GP", "Jamwa Ramgarh GP", "Kotputli GP", "Phulera GP", "Sambhar GP", "Shahpura GP", "Viratnagar GP", "Dudu GP", "Jotwara GP", "Govindgarh GP", "Jobner GP", "Tunga GP", "Renwal GP"],
     seedVillages: ["Sanganer Village", "Amer Village", "Bassi Village", "Chaksu Village", "Jamwa Ramgarh Village", "Kotputli Village", "Phulera Village", "Sambhar Village", "Shahpura Village", "Viratnagar Village", "Dudu Village", "Jotwara Village", "Govindgarh Village", "Jobner Village", "Tunga Village", "Renwal Village"]
   },
   "Gujarat": {
     districts: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Gandhinagar", "Mehsana", "Kutch (Bhuj)", "Bharuch", "Anand", "Banaskantha (Palanpur)", "Sabarkantha (Himmatnagar)", "Amreli", "Patan", "Navsari", "Valsad", "Panchmahal (Godhra)", "Dahod"],
     cities: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Gandhinagar", "Mehsana", "Bhuj", "Bharuch", "Anand", "Palanpur", "Himmatnagar", "Amreli", "Patan", "Navsari", "Valsad"],
-    seedPanchayats: ["Sanand GP", "Bavla GP", "Dholka GP", "Viramgam GP", "Dhandhuka GP", "Mandal GP", "Detroj GP", "Dholera GP", "Dascroi GP", "Ranpur GP", "Bareja GP", "Zundal GP", "Bhadaj GP", "Shilaj GP", "Shela GP", "Bopal Rural GP"],
+    seedPanchayats: ["Sanand GP", "Bavla GP", "Dholka GP", "Viramgam GP", "Dhandhuka GP", "Mandal GP", "Detroj GP", "Dholera GP", "Dascroi GP", "Ranpur GP", "Bareja GP", "Zundal GP", "Bhadaj GP", "Shilaj GP", "Shela GP", "Bopal GP"],
     seedVillages: ["Sanand Village", "Bavla Village", "Dholka Village", "Viramgam Village", "Dhandhuka Village", "Mandal Village", "Detroj Village", "Dholera Village", "Dascroi Village", "Ranpur Village", "Bareja Village", "Zundal Village", "Bhadaj Village", "Shilaj Village", "Shela Village", "Bopal Village"]
   },
   "West Bengal": {
@@ -66,13 +65,13 @@ const STATES_CONFIG = {
   "Telangana": {
     districts: ["Hyderabad", "Ranga Reddy", "Medchal-Malkajgiri", "Warangal", "Hanamkonda", "Nizamabad", "Karimnagar", "Khammam", "Mahabubnagar", "Nalgonda", "Siddipet", "Suryapet", "Adilabad", "Bhadradri Kothagudem", "Jagtial", "Jangaon", "Jayashankar Bhupalpally", "Jogulamba Gadwal", "Kamareddy", "Kumuram Bheem Asifabad", "Mahabubabad", "Mancherial", "Medak", "Mulugu", "Nagarkurnool", "Narayanpet", "Nirmal", "Peddapalli", "Rajanna Sircilla", "Sangareddy", "Vikarabad", "Wanaparthy", "Yadadri Bhuvanagiri"],
     cities: ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Khammam", "Mahabubnagar", "Nalgonda", "Siddipet", "Suryapet", "Adilabad", "Ramagundam", "Miryalaguda"],
-    seedPanchayats: ["Shamshabad GP", "Rajendranagar GP", "Ibrahimpatnam GP", "Chevella GP", "Moinabad GP", "Shadnagar (Farooqnagar) GP", "Maheshwaram GP", "Kandukur GP", "Hayathnagar GP", "Saroornagar GP", "Manchal GP", "Yacharam GP", "Shabad GP", "Kondurg GP", "Keshampet GP", "Talakondapally GP"],
+    seedPanchayats: ["Shamshabad GP", "Rajendranagar GP", "Ibrahimpatnam GP", "Chevella GP", "Moinabad GP", "Shadnagar GP", "Maheshwaram GP", "Kandukur GP", "Hayathnagar GP", "Saroornagar GP", "Manchal GP", "Yacharam GP", "Shabad GP", "Kondurg GP", "Keshampet GP", "Talakondapally GP"],
     seedVillages: ["Shamshabad Village", "Rajendranagar Village", "Ibrahimpatnam Village", "Chevella Village", "Moinabad Village", "Shadnagar Village", "Maheshwaram Village", "Kandukur Village", "Hayathnagar Village", "Saroornagar Village", "Manchal Village", "Yacharam Village", "Shabad Village", "Kondurg Village", "Keshampet Village", "Talakondapally Village"]
   },
   "Punjab": {
     districts: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Hoshiarpur", "Mohali (SAS Nagar)", "Gurdaspur", "Pathankot", "Firozpur", "Faridkot", "Mansa", "Sangrur", "Muktsar", "Barnala", "Fatehgarh Sahib", "Kapurthala", "Moga", "Rupnagar (Ropar)", "Fazilka", "Tarn Taran", "Malerkotla", "Nawanshahr (SBS Nagar)"],
     cities: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Hoshiarpur", "Mohali", "Batala", "Pathankot", "Moga", "Abohar", "Malerkotla", "Khanna", "Phagwara"],
-    seedPanchayats: ["Samrala GP", "Khanna GP", "Jagraon GP", "Raikot GP", "Payal GP", "Doraha GP", "Mullanpur Dakha GP", "Dehlon GP", "Pakhowal GP", "Sidhwan Bet GP", "Machhiwara GP", "Sahnewal GP", "Sudhar GP", "Khamanon GP", "Maloud GP", "Kum Kalan GP"],
+    seedPanchayats: ["Samrala GP", "Khanna GP", "Jagraon GP", "Raikot GP", "Payal GP", "Doraha GP", "Mullanpur GP", "Dehlon GP", "Pakhowal GP", "Sidhwan Bet GP", "Machhiwara GP", "Sahnewal GP", "Sudhar GP", "Khamanon GP", "Maloud GP", "Kum Kalan GP"],
     seedVillages: ["Samrala Village", "Khanna Village", "Jagraon Village", "Raikot Village", "Payal Village", "Doraha Village", "Mullanpur Village", "Dehlon Village", "Pakhowal Village", "Sidhwan Bet Village", "Machhiwara Village", "Sahnewal Village", "Sudhar Village", "Khamanon Village", "Maloud Village", "Kum Kalan Village"]
   },
   "Haryana": {
@@ -102,11 +101,11 @@ const STATES_CONFIG = {
   "Jharkhand": {
     districts: ["Ranchi", "East Singhbhum (Jamshedpur)", "Dhanbad", "Bokaro", "Deoghar", "Hazaribagh", "Giridih", "Palamu (Daltonganj)", "Ramgarh", "Dumka", "Garhwa", "Chatra", "Godda", "Sahebganj", "Pakur", "Koderma", "Jamtara", "Latehar", "Lohardaga", "Gumla", "Simdega", "Khunti", "West Singhbhum (Chaibasa)", "Seraikela Kharsawan"],
     cities: ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Deoghar", "Hazaribagh", "Giridih", "Medininagar", "Ramgarh", "Dumka", "Garhwa"],
-    seedPanchayats: ["Kanke GP", "Ratu GP", "Namkum GP", "Ormanjhi GP", "Angara GP", "Nagri GP", "Silli GP", "Sonahatu GP", "Tamar GP", "Bundu GP", "Bero GP", "Itki GP", "Lapung GP", "Mandar GP", "Chanho GP", "Burmu GP", "Khelari GP"],
-    seedVillages: ["Kanke Village", "Ratu Village", "Namkum Village", "Ormanjhi Village", "Angara Village", "Nagri Village", "Silli Village", "Sonahatu Village", "Tamar Village", "Bundu Village", "Bero Village", "Itki Village", "Lapung Village", "Mandar Village", "Chanho Village", "Burmu Village", "Khelari Village"]
+    seedPanchayats: ["Kanke GP", "Ratu GP", "Namkum GP", "Ormanjhi GP", "Angara GP", "Nagri GP", "Silli GP", "Sonahatu GP", "Tamar GP", "Bundu GP", "Bero GP", "Itki GP", "Lapung GP", "Mandar GP", "Chanho GP", "Burmu GP"],
+    seedVillages: ["Kanke Village", "Ratu Village", "Namkum Village", "Ormanjhi Village", "Angara Village", "Nagri Village", "Silli Village", "Sonahatu Village", "Tamar Village", "Bundu Village", "Bero Village", "Itki Village", "Lapung Village", "Mandar Village", "Chanho Village", "Burmu Village"]
   },
   "Chhattisgarh": {
-    districts: ["Raipur", "Durg (Bhilai)", "Bilaspur", "Korba", "Rajnandgaon", "Bastar (Jagdalpur)", "Surguja (Ambikapur)", "Dhamtari", "Mahasamund", "Janjgir-Champa", "Raigarh", "Kanker", "Kabirdham (Kawardha)", "Bemetara", "Balod", "Baloda Bazar", "Gariaband", "Mungeli", "Surajpur", "Balrampur", "Koriya", "Jashpur", "Kondagaon", "Narayanpur", "Bijapur", "Dantewada (South Bastar)", "Sukma", "Gaurela-Pendra-Marwahi", "Manendragarh-Chirmiri-Bharatpur", "Mohla-Manpur-Ambagarh Chowki", "Sakti", "Sarangarh-Bilaigarh", "Khairagarh-Chhuikhadan-Gandai"],
+    districts: ["Raipur", "Durg (Bhilai)", "Bilaspur", "Korba", "Rajnandgaon", "Bastar (Jagdalpur)", "Surguja (Ambikapur)", "Dhamtari", "Mahasamund", "Janjgir-Champa", "Raigarh", "Kanker", "Kabirdham (Kawardha)", "Bemetara", "Balod", "Baloda Bazar", "Gariaband", "Mungeli", "Surajpur", "Balrampur", "Koriya", "Jashpur", "Kondagaon", "Narayanpur", "Bijapur", "Dantewada (South Bastar)", "Sukma"],
     cities: ["Raipur", "Bhilai", "Bilaspur", "Korba", "Rajnandgaon", "Jagdalpur", "Ambikapur", "Dhamtari", "Mahasamund", "Champa", "Raigarh", "Kanker"],
     seedPanchayats: ["Abhanpur GP", "Arang GP", "Tilda Neora GP", "Dharsiwa GP", "Mandir Hasaud GP", "Kharora GP", "Gobra Nawapara GP", "Kurud GP", "Patan GP", "Dhamdha GP", "Kumhari GP", "Utai GP", "Bhilai-3 GP", "Ahiwara GP", "Gunderdehi GP", "Kota GP"],
     seedVillages: ["Abhanpur Village", "Arang Village", "Tilda Neora Village", "Dharsiwa Village", "Mandir Hasaud Village", "Kharora Village", "Gobra Nawapara Village", "Kurud Village", "Patan Village", "Dhamdha Village", "Kumhari Village", "Utai Village", "Bhilai-3 Village", "Ahiwara Village", "Gunderdehi Village", "Kota Village"]
@@ -204,7 +203,7 @@ const STATES_CONFIG = {
   "Andaman and Nicobar": {
     districts: ["South Andaman (Port Blair)", "North and Middle Andaman (Mayabunder)", "Nicobar (Car Nicobar)"],
     cities: ["Port Blair", "Garacharma", "Bambooflat", "Mayabunder", "Diglipur", "Rangat", "Car Nicobar"],
-    seedPanchayats: ["Ferrargunj GP", "Prothrapur GP", "Garacharma GP", "Chouldhari GP", "Havelock Island (Swaraj Dweep) GP", "Neil Island (Shaheed Dweep) GP", "Diglipur GP", "Rangat GP", "Billiground GP", "Kalighat GP", "Kadamtala GP", "Bakultala GP", "Mayabunder GP", "Sita Nagar GP", "Tusnabad GP", "Wandoor GP"],
+    seedPanchayats: ["Ferrargunj GP", "Prothrapur GP", "Garacharma GP", "Chouldhari GP", "Havelock Island GP", "Neil Island GP", "Diglipur GP", "Rangat GP", "Billiground GP", "Kalighat GP", "Kadamtala GP", "Bakultala GP", "Mayabunder GP", "Sita Nagar GP", "Tusnabad GP", "Wandoor GP"],
     seedVillages: ["Ferrargunj Village", "Prothrapur Village", "Garacharma Village", "Chouldhari Village", "Havelock Village", "Neil Island Village", "Diglipur Village", "Rangat Village", "Billiground Village", "Kalighat Village", "Kadamtala Village", "Bakultala Village", "Mayabunder Village", "Sita Nagar Village", "Tusnabad Village", "Wandoor Village"]
   },
   "Dadra and Nagar Haveli and Daman and Diu": {
@@ -239,101 +238,57 @@ const DEFAULT_VILLAGES_POOL = [
   "Gramodaya Puram Village (LGD #216)"
 ];
 
-// Build the final compiled INDIA_LOCATIONS object
-const COMPILED_INDIA_LOCATIONS = {};
+const COMPILED = {};
 
-for (const [stateName, config] of Object.entries(STATES_CONFIG)) {
-  const panchayatsObj = {};
-  const villagesObj = {};
+for (const [st, cfg] of Object.entries(STATES_CONFIG)) {
+  const pObj = {};
+  const vObj = {};
 
-  config.districts.forEach((dist, dIdx) => {
-    // Generate 16 authentic Panchayats for this district
+  cfg.districts.forEach((dist, dIdx) => {
     const pList = [];
     const vList = [];
-
     for (let i = 0; i < 16; i++) {
-      const pSeed = (config.seedPanchayats && config.seedPanchayats[i]) || DEFAULT_PANCHAYATS_POOL[i];
-      const vSeed = (config.seedVillages && config.seedVillages[i]) || DEFAULT_VILLAGES_POOL[i];
-
-      // Format clean name
-      const pName = pSeed.replace(/ GP$/, '').replace(/ Gram Panchayat.*$/, '');
-      const vName = vSeed.replace(/ Village$/, '').replace(/ Revenue Village.*$/, '');
-
-      const lgdCodeP = (100000 + (dIdx + 1) * 100 + i + 1);
-      const lgdCodeV = (200000 + (dIdx + 1) * 100 + i + 1);
-
-      pList.push(`${pName} Gram Panchayat (LGD #${lgdCodeP})`);
-      vList.push(`${vName} Village (LGD #${lgdCodeV})`);
+      const pName = (cfg.seedPanchayats && cfg.seedPanchayats[i]) || DEFAULT_PANCHAYATS_POOL[i];
+      const vName = (cfg.seedVillages && cfg.seedVillages[i]) || DEFAULT_VILLAGES_POOL[i];
+      pList.push(pName);
+      vList.push(vName);
     }
-
-    panchayatsObj[dist] = pList;
-    villagesObj[dist] = vList;
+    pObj[dist] = pList;
+    vObj[dist] = vList;
   });
 
-  COMPILED_INDIA_LOCATIONS[stateName] = {
-    districts: config.districts,
-    cities: config.cities,
-    panchayats: panchayatsObj,
-    villages: villagesObj
+  COMPILED[st] = {
+    districts: cfg.districts,
+    cities: cfg.cities,
+    panchayats: pObj,
+    villages: vObj
   };
 }
 
-// Generate the output JS code string
-const outputCode = `/**
+const out = `/**
  * VarshaNetra AI — Authoritative Indian Administrative Geography Catalog
  * Sources: Census of India & Ministry of Panchayati Raj Local Government Directory (LGD)
- * 
- * Contains:
- * - 36 States & Union Territories
- * - Major and Granular Districts per State
- * - 16+ Authoritative Gram Panchayats per District
- * - 16+ Authoritative Revenue Villages per District
  */
 
-export const INDIA_LOCATIONS = ${JSON.stringify(COMPILED_INDIA_LOCATIONS, null, 2)};
+export const INDIA_LOCATIONS = ${JSON.stringify(COMPILED, null, 2)};
 
 export const DEFAULT_DISTRICT_PANCHAYATS = ${JSON.stringify(DEFAULT_PANCHAYATS_POOL, null, 2)};
 
 export const DEFAULT_DISTRICT_VILLAGES = ${JSON.stringify(DEFAULT_VILLAGES_POOL, null, 2)};
 
-// Complete searchable index across all administrative tiers
+// Lightweight searchable index across primary administrative items
 export const ALL_SEARCHABLE_LOCATIONS = Object.entries(INDIA_LOCATIONS).flatMap(([state, data]) => {
   const items = [];
-  
-  // State tier
   items.push({ name: state, type: 'State', state, district: '' });
-  
-  // District tier
   (data.districts || []).forEach(d => {
     items.push({ name: d, type: 'District', state, district: d });
   });
-  
-  // City tier
   (data.cities || []).forEach(c => {
     items.push({ name: c, type: 'City', state, district: '' });
   });
-  
-  // Gram Panchayat tier
-  if (data.panchayats) {
-    Object.entries(data.panchayats).forEach(([dist, pList]) => {
-      pList.forEach(p => {
-        items.push({ name: p, type: 'Gram Panchayat', state, district: dist });
-      });
-    });
-  }
-  
-  // Revenue Village tier
-  if (data.villages) {
-    Object.entries(data.villages).forEach(([dist, vList]) => {
-      vList.forEach(v => {
-        items.push({ name: v, type: 'Village', state, district: dist });
-      });
-    });
-  }
-  
   return items;
 });
 `;
 
-fs.writeFileSync('frontend/src/data/indiaLocations.js', outputCode, 'utf8');
-console.log('Successfully written authoritative indiaLocations.js with 16+ Panchayats & 16+ Villages per District!');
+fs.writeFileSync('frontend/src/data/indiaLocations.js', out, 'utf8');
+console.log('Optimized indiaLocations.js created successfully!');
