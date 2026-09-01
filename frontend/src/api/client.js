@@ -392,17 +392,25 @@ export const api = {
   // Weather
   getCurrentWeather: async (loc) => {
     try {
-      return await axios.get(`${BASE}/weather/current`, { params: locParams(loc), timeout: 3000 });
+      const res = await axios.get(`${BASE}/weather/current`, { params: locParams(loc), timeout: 3500 });
+      if (res && res.data && typeof res.data === 'object' && typeof res.data.temperature_c === 'number') {
+        return res;
+      }
+      return await directOpenMeteoCurrent(loc?.lat ?? 26.8467, loc?.lon ?? 80.9462);
     } catch {
-      return directOpenMeteoCurrent(loc?.lat ?? 26.8467, loc?.lon ?? 80.9462);
+      return await directOpenMeteoCurrent(loc?.lat ?? 26.8467, loc?.lon ?? 80.9462);
     }
   },
 
   getForecast: async (loc, days = 7) => {
     try {
-      return await axios.get(`${BASE}/weather/forecast`, { params: { ...locParams(loc), days }, timeout: 3000 });
+      const res = await axios.get(`${BASE}/weather/forecast`, { params: { ...locParams(loc), days }, timeout: 3500 });
+      if (res && res.data && typeof res.data === 'object' && Array.isArray(res.data.daily) && res.data.daily.length > 0) {
+        return res;
+      }
+      return await directOpenMeteoForecast(loc?.lat ?? 26.8467, loc?.lon ?? 80.9462, days);
     } catch {
-      return directOpenMeteoForecast(loc?.lat ?? 26.8467, loc?.lon ?? 80.9462, days);
+      return await directOpenMeteoForecast(loc?.lat ?? 26.8467, loc?.lon ?? 80.9462, days);
     }
   },
 
