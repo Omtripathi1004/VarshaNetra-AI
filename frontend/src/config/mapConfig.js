@@ -159,8 +159,8 @@ export const BASEMAP_OPTIONS = [
 // ─── Style Builders ─────────────────────────────────────────────────────────
 
 /**
- * MapmyIndia / Mappls Open Street & Road basemap.
- * Official Survey of India compliant basemap with full road, highway, and street network.
+ * MapmyIndia / Mappls basemap.
+ * Official Survey of India compliant basemap with Mappls tile engine.
  */
 const buildMapplsStyle = () => {
   const key = getMapplsKey();
@@ -170,59 +170,41 @@ const buildMapplsStyle = () => {
       version: 8,
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
-        'mappls-osm-streets': {
-          type: 'raster',
-          tiles: [
-            'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-          ],
-          tileSize: 256,
-          attribution: '&copy; Mappls / MapmyIndia, &copy; OpenStreetMap'
-        },
         'mappls-raster': {
           type: 'raster',
           tiles: [
             `https://apis.mappls.com/advancedmaps/v1/${key}/still_map/{z}/{x}/{y}.png`
           ],
           tileSize: 256,
-          attribution: '&copy; <a href="https://about.mappls.com/" target="_blank">Mappls</a>, &copy; <a href="https://www.mapmyindia.com/" target="_blank">MapmyIndia</a> (Survey of India Standard)'
+          attribution: '&copy; <a href="https://about.mappls.com/" target="_blank">Mappls</a>, &copy; <a href="https://www.mapmyindia.com/" target="_blank">MapmyIndia</a> (Survey of India Compliant)'
         }
       },
       layers: [
         {
           id: 'mappls-bg',
           type: 'background',
-          paint: { 'background-color': '#f1f5f9' }
-        },
-        {
-          id: 'mappls-osm-streets-layer',
-          type: 'raster',
-          source: 'mappls-osm-streets',
-          minzoom: 0,
-          maxzoom: 19
+          paint: { 'background-color': '#070512' }
         },
         {
           id: 'mappls-raster-layer',
           type: 'raster',
           source: 'mappls-raster',
           minzoom: 0,
-          maxzoom: 19,
-          paint: {
-            'raster-opacity': 0.88
-          }
+          maxzoom: 19
         }
       ]
     };
   }
 
-  // Fallback: Open Street Road Map with Survey of India boundary
+  // Survey of India standard base fallback
   return {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
-      'mappls-street-tiles': {
+      'mappls-fallback-tiles': {
         type: 'raster',
         tiles: [
-          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+          'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
         ],
         tileSize: 256,
         attribution: '&copy; Mappls (MapmyIndia) • Survey of India Boundary Standard'
@@ -232,12 +214,12 @@ const buildMapplsStyle = () => {
       {
         id: 'mappls-fallback-bg',
         type: 'background',
-        paint: { 'background-color': '#f1f5f9' }
+        paint: { 'background-color': '#0d0a1e' }
       },
       {
-        id: 'mappls-street-layer',
+        id: 'mappls-fallback-layer',
         type: 'raster',
-        source: 'mappls-street-tiles',
+        source: 'mappls-fallback-tiles',
         minzoom: 0,
         maxzoom: 19
       }

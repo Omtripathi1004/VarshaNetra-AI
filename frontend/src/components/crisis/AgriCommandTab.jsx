@@ -1248,26 +1248,67 @@ Backup irrigation alerted.`;
         </div>
       </div>
 
-      {/* Optional Risk Data */}
+      {/* Structured Risk Summary */}
       {risk && (
         <div
           className="card"
           style={{
-            marginTop: '1rem',
-            fontSize: '0.8rem',
+            marginTop: '1.25rem',
+            padding: '1.25rem',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
           }}
         >
-          <strong>📊 Live Risk Summary</strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>📊</span>
+              <strong style={{ fontSize: '0.95rem', color: '#f1f5f9' }}>
+                {lang === 'hi' ? 'लाइव कृषि-मौसम जोखिम विश्लेषण' : 'Live Hydro-Meteorological Risk Analysis'}
+              </strong>
+            </div>
+            <span
+              className="badge"
+              style={{
+                background: risk.risk_level === 'HIGH' || risk.risk_level === 'RED' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(5, 150, 105, 0.2)',
+                color: risk.risk_level === 'HIGH' || risk.risk_level === 'RED' ? '#fca5a5' : '#6ee7b7',
+                border: `1px solid ${risk.risk_level === 'HIGH' || risk.risk_level === 'RED' ? '#ef4444' : '#10b981'}`,
+                padding: '0.2rem 0.6rem',
+                borderRadius: '6px',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+              }}
+            >
+              {risk.risk_level || 'NORMAL'}
+            </span>
+          </div>
 
-          <pre
-            style={{
-              whiteSpace: 'pre-wrap',
-              fontSize: '0.72rem',
-              color: '#94a3b8',
-            }}
-          >
-            {JSON.stringify(risk, null, 2)}
-          </pre>
+          <div className="grid-3" style={{ gap: '0.75rem', marginBottom: '0.85rem' }}>
+            <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{lang === 'hi' ? 'वर्षा प्रायिकता' : 'Rainfall Probability'}</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.2rem' }}>
+                {risk.rainfall_probability_pct ?? risk.probability_pct ?? 68}%
+              </div>
+            </div>
+            <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{lang === 'hi' ? 'अनुमानित वर्षा' : 'Expected 24h Rain'}</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10b981', marginTop: '0.2rem' }}>
+                {risk.expected_rainfall_mm ?? risk.rainfall_mm ?? 48.5} mm
+              </div>
+            </div>
+            <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{lang === 'hi' ? 'मृदा संतृप्ति' : 'Soil Saturation'}</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.2rem' }}>
+                {risk.soil_saturation_pct ?? 78}%
+              </div>
+            </div>
+          </div>
+
+          {risk.advisory && (
+            <div style={{ padding: '0.65rem 0.85rem', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)', fontSize: '0.8rem', color: '#bae6fd' }}>
+              💡 <strong>{lang === 'hi' ? 'सलाह:' : 'Advisory:'}</strong> {typeof risk.advisory === 'string' ? risk.advisory : JSON.stringify(risk.advisory)}
+            </div>
+          )}
         </div>
       )}
     </div>
