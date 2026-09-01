@@ -159,8 +159,8 @@ export const BASEMAP_OPTIONS = [
 // ─── Style Builders ─────────────────────────────────────────────────────────
 
 /**
- * MapmyIndia / Mappls raster tile basemap.
- * Official Survey of India compliant basemap with Mappls raster engine.
+ * MapmyIndia / Mappls Open Street & Road basemap.
+ * Official Survey of India compliant basemap with full road, highway, and street network.
  */
 const buildMapplsStyle = () => {
   const key = getMapplsKey();
@@ -170,13 +170,13 @@ const buildMapplsStyle = () => {
       version: 8,
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
-        'india-base-underlay': {
+        'mappls-osm-streets': {
           type: 'raster',
           tiles: [
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
           ],
           tileSize: 256,
-          attribution: '&copy; MapmyIndia / Mappls, &copy; Survey of India'
+          attribution: '&copy; Mappls / MapmyIndia, &copy; OpenStreetMap'
         },
         'mappls-raster': {
           type: 'raster',
@@ -184,19 +184,19 @@ const buildMapplsStyle = () => {
             `https://apis.mappls.com/advancedmaps/v1/${key}/still_map/{z}/{x}/{y}.png`
           ],
           tileSize: 256,
-          attribution: '&copy; <a href="https://about.mappls.com/" target="_blank">Mappls</a>, &copy; <a href="https://www.mapmyindia.com/" target="_blank">MapmyIndia</a> (Survey of India Compliant)'
+          attribution: '&copy; <a href="https://about.mappls.com/" target="_blank">Mappls</a>, &copy; <a href="https://www.mapmyindia.com/" target="_blank">MapmyIndia</a> (Survey of India Standard)'
         }
       },
       layers: [
         {
           id: 'mappls-bg',
           type: 'background',
-          paint: { 'background-color': '#f8fafc' }
+          paint: { 'background-color': '#f1f5f9' }
         },
         {
-          id: 'india-base-layer',
+          id: 'mappls-osm-streets-layer',
           type: 'raster',
-          source: 'india-base-underlay',
+          source: 'mappls-osm-streets',
           minzoom: 0,
           maxzoom: 19
         },
@@ -205,36 +205,39 @@ const buildMapplsStyle = () => {
           type: 'raster',
           source: 'mappls-raster',
           minzoom: 0,
-          maxzoom: 19
+          maxzoom: 19,
+          paint: {
+            'raster-opacity': 0.88
+          }
         }
       ]
     };
   }
 
-  // Fallback: Official Survey of India styled National Geographic / World Street Map
+  // Fallback: Open Street Road Map with Survey of India boundary
   return {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
-      'mappls-national-tiles': {
+      'mappls-street-tiles': {
         type: 'raster',
         tiles: [
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
         ],
         tileSize: 256,
-        attribution: '&copy; Mappls / MapmyIndia • Survey of India Boundary Standard'
+        attribution: '&copy; Mappls (MapmyIndia) • Survey of India Boundary Standard'
       }
     },
     layers: [
       {
         id: 'mappls-fallback-bg',
         type: 'background',
-        paint: { 'background-color': '#f8fafc' }
+        paint: { 'background-color': '#f1f5f9' }
       },
       {
-        id: 'mappls-national-layer',
+        id: 'mappls-street-layer',
         type: 'raster',
-        source: 'mappls-national-tiles',
+        source: 'mappls-street-tiles',
         minzoom: 0,
         maxzoom: 19
       }

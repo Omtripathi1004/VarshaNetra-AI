@@ -47,10 +47,10 @@ export const DEMO_ACCOUNTS = [
   },
 ];
 
-// RBAC Constants
-const USER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics'];
+// RBAC Constants - All tabs accessible for demo & operational monitoring
+const USER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics', 'alerts', 'command', 'system'];
 const PRIVILEGED_TABS = ['alerts', 'command', 'system'];
-const PRIVILEGED_ROLES = new Set(['developer', 'admin']);
+const PRIVILEGED_ROLES = new Set(['developer', 'admin', 'farmer', 'officer']);
 
 export function AppProvider({ children }) {
   // Language with localStorage persistence

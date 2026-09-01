@@ -142,11 +142,51 @@ export const AGRO_CLIMATIC_BELTS = [
     zone: 'Coastal Plains',
     color: '#dc2626',
     badge: '🌊 Coastal Delta'
+  },
+  {
+    id: 'ladakh_cold_desert',
+    name_en: 'Ladakh High-Altitude Cold Desert',
+    name_hi: 'लद्दाख उच्च-तुंगता शीत मरुस्थल',
+    district: 'Leh',
+    state: 'Ladakh',
+    lat: 34.1526,
+    lon: 77.5771,
+    crop: 'Barley, Apricot & Sea-buckthorn',
+    stage: 'Vegetative & Ripening',
+    recommendation_en: 'Glacial Melt Stream Regulation: Channel morning glacial melt for furrow irrigation. Protect apricot blossoms.',
+    recommendation_hi: 'ग्लेशियल जल प्रबंधन: सुबह के हिमनद जल को नालियों में मोड़ें। खुबानी व जौ की सुरक्षा करें।',
+    temp_c: 18.2,
+    rain_prob_pct: 12,
+    imd_warning: 'GREEN',
+    zone: 'Trans-Himalayan Zone',
+    color: '#0284c7',
+    badge: '🏔️ Ladakh Cold Desert'
+  },
+  {
+    id: 'kashmir_orchards',
+    name_en: 'Kashmir Valley Apple & Saffron Belt',
+    name_hi: 'कश्मीर घाटी सेब व केसर क्षेत्र',
+    district: 'Srinagar',
+    state: 'Jammu and Kashmir',
+    lat: 34.0837,
+    lon: 74.7973,
+    crop: 'Apple Orchards & Saffron',
+    stage: 'Fruit Development & Vegetative',
+    recommendation_en: 'Scab & Drainage Management: Spray systemic fungicide after light shower; maintain orchard sub-surface drainage.',
+    recommendation_hi: 'स्कैब व जल निकासी: हल्की बारिश के बाद फफूंदनाशक छिड़कें; बगीचों में जल निकासी बनाए रखें।',
+    temp_c: 22.4,
+    rain_prob_pct: 35,
+    imd_warning: 'YELLOW',
+    zone: 'Western Himalayan Zone',
+    color: '#10b981',
+    badge: '🍎 Kashmir Apple Belt'
   }
 ];
 
 export const AGRO_CLIMATIC_ZONES = [
   { id: 'ALL', name_en: 'All Agro-Climatic Zones (National View)', name_hi: 'समस्त कृषि-जलवायु क्षेत्र (राष्ट्रीय दृश्य)', center: [78.9629, 22.5937], zoom: 4.8 },
+  { id: 'Trans-Himalayan Zone', name_en: 'Trans-Himalayan Zone (Ladakh / Leh)', name_hi: 'ट्रांस-हिमालयी क्षेत्र (लद्दाख / लेह)', center: [77.5771, 34.1526], zoom: 6.8 },
+  { id: 'Western Himalayan Zone', name_en: 'Western Himalayan (Jammu & Kashmir / HP)', name_hi: 'पश्चिमी हिमालय (जम्मू-कश्मीर / हि.प्र.)', center: [74.80, 33.50], zoom: 6.5 },
   { id: 'Indo-Gangetic Plains', name_en: 'Indo-Gangetic Plains (Paddy/Wheat)', name_hi: 'सिंधु-गंगा का मैदान (धान/गेहूं)', center: [82.50, 26.50], zoom: 6.2 },
   { id: 'Central Plateau', name_en: 'Central Plateau (Malwa Soybean)', name_hi: 'मध्य पठार (मालवा सोयाबीन)', center: [77.00, 23.50], zoom: 6.5 },
   { id: 'Deccan Plateau', name_en: 'Deccan Plateau (Vidarbha Cotton)', name_hi: 'दक्कन पठार (विदर्भ कपास)', center: [78.50, 19.50], zoom: 6.2 },
