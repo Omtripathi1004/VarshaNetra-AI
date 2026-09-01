@@ -16,25 +16,35 @@ import './index.css';
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
   componentDidCatch(error, info) {
     console.error('VarshaNetra UI Error:', error, info);
+    this.setState({ errorInfo: info });
   }
   render() {
     if (this.state.hasError) {
+      const errMessage = this.state.error?.message || this.state.error?.toString() || 'Render Error';
       return (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#f1f5f9', background: '#070512', minHeight: '100vh' }}>
-          <h2>🌧️ VarshaNetra UI Recovered</h2>
-          <p style={{ color: '#94a3b8', margin: '1rem 0' }}>An interface component encountered an issue, but the platform is active.</p>
+        <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: '#f1f5f9', background: '#070512', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <h2 style={{ fontSize: '1.4rem', color: '#38bdf8', marginBottom: '0.4rem' }}>🌧️ VarshaNetra UI Auto-Recovery</h2>
+          <p style={{ color: '#94a3b8', margin: '0.5rem 0 1rem', maxWidth: '500px', fontSize: '0.88rem' }}>
+            A temporary rendering glitch was intercepted. Click below to re-render the view with safe baseline telemetry.
+          </p>
+          <div style={{ margin: '0.5rem 0 1.2rem', padding: '0.6rem 1rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.35)', borderRadius: '10px', maxWidth: '650px', fontSize: '0.78rem', color: '#fca5a5', fontFamily: 'monospace', wordBreak: 'break-word', textAlign: 'left' }}>
+            {errMessage}
+          </div>
           <button
             className="btn btn-primary"
-            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+            }}
+            style={{ padding: '0.6rem 1.4rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', background: 'linear-gradient(135deg, #059669, #0284c7)', color: '#fff', border: 'none' }}
           >
-            🔄 Reload Dashboard
+            🔄 Re-render Dashboard
           </button>
         </div>
       );
