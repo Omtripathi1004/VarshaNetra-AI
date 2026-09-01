@@ -47,10 +47,10 @@ export const DEMO_ACCOUNTS = [
   },
 ];
 
-// RBAC Constants - All tabs accessible for demo & operational monitoring
-const USER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics', 'alerts', 'command', 'system'];
+// RBAC Constants: Strict Farmer Mode (top 5 pages) vs Authority Mode
+const USER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics'];
 const PRIVILEGED_TABS = ['alerts', 'command', 'system'];
-const PRIVILEGED_ROLES = new Set(['developer', 'admin', 'farmer', 'officer']);
+const PRIVILEGED_ROLES = new Set(['developer', 'admin', 'officer']);
 
 export function AppProvider({ children }) {
   // Language with localStorage persistence
