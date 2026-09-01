@@ -1,20 +1,7 @@
-// VarshaNetra AI — Service Worker for Offline Availability & Low-Connectivity Fallback
-const CACHE_NAME = 'varshanetra-cache-v1';
-const OFFLINE_URLS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+// VarshaNetra AI — Service Worker v3 for Offline Availability & Immediate Updates
+const CACHE_NAME = 'varshanetra-v3-release';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Pre-caching offline pages and assets');
-      return cache.addAll(OFFLINE_URLS).catch((err) => {
-        console.warn('[ServiceWorker] Pre-cache warning:', err);
-      });
-    })
-  );
   self.skipWaiting();
 });
 
@@ -24,40 +11,54 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[ServiceWorker] Removing old cache', key);
+            console.log('[ServiceWorker] Purging outdated cache:', key);
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  const requestUrl = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
 
-  // Network-first strategy for dynamic API calls with offline cache fallback
-  if (requestUrl.pathname.startsWith('/api/')) {
+  // Skip non-GET requests
+  if (request.method !== 'GET') return;
+
+  // 1. Navigation requests (HTML pages): Strict Network-First
+  if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request) || caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // 2. Dynamic API endpoints: Network-first with offline fallback
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
         .then((response) => {
           if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return response;
         })
         .catch(() => {
-          // If offline, return cached response if available
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-              console.log('[ServiceWorker] Returning cached API response for:', event.request.url);
-              return cachedResponse;
-            }
-            return new Response(JSON.stringify({ offline: true, message: 'Offline mode: displaying last cached telemetry.' }), {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            return new Response(JSON.stringify({ offline: true, message: 'Offline mode active.' }), {
+              status: 200,
               headers: { 'Content-Type': 'application/json' }
             });
           });
@@ -66,27 +67,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first strategy for static assets
+  // 3. Static Assets (JS/CSS/Fonts/Images): Cache-first with background network update
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return (
-        response ||
-        fetch(event.request)
-          .then((fetchResponse) => {
-            if (fetchResponse && fetchResponse.status === 200 && event.request.method === 'GET') {
-              const responseToCache = fetchResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            }
-            return fetchResponse;
-          })
-          .catch(() => {
-            if (event.request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
-          })
-      );
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return networkResponse;
+      }).catch(() => null);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
