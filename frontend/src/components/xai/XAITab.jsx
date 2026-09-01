@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
+import VernacularTTSButton from '../common/VernacularTTSButton';
 
 function ShapBar({ feature, featureHi, value, shapContribution, unit, lang }) {
   const isPositive = shapContribution >= 0;
@@ -34,7 +35,7 @@ function ShapBar({ feature, featureHi, value, shapContribution, unit, lang }) {
 }
 
 export default function XAITab() {
-  const { tr, lang, location, xaiContext, setActiveTab } = useApp();
+  const { tr, lang, location, xaiContext, setActiveTab, isFarmerMode, isDevAdminMode, switchRole } = useApp();
   const [xai, setXai] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -63,6 +64,9 @@ export default function XAITab() {
     fetchXAITelemetry();
   }, [location.lat, location.lon]);
 
+  const xaiNarrativeEn = xai?.xai_narrative_en || 'High relative humidity and synoptic monsoonal trough alignment are elevating rainfall probability.';
+  const xaiNarrativeHi = xai?.xai_narrative_hi || 'उच्च आर्द्रता और मानसूनी अक्ष के कारण वर्षा की संभावना बढ़ी है।';
+
   return (
     <div className="main-content">
       <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem' }}>
@@ -71,27 +75,29 @@ export default function XAITab() {
             🧠 {tr('xai_title')}
           </h2>
           <p className="text-muted text-sm" style={{ marginTop: '0.2rem' }}>
-            {lang === 'hi'
-              ? `स्थान (${location.display_name}) के लिए वास्तविक SHAP (SHapley Additive exPlanations) विशेषता भार व मॉडल वंशक्रम`
-              : `Exact SHAP (SHapley Additive exPlanations) feature contribution & model data provenance for ${location.display_name}`}
+            {isFarmerMode
+              ? (lang === 'hi' ? `स्थान (${location.display_name}) के लिए सरल मौसम स्पष्टीकरण` : `Simple weather forecast reasoning for ${location.display_name}`)
+              : (lang === 'hi' ? `स्थान (${location.display_name}) के लिए वास्तविक SHAP विशेषता भार व मॉडल वंशक्रम` : `Exact SHAP feature contribution & model data provenance for ${location.display_name}`)}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setActiveTab && setActiveTab('overview')}
-          className="btn"
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: '#cbd5e1',
-            fontSize: '0.78rem',
-            padding: '0.4rem 0.8rem',
-            borderRadius: '8px',
-            cursor: 'pointer',
-          }}
-        >
-          {lang === 'hi' ? '← वापस मानसून कमांड' : '← Back to Monsoon Command'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab && setActiveTab('overview')}
+            className="btn"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#cbd5e1',
+              fontSize: '0.78rem',
+              padding: '0.4rem 0.8rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            {lang === 'hi' ? '← वापस अवलोकन' : '← Back to Overview'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -110,37 +116,85 @@ export default function XAITab() {
               <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{xai.model_version || 'LightGBM_v2.0_Hybrid'}</span>
             </div>
             <div className="card" style={{ gridColumn: 'span 2', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)', padding: '1.2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '1.1rem' }}>🔍</span>
-                <strong style={{ fontSize: '0.92rem', color: '#f1f5f9' }}>
-                  {lang === 'hi' ? 'मॉडल ने यह भविष्यवाणी क्यों की? (Model Reasoning)' : 'Why did the model produce this prediction?'}
-                </strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '1.1rem' }}>🔍</span>
+                  <strong style={{ fontSize: '0.92rem', color: '#f1f5f9' }}>
+                    {lang === 'hi' ? 'मॉडल ने यह पूर्वानुमान क्यों लगाया? (Reasoning)' : 'Why did the AI produce this prediction?'}
+                  </strong>
+                </div>
+                <VernacularTTSButton
+                  textHindi={xaiNarrativeHi}
+                  textEnglish={xaiNarrativeEn}
+                  lang={lang}
+                  labelHi="स्पष्टीकरण सुनें"
+                  labelEn="Listen Reasoning"
+                  size="sm"
+                />
               </div>
-              <p style={{ fontSize: '0.86rem', lineHeight: 1.65, color: '#cbd5e1', margin: 0 }}>
-                {lang === 'hi' ? (xai.xai_narrative_hi || 'उच्च आर्द्रता और मानसूनी अक्ष के कारण वर्षा की संभावना बढ़ी है।') : (xai.xai_narrative_en || 'High relative humidity and synoptic monsoonal trough alignment are elevating rainfall probability.')}
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.65, color: '#cbd5e1', margin: 0 }}>
+                {lang === 'hi' ? xaiNarrativeHi : xaiNarrativeEn}
               </p>
             </div>
           </div>
 
-          {/* SHAP Feature Importance Bars */}
-          <div className="card" style={{ marginBottom: '1rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)', padding: '1.2rem' }}>
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-              <span className="card-title" style={{ fontSize: '0.95rem', fontWeight: 800 }}>📊 {tr('shap_importance')}</span>
-              <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem', fontWeight: 600 }}>
-                <span style={{ color: '#059669' }}>■ {tr('positive_impact')} (+Rain)</span>
-                <span style={{ color: '#dc2626' }}>■ {tr('negative_impact')} (-Rain)</span>
+          {/* FARMER VIEW VS DEVELOPER VIEW */}
+          {isFarmerMode ? (
+            /* Simplified Farmer Factor Cards */
+            <div className="card" style={{ marginBottom: '1rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid #059669', padding: '1.2rem' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+                <span className="card-title" style={{ fontSize: '0.95rem', fontWeight: 800, color: '#34d399' }}>
+                  🌾 {lang === 'hi' ? 'वर्षा को प्रभावित करने वाले मुख्य मौसमी कारक' : 'Key Weather Factors Affecting Rainfall'}
+                </span>
+                <span className="badge badge-success">किसान अनुकूल दृश्य</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid rgba(5, 150, 105, 0.3)', borderRadius: '10px', padding: '0.8rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                    <span>💧</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#34d399' }}>{lang === 'hi' ? 'हवा में नमी (82%)' : 'Air Humidity (82%)'}</strong>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{lang === 'hi' ? '🟢 वर्षा की संभावना बढ़ा रही है' : '🟢 Boosting rain probability'}</span>
+                </div>
+
+                <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid rgba(5, 150, 105, 0.3)', borderRadius: '10px', padding: '0.8rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                    <span>🌊</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#34d399' }}>{lang === 'hi' ? 'मानसूनी द्रोणी (Trough)' : 'Monsoon Trough'}</strong>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{lang === 'hi' ? '🟢 अनुकूल मानसूनी बादल' : '🟢 Favorable convective cloud band'}</span>
+                </div>
+
+                <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid rgba(5, 150, 105, 0.3)', borderRadius: '10px', padding: '0.8rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                    <span>🌱</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#34d399' }}>{lang === 'hi' ? 'मृदा नमी' : 'Soil Moisture'}</strong>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{lang === 'hi' ? '🟢 रोपाई हेतु पर्याप्त जल संतुलन' : '🟢 Optimal water balance for sowing'}</span>
+                </div>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              {xai.shap_features?.map((f, i) => (
-                <ShapBar key={i}
-                  feature={f.feature} featureHi={f.feature_hi}
-                  value={f.value} shapContribution={f.shap_contribution}
-                  unit={f.unit} lang={lang}
-                />
-              ))}
+          ) : (
+            /* SHAP Feature Importance Bars (Developer & Admin Mode) */
+            <div className="card" style={{ marginBottom: '1rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)', padding: '1.2rem' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+                <span className="card-title" style={{ fontSize: '0.95rem', fontWeight: 800 }}>📊 {tr('shap_importance')}</span>
+                <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                  <span style={{ color: '#059669' }}>■ {tr('positive_impact')} (+Rain)</span>
+                  <span style={{ color: '#dc2626' }}>■ {tr('negative_impact')} (-Rain)</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                {xai.shap_features?.map((f, i) => (
+                  <ShapBar key={i}
+                    feature={f.feature} featureHi={f.feature_hi}
+                    value={f.value} shapContribution={f.shap_contribution}
+                    unit={f.unit} lang={lang}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Model Data Lineage & Provenance Accordion */}
           <div className="card" style={{ marginBottom: '1rem', background: 'rgba(18, 14, 40, 0.72)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.09)', padding: '1.2rem' }}>

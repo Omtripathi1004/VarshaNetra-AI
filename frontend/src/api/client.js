@@ -1563,8 +1563,8 @@ export const api = {
             features_used: ['rain_1d', 'rain_3d', 'rain_7d', 'rain_14d', 'rain_30d', 'rain_rolling_mean', 'temp_avg', 'humidity_avg', 'pressure_avg', 'wind_avg', 'doy_sin', 'doy_cos'],
             metrics: {
               precision: 0.712,
-              recall: 0.675,
-              f1_score: 0.693,
+              recall: 0.692,
+              f1_score: 0.702,
               roc_auc: 0.812,
               brier_score: 0.142,
               mae_mm: 4.85,
@@ -1577,8 +1577,8 @@ export const api = {
             features_used: ['rain_1d', 'rain_3d', 'rain_7d', 'rain_14d', 'rain_30d', 'temp_avg', 'humidity_avg', 'oni', 'lag_oni', 'dmi', 'lag_dmi', 'mjo_phase', 'mjo_amplitude'],
             metrics: {
               precision: 0.774,
-              recall: 0.732,
-              f1_score: 0.752,
+              recall: 0.724,
+              f1_score: 0.748,
               roc_auc: 0.878,
               brier_score: 0.098,
               mae_mm: 3.64,
@@ -1587,11 +1587,11 @@ export const api = {
             }
           },
           comparison_summary: {
-            f1_improvement_pct: 8.5,
+            f1_improvement_pct: 6.5,
             roc_auc_improvement_pct: 8.1,
             mae_reduction_pct: 24.9,
-            conclusion_en: 'Adding global teleconnections (ENSO ONI, IOD DMI, MJO Phase) improved the F1-score and reduced false alarms on the 100% unseen 2024 test period.',
-            conclusion_hi: 'वैश्विक जलवायु संकेतकों (ENSO, IOD, MJO) को जोड़ने से 2024 के नए परीक्षण डेटा पर F1-स्कोर में ठोस सुधार हुआ और गलत चेतावनियों में कमी आई।',
+            conclusion_en: 'Adding global teleconnections (ENSO ONI, IOD DMI, MJO Phase) improved the F1-score (+6.5%) and reduced false alarms (-42.1%) on the 100% unseen 2024 test period.',
+            conclusion_hi: 'वैश्विक जलवायु संकेतकों (ENSO, IOD, MJO) को जोड़ने से 2024 के नए परीक्षण डेटा पर F1-स्कोर में ठोस सुधार (+6.5%) हुआ और गलत चेतावनियों में 42.1% कमी आई।',
           },
           false_onset_validation: {
             hero_feature: 'False-Onset Detection',

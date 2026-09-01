@@ -176,6 +176,15 @@ export function AppProvider({ children }) {
     }
   }, [canAccessPrivileged, activeTab]);
 
+  // Role separation helpers
+  const isFarmerMode = user?.role === 'farmer';
+  const isDevAdminMode = user?.role === 'developer' || user?.role === 'admin';
+
+  const switchRole = useCallback((targetRole) => {
+    const acc = DEMO_ACCOUNTS.find(a => a.role === targetRole) || DEMO_ACCOUNTS[0];
+    login(acc.userId, acc.password);
+  }, [login]);
+
   return (
     <AppContext.Provider value={{
       lang,
@@ -190,6 +199,9 @@ export function AppProvider({ children }) {
       tr,
       user,
       setUser,
+      isFarmerMode,
+      isDevAdminMode,
+      switchRole,
       login,
       logout,
       isLoginModalOpen,

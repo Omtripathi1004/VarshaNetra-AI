@@ -6,6 +6,8 @@ import { Line, Bar } from 'react-chartjs-2';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
 import { useLiveDate, generateDynamicWeekData } from '../../hooks/useLiveDate';
+import KisanActionWidgets from '../agriculture/KisanActionWidgets';
+import VernacularTTSButton from '../common/VernacularTTSButton';
 
 ChartJS.register(...registerables);
 
@@ -109,8 +111,7 @@ const AGRI_HUBS = [
 ];
 
 export default function OverviewTab() {
-  const { tr, lang, location, setLocation, setActiveTab, setXaiContext } = useApp();
-  const [userRole, setUserRole] = useState('farmer'); // 'farmer' | 'developer' | 'admin'
+  const { tr, lang, location, setLocation, setActiveTab, setXaiContext, isFarmerMode, isDevAdminMode, user, switchRole } = useApp();
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState(null);
   const [prediction, setPrediction] = useState(null);
@@ -378,8 +379,104 @@ export default function OverviewTab() {
         </div>
       )}
 
+      {/* ROLE MODE SWITCHER BAR */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(18, 14, 40, 0.85)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '14px',
+        padding: '0.6rem 0.9rem',
+        marginBottom: '1.25rem',
+        flexWrap: 'wrap',
+        gap: '0.6rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.2rem' }}>{isFarmerMode ? '🌾' : isDevAdminMode ? '💻' : '🏛️'}</span>
+          <div>
+            <strong style={{ fontSize: '0.86rem', color: '#f1f5f9' }}>
+              {isFarmerMode
+                ? (lang === 'hi' ? 'किसान / कृषि दृश्य (Kisan Direct Mode)' : 'Farmer / Kisan View Mode')
+                : (lang === 'hi' ? 'डेवलपर व शोधकर्ता दृश्य (ML Expert Mode)' : 'Developer & ML Researcher Mode')}
+            </strong>
+            <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8' }}>
+              {isFarmerMode
+                ? (lang === 'hi' ? 'सरल ट्रैफिक लाइट कार्य, आवाज प्रसारण व तकनीकी शब्दों से मुक्त दृश्य' : 'High-contrast action widgets, 1-tap voice-over, and plain language advisories')
+                : (lang === 'hi' ? 'पूर्ण SHAP भार, NOAA टेलीकनेक्शन, वायुदाब (hPa) व सेंसर टेलीमेट्री' : 'Full SHAP values, NOAA teleconnections, hPa pressure & sensor telemetry')}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => switchRole('farmer')}
+            style={{
+              padding: '0.35rem 0.75rem',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: isFarmerMode ? '2px solid #059669' : '1px solid rgba(255,255,255,0.1)',
+              background: isFarmerMode ? 'rgba(5, 150, 105, 0.25)' : 'rgba(255,255,255,0.04)',
+              color: isFarmerMode ? '#34d399' : '#cbd5e1',
+              transition: 'all 0.2s',
+            }}
+          >
+            🌾 {lang === 'hi' ? 'किसान मोड' : 'Farmer Mode'}
+          </button>
+          <button
+            type="button"
+            onClick={() => switchRole('developer')}
+            style={{
+              padding: '0.35rem 0.75rem',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: user?.role === 'developer' ? '2px solid #0284c7' : '1px solid rgba(255,255,255,0.1)',
+              background: user?.role === 'developer' ? 'rgba(2, 132, 199, 0.25)' : 'rgba(255,255,255,0.04)',
+              color: user?.role === 'developer' ? '#38bdf8' : '#cbd5e1',
+              transition: 'all 0.2s',
+            }}
+          >
+            💻 {lang === 'hi' ? 'डेवलपर मोड' : 'Developer Mode'}
+          </button>
+          <button
+            type="button"
+            onClick={() => switchRole('admin')}
+            style={{
+              padding: '0.35rem 0.75rem',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: user?.role === 'admin' ? '2px solid #dc2626' : '1px solid rgba(255,255,255,0.1)',
+              background: user?.role === 'admin' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(255,255,255,0.04)',
+              color: user?.role === 'admin' ? '#fca5a5' : '#cbd5e1',
+              transition: 'all 0.2s',
+            }}
+          >
+            🏛️ {lang === 'hi' ? 'प्रशासक' : 'Admin'}
+          </button>
+        </div>
+      </div>
+
+      {/* 🌟 KISAN TRAFFIC LIGHT ACTION WIDGETS (Rendered in Farmer Mode) */}
+      {isFarmerMode && (
+        <KisanActionWidgets
+          weather={weather}
+          prediction={prediction}
+          cropAdvisory={cropAdvisory}
+          selectedCrop={selectedCrop}
+          locationName={location.display_name}
+          lang={lang}
+        />
+      )}
+
       {/* ADMINISTRATOR BROADCAST STRIP (Shown in Admin Mode) */}
-      {userRole === 'admin' && (
+      {user?.role === 'admin' && (
         <div style={{ padding: '0.85rem 1.1rem', background: 'rgba(239, 68, 68, 0.08)', color: '#991b1b', borderRadius: '12px', marginBottom: '1.25rem', fontSize: '0.78rem', border: '2px solid #fecaca' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>🏛️ Agricultural Officer Crisis Console</strong>
@@ -677,7 +774,9 @@ export default function OverviewTab() {
               <div>
                 <span className="text-xs text-muted">{lang === 'hi' ? 'मृदा नमी (0-1 सेमी)' : 'Soil Moisture (0-1cm)'}</span>
                 <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#047857' }}>
-                  {activeDay.soil_moisture} m³/m³
+                  {isFarmerMode
+                    ? (lang === 'hi' ? 'अनुकूल नमी (38%)' : 'Optimal Moisture (38%)')
+                    : `${activeDay.soil_moisture} m³/m³`}
                 </p>
               </div>
             </div>
@@ -1057,6 +1156,37 @@ export default function OverviewTab() {
           }
         };
 
+        if (isFarmerMode) {
+          // Farmer Mode: Simplified Monsoon & Seasonal Summary
+          return (
+            <div className="card" style={{ marginBottom: '1.4rem', border: '1px solid #10b981', background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.15) 0%, rgba(18, 14, 40, 0.9) 100%)', borderRadius: '16px', padding: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.8rem' }}>🌊</span>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#34d399', fontWeight: 800 }}>
+                      {lang === 'hi' ? 'मानसूनी हवा व मौसमी वर्षा स्थिति' : 'Monsoon Season Status & Moisture Flow'}
+                    </h4>
+                    <p style={{ margin: '0.15rem 0 0', fontSize: '0.86rem', color: '#f1f5f9', fontWeight: 600 }}>
+                      {lang === 'hi' ? tele.overall_state_hi : tele.overall_state_en}
+                    </p>
+                  </div>
+                </div>
+
+                <VernacularTTSButton
+                  textHindi={`मानसूनी हवा व मौसमी स्थिति: ${tele.overall_state_hi}। मानसूनी नमी सक्रिय है। फसलों के लिए वर्षा अनुकूल रहेगी।`}
+                  textEnglish={`Monsoon season status: ${tele.overall_state_en}. Atmospheric moisture flow is active and favorable for crops.`}
+                  lang={lang}
+                  labelHi="मानसून स्थिति सुनें"
+                  labelEn="Listen Monsoon Status"
+                  size="sm"
+                />
+              </div>
+            </div>
+          );
+        }
+
+        // Developer & Admin Mode: Full Deep Diagnostics
         return (
           <div className="card" style={{ marginBottom: '1.4rem', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '16px', overflow: 'hidden' }}>
             <div className="card-header" style={{ background: 'rgba(255,255,255,0.03)', padding: '0.9rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.09)' }}>
@@ -1258,22 +1388,33 @@ export default function OverviewTab() {
 
         {cropAdvisory && (
           <div style={{ padding: '1.1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  background: cropAdvisory.badge_color || '#059669',
-                  color: '#ffffff',
-                  padding: '0.35rem 0.95rem',
-                  borderRadius: '999px',
-                  fontWeight: 800,
-                  fontSize: '0.84rem',
-                }}
-              >
-                {lang === 'hi' ? cropAdvisory.action_label_hi : cropAdvisory.action_label_en}
-              </span>
-              <strong style={{ fontSize: '1rem', color: '#f1f5f9' }}>
-                {lang === 'hi' ? cropAdvisory.crop_name_hi : cropAdvisory.crop_name_en} ({lang === 'hi' ? cropAdvisory.stage_name_hi : cropAdvisory.stage_name_en})
-              </strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    background: cropAdvisory.badge_color || '#059669',
+                    color: '#ffffff',
+                    padding: '0.35rem 0.95rem',
+                    borderRadius: '999px',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  {lang === 'hi' ? cropAdvisory.action_label_hi : cropAdvisory.action_label_en}
+                </span>
+                <strong style={{ fontSize: '1rem', color: '#f1f5f9' }}>
+                  {lang === 'hi' ? cropAdvisory.crop_name_hi : cropAdvisory.crop_name_en} ({lang === 'hi' ? cropAdvisory.stage_name_hi : cropAdvisory.stage_name_en})
+                </strong>
+              </div>
+
+              <VernacularTTSButton
+                textHindi={`${cropAdvisory.action_label_hi || ''}। ${cropAdvisory.rationale_hi || ''}। कीट सलाह: ${cropAdvisory.pest_warning_hi || ''}`}
+                textEnglish={`${cropAdvisory.action_label_en || ''}. ${cropAdvisory.rationale_en || ''}. Pest guidance: ${cropAdvisory.pest_warning_en || ''}`}
+                lang={lang}
+                labelHi="कृषि सलाह सुनें"
+                labelEn="Listen Advisory"
+                size="sm"
+              />
             </div>
             <p style={{ margin: '0.4rem 0', fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.55 }}>
               {lang === 'hi' ? cropAdvisory.rationale_hi : cropAdvisory.rationale_en}

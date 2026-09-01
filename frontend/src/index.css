@@ -977,5 +977,81 @@ label.field-label { display: block; font-size: 0.75rem; color: var(--text-muted)
   }
 }
 
+/* ── Vernacular Audio Wave Pulse Animation ──────────────────── */
+@keyframes tts-sound-wave {
+  0%, 100% {
+    height: 4px;
+    opacity: 0.6;
+  }
+  50% {
+    height: 14px;
+    opacity: 1;
+  }
+}
 
+.tts-playing-bar {
+  display: inline-block;
+  width: 3px;
+  background: currentColor;
+  border-radius: 2px;
+  animation: tts-sound-wave 0.8s ease-in-out infinite;
+}
 
+.tts-playing-bar:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.tts-playing-bar:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ── Agro-Climatic Belt Marker Styles ───────────────────────── */
+.agro-belt-marker {
+  position: relative;
+  z-index: 26;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.agro-belt-marker:hover {
+  transform: scale(1.18);
+  z-index: 35;
+}
+
+.agro-belt-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid;
+  animation: beacon-pulse-anim 2s infinite cubic-bezier(0.2, 0, 0.4, 1);
+  pointer-events: none;
+}
+
+/* ── Mobile Table Scroll Wrappers & Fluid Containers ───────── */
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+.table-scroll-wrapper table {
+  min-width: 580px;
+}
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .card {
+    padding: 0.9rem !important;
+  }
+
+  .main-content {
+    padding: 0.75rem !important;
+  }
+}

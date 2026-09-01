@@ -19,13 +19,15 @@
 // ─── API Key Resolvers ───────────────────────────────────────────────────────
 
 /**
- * Safely reads and validates the Mappls API key from Vite env.
- * Never returns the raw key in error messages.
+ * Safely reads and validates the Mappls Map Key from Next.js / Vite env.
  */
-const getMapplsKey = () => {
+export const getMapplsKey = () => {
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
   const raw = (
-    import.meta.env.VITE_MAPPLS_API_KEY ||
-    import.meta.env.VITE_MAPMYINDIA_API_KEY ||
+    env.NEXT_PUBLIC_MAPPLS_MAP_KEY ||
+    env.VITE_MAPPLS_MAP_KEY ||
+    env.VITE_MAPPLS_API_KEY ||
+    env.VITE_MAPMYINDIA_API_KEY ||
     ''
   ).trim();
   if (raw && raw !== 'YOUR_KEY' && raw !== 'undefined' && raw.length > 6) return raw;
@@ -33,10 +35,72 @@ const getMapplsKey = () => {
 };
 
 /**
+ * Safely reads the Mappls REST API Key for Geocoding from Next.js / Vite env.
+ */
+export const getMapplsRestKey = () => {
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
+  const raw = (
+    env.NEXT_PUBLIC_MAPPLS_REST_KEY ||
+    env.VITE_MAPPLS_REST_KEY ||
+    env.VITE_MAPPLS_API_KEY ||
+    ''
+  ).trim();
+  if (raw && raw !== 'YOUR_KEY' && raw !== 'undefined' && raw.length > 6) return raw;
+  return '';
+};
+
+export const getMapplsKeys = () => ({
+  mapKey: getMapplsKey(),
+  restKey: getMapplsRestKey(),
+});
+
+/**
+ * Dynamically loads the official Mappls Web Maps JavaScript SDK script.
+ */
+export const loadMapplsSDK = (mapKey) => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      return resolve(null);
+    }
+    if (window.mappls) {
+      return resolve(window.mappls);
+    }
+    const key = mapKey || getMapplsKey();
+    if (!key) {
+      return resolve(null); // gracefully fall back without throwing
+    }
+
+    const scriptId = 'mappls-web-map-sdk';
+    if (document.getElementById(scriptId)) {
+      const existing = document.getElementById(scriptId);
+      existing.addEventListener('load', () => resolve(window.mappls));
+      existing.addEventListener('error', () => resolve(null));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://apis.mappls.com/advancedmaps/api/${key}/map-sdk.js`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      console.log('Mappls Web Map SDK loaded successfully.');
+      resolve(window.mappls);
+    };
+    script.onerror = (err) => {
+      console.warn('Mappls SDK failed to load, using MapLibre fallback:', err);
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+};
+
+/**
  * Safely reads and validates the MapTiler API key from Vite env (retained for future satellite/vector).
  */
-const getMaptilerKey = () => {
-  const raw = (import.meta.env.VITE_MAPTILER_API_KEY || '').trim();
+export const getMaptilerKey = () => {
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
+  const raw = (env.VITE_MAPTILER_API_KEY || '').trim();
   if (raw && raw !== 'YOUR_KEY' && raw.length > 10) return raw;
   return '';
 };

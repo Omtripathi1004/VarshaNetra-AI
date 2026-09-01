@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
 import ChatBot from './ChatBot';
+import LastMileAlertSimulator from './LastMileAlertSimulator';
 
 const SEV_COLOR = {
   INFO: 'info',
@@ -769,6 +770,9 @@ export default function AlertsTab() {
           🚨 {tr('alert_title')}
         </h2>
       </div>
+
+      {/* LAST-MILE ACCESSIBILITY ALERT SIMULATOR */}
+      <LastMileAlertSimulator />
 
       <div className="grid-2">
         {/* Alerts Feed */}

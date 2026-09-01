@@ -25,21 +25,150 @@ const ScaleCtrl = maplibregl.ScaleControl;
 
 // Default India Geographic Center & Zoom
 const INDIA_DEFAULT_CENTER = [78.9629, 22.5937]; // Longitude, Latitude
-const INDIA_DEFAULT_ZOOM = 4.6;
+const INDIA_DEFAULT_ZOOM = 4.8;
 
-// Basemap styles are defined in config/mapConfig.js
-// getMapStyle, BASEMAP_IDS, BASEMAP_OPTIONS, DEFAULT_BASEMAP, isMapplsConfigured are imported above
+// 6 Authoritative Indian Agricultural Hubs synced across dashboard
+export const AGRO_CLIMATIC_BELTS = [
+  {
+    id: 'gangetic_paddy',
+    name_en: 'Gangetic Paddy Basin',
+    name_hi: 'गंगा कछार धान बेल्ट',
+    district: 'Lucknow',
+    state: 'Uttar Pradesh',
+    lat: 26.85,
+    lon: 80.95,
+    crop: 'Paddy & Sugarcane',
+    stage: 'Transplanting / Sowing',
+    recommendation_en: 'Ideal Wetland Sowing Window: Complete 20-day seedling transplanting before heavy spell.',
+    recommendation_hi: 'रोपाई हेतु सर्वोत्तम समय: भारी वर्षा से पूर्व 20-दिवसीय पौध रोपाई पूरी करें।',
+    temp_c: 28.4,
+    rain_prob_pct: 82,
+    imd_warning: 'YELLOW',
+    zone: 'Indo-Gangetic Plains',
+    color: '#059669',
+    badge: '🌾 Paddy Belt'
+  },
+  {
+    id: 'vidarbha_cotton',
+    name_en: 'Vidarbha Bt Cotton Belt',
+    name_hi: 'विदर्भ कपास क्षेत्र',
+    district: 'Nagpur',
+    state: 'Maharashtra',
+    lat: 21.1458,
+    lon: 79.0882,
+    crop: 'Bt Cotton',
+    stage: 'Vegetative Growth',
+    recommendation_en: 'Furrow Drainage Required: Clear drainage channels to prevent root waterlogging.',
+    recommendation_hi: 'नालियों द्वारा जल निकासी: जड़ गलन व जलभराव रोकने हेतु नालियां साफ़ रखें।',
+    temp_c: 29.8,
+    rain_prob_pct: 54,
+    imd_warning: 'ORANGE',
+    zone: 'Deccan Plateau',
+    color: '#0284c7',
+    badge: '☁️ Cotton Belt'
+  },
+  {
+    id: 'malwa_soybean',
+    name_en: 'Malwa Soybean Plateau',
+    name_hi: 'मालवा सोयाबीन पठार',
+    district: 'Indore',
+    state: 'Madhya Pradesh',
+    lat: 22.7196,
+    lon: 75.8577,
+    crop: 'Soybean & Pulses',
+    stage: 'Flowering & Pod Fill',
+    recommendation_en: '6-Day Dry Break Watch: Keep supplemental sprinkler irrigation ready.',
+    recommendation_hi: 'शुष्क विराम निगरानी: अतिरिक्त स्प्रिंकलर सिंचाई तैयार रखें।',
+    temp_c: 27.6,
+    rain_prob_pct: 45,
+    imd_warning: 'YELLOW',
+    zone: 'Central Plateau',
+    color: '#d97706',
+    badge: '🫘 Soybean Belt'
+  },
+  {
+    id: 'saurashtra_groundnut',
+    name_en: 'Saurashtra Groundnut Zone',
+    name_hi: 'सौराष्ट्र मूँगफली क्षेत्र',
+    district: 'Rajkot',
+    state: 'Gujarat',
+    lat: 21.5222,
+    lon: 70.4579,
+    crop: 'Groundnut & Sesame',
+    stage: 'Pegging Stage',
+    recommendation_en: 'Gypsum Application Window: Apply gypsum before light shower for pod development.',
+    recommendation_hi: 'जिप्सम प्रयोग समय: फली विकास हेतु हल्की वर्षा से पहले जिप्सम बुरकाव करें।',
+    temp_c: 32.1,
+    rain_prob_pct: 28,
+    imd_warning: 'GREEN',
+    zone: 'Western Dry Zone',
+    color: '#059669',
+    badge: '🥜 Groundnut Belt'
+  },
+  {
+    id: 'bihar_maize',
+    name_en: 'North Bihar Maize Hub',
+    name_hi: 'उत्तर बिहार मक्का हब',
+    district: 'Samastipur',
+    state: 'Bihar',
+    lat: 25.8600,
+    lon: 85.7800,
+    crop: 'Hybrid Maize',
+    stage: 'Knee-High Stage',
+    recommendation_en: 'Scout Fall Armyworm: Heavy rain break favors pest monitoring & biocontrol.',
+    recommendation_hi: 'फॉल आर्मीवर्म कीट निगरानी: वर्षा के बाद कीट नियंत्रण व नीम तेल का छिड़काव करें।',
+    temp_c: 28.9,
+    rain_prob_pct: 75,
+    imd_warning: 'ORANGE',
+    zone: 'Indo-Gangetic Plains',
+    color: '#ea580c',
+    badge: '🌽 Maize Belt'
+  },
+  {
+    id: 'deccan_coastal',
+    name_en: 'Deccan & Coastal Delta Belt',
+    name_hi: 'दक्कन एवं तटीय डेल्टा क्षेत्र',
+    district: 'Visakhapatnam',
+    state: 'Andhra Pradesh',
+    lat: 17.6868,
+    lon: 83.2185,
+    crop: 'Coastal Paddy & Pulses',
+    stage: 'Nursery & Tillering',
+    recommendation_en: 'High Wind & Heavy Surge Alert: Protect nursery seedlings from coastal salinity and storm runoff.',
+    recommendation_hi: 'तटीय हवा व जलभराव चेतावनी: खारे पानी के प्रवेश से पौध की रक्षा करें।',
+    temp_c: 30.2,
+    rain_prob_pct: 88,
+    imd_warning: 'RED',
+    zone: 'Coastal Plains',
+    color: '#dc2626',
+    badge: '🌊 Coastal Delta'
+  }
+];
+
+export const AGRO_CLIMATIC_ZONES = [
+  { id: 'ALL', name_en: 'All Agro-Climatic Zones (National View)', name_hi: 'समस्त कृषि-जलवायु क्षेत्र (राष्ट्रीय दृश्य)', center: [78.9629, 22.5937], zoom: 4.8 },
+  { id: 'Indo-Gangetic Plains', name_en: 'Indo-Gangetic Plains (Paddy/Wheat)', name_hi: 'सिंधु-गंगा का मैदान (धान/गेहूं)', center: [82.50, 26.50], zoom: 6.2 },
+  { id: 'Central Plateau', name_en: 'Central Plateau (Malwa Soybean)', name_hi: 'मध्य पठार (मालवा सोयाबीन)', center: [77.00, 23.50], zoom: 6.5 },
+  { id: 'Deccan Plateau', name_en: 'Deccan Plateau (Vidarbha Cotton)', name_hi: 'दक्कन पठार (विदर्भ कपास)', center: [78.50, 19.50], zoom: 6.2 },
+  { id: 'Western Dry Zone', name_en: 'Western Dry Zone (Saurashtra/Gujarat)', name_hi: 'पश्चिमी शुष्क क्षेत्र (सौराष्ट्र/गुजरात)', center: [71.50, 22.80], zoom: 6.5 },
+  { id: 'Coastal Plains', name_en: 'Eastern & Western Coastal Plains', name_hi: 'पूर्वी व पश्चिमी तटीय मैदान', center: [80.50, 16.50], zoom: 6.0 },
+];
 
 export default function HydroMapTab() {
-  const { tr, lang, location, setLocation } = useApp();
+  const { tr, lang, location, setLocation, setActiveTab } = useApp();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const gpsMarkerRef = useRef(null);
   const clickMarkerRef = useRef(null);
   const beaconMarkersRef = useRef([]);
+  const agroBeltMarkersRef = useRef([]);
 
   // Basemap Mode: 'mappls' (default) | 'osm' | 'satellite' | 'hybrid'
   const [basemapMode, setBasemapMode] = useState(DEFAULT_BASEMAP);
+
+  // Selected Agro-Climatic Zone & Selected Belt Popup State
+  const [selectedAgroZone, setSelectedAgroZone] = useState('ALL');
+  const [selectedAgroBelt, setSelectedAgroBelt] = useState(null);
 
   // Layer control panel state
   const [layersState, setLayersState] = useState({
@@ -922,6 +1051,90 @@ export default function HydroMapTab() {
     });
   }, [mapLoaded, layersState.riskZones, riskFilter]);
 
+  // Custom Agro-Climatic Belt Markers with Popups on Canvas
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || !MarkerEngine) return;
+    const map = mapRef.current;
+
+    // Clear old belt markers
+    if (agroBeltMarkersRef.current) {
+      agroBeltMarkersRef.current.forEach(m => m.remove());
+      agroBeltMarkersRef.current = [];
+    }
+
+    AGRO_CLIMATIC_BELTS.forEach(belt => {
+      if (selectedAgroZone !== 'ALL' && belt.zone !== selectedAgroZone) return;
+
+      const imdColor = belt.imd_warning === 'RED' ? '#dc2626' :
+                       belt.imd_warning === 'ORANGE' ? '#ea580c' :
+                       belt.imd_warning === 'YELLOW' ? '#d97706' : '#059669';
+
+      const el = document.createElement('div');
+      el.className = 'agro-belt-marker';
+      el.title = `${belt.name_en} (${belt.crop})`;
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+      el.style.alignItems = 'center';
+      el.style.cursor = 'pointer';
+      el.innerHTML = `
+        <div style="background: rgba(18, 14, 40, 0.95); border: 2px solid ${imdColor}; color: #ffffff; font-size: 16px; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+          ${belt.badge.split(' ')[0]}
+        </div>
+        <div style="background: rgba(18, 14, 40, 0.9); border: 1px solid ${imdColor}; color: #ffffff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; white-space: nowrap; margin-top: 2px; text-shadow: 0 1px 2px #000;">
+          ${belt.name_en.split(' ')[0]}
+        </div>
+      `;
+
+      el.onclick = (e) => {
+        e.stopPropagation();
+        setSelectedAgroBelt(belt);
+        setSelectedFeature(null);
+        setSelectedAdminEntity(null);
+        setClickedCoord({ lat: belt.lat, lon: belt.lon });
+        map.flyTo({
+          center: [belt.lon, belt.lat],
+          zoom: 7.5,
+          essential: true,
+          duration: 1200
+        });
+      };
+
+      const marker = new MarkerEngine({ element: el })
+        .setLngLat([belt.lon, belt.lat])
+        .addTo(map);
+
+      agroBeltMarkersRef.current.push(marker);
+    });
+  }, [mapLoaded, selectedAgroZone]);
+
+  const handleSelectAgroZone = (zoneId) => {
+    setSelectedAgroZone(zoneId);
+    const zoneObj = AGRO_CLIMATIC_ZONES.find(z => z.id === zoneId) || AGRO_CLIMATIC_ZONES[0];
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: zoneObj.center,
+        zoom: zoneObj.zoom,
+        essential: true,
+        duration: 1600
+      });
+    }
+  };
+
+  const handleApplyBeltToDashboard = (belt) => {
+    setLocation({
+      lat: belt.lat,
+      lon: belt.lon,
+      state: belt.state,
+      district: belt.district,
+      city: belt.district,
+      village: belt.name_en,
+      display_name: `${belt.name_en}, ${belt.district}, ${belt.state}`,
+    });
+    if (setActiveTab) {
+      setActiveTab('overview');
+    }
+  };
+
   // Handle Location Selection with Hierarchy Zoom
   const handleSelectSearchResult = useCallback(async (res) => {
     setSearchQuery('');
@@ -1021,9 +1234,15 @@ export default function HydroMapTab() {
           <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>🗺️</span>
             <span>{tr('hydromap_title')}</span>
-            <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 700 }}>
-              MapmyIndia (Mappls) Engine
-            </span>
+            {isMapplsConfigured() ? (
+              <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'rgba(5, 150, 105, 0.2)', color: '#34d399', border: '1px solid rgba(5, 150, 105, 0.4)', fontWeight: 700 }}>
+                🇮🇳 Official Mappls Active
+              </span>
+            ) : (
+              <span title="Mappls credentials not set or using raster fallback" style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'rgba(234, 179, 8, 0.15)', color: '#fde047', border: '1px solid rgba(234, 179, 8, 0.35)', fontWeight: 700 }}>
+                🌐 Using Offline / Fallback Tiles
+              </span>
+            )}
           </h2>
           <p className="text-xs text-muted" style={{ margin: '0.2rem 0 0' }}>
             {lang === 'hi'
@@ -1178,6 +1397,31 @@ export default function HydroMapTab() {
             </span>
           </div>
 
+          {/* AGRO-CLIMATIC ZONE QUICK SWITCHER */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(15, 23, 42, 0.85)', padding: '0.25rem 0.6rem', borderRadius: '10px', border: '1px solid rgba(5, 150, 105, 0.4)' }}>
+            <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 800 }}>🌾 {lang === 'hi' ? 'कृषि क्षेत्र:' : 'Agro Zone:'}</span>
+            <select
+              value={selectedAgroZone}
+              onChange={e => handleSelectAgroZone(e.target.value)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#f1f5f9',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none',
+                maxWidth: '180px'
+              }}
+            >
+              {AGRO_CLIMATIC_ZONES.map(z => (
+                <option key={z.id} value={z.id} style={{ background: '#0f172a', color: '#e2e8f0' }}>
+                  {lang === 'hi' ? z.name_hi : z.name_en}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* RISK TIER FILTER SELECTOR */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(15, 23, 42, 0.75)', padding: '0.2rem 0.6rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Risk Tier:</span>
@@ -1205,6 +1449,38 @@ export default function HydroMapTab() {
               <option value="GREY" style={{ background: '#0f172a', color: '#94a3b8' }}>⚪ No / Insufficient Data</option>
             </select>
           </div>
+        </div>
+
+        {/* IMD WARNING STANDARDS QUICK LEGEND BAR */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          marginTop: '0.5rem',
+          padding: '0.4rem 0.8rem',
+          background: 'rgba(18, 14, 40, 0.75)',
+          borderRadius: '10px',
+          border: '1px solid rgba(255,255,255,0.08)',
+          fontSize: '0.72rem',
+          flexWrap: 'wrap'
+        }}>
+          <strong style={{ color: '#94a3b8' }}>🇮🇳 {lang === 'hi' ? 'IMD मौसम चेतावनी मानक:' : 'IMD Warning Standards:'}</strong>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#34d399' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
+            {lang === 'hi' ? 'हरा (कोई चेतावनी नहीं)' : 'Green (No Warning)'}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fde047' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
+            {lang === 'hi' ? 'पीला (निगरानी रखें)' : 'Yellow (Watch/Update)'}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fb923c' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />
+            {lang === 'hi' ? 'नारंगी (सतर्क रहें)' : 'Orange (Alert/Prepare)'}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#f87171' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+            {lang === 'hi' ? 'लाल (कार्रवाई करें/चेतावनी)' : 'Red (Warning/Action)'}
+          </span>
         </div>
 
         {/* SEARCH DROPDOWN RESULTS */}
@@ -1419,6 +1695,65 @@ export default function HydroMapTab() {
             )}
           </div>
         </div>
+
+        {/* INTERACTIVE HUD: AGRO-CLIMATIC BELT SELECTION MODAL */}
+        {selectedAgroBelt && (
+          <div style={{
+            position: 'absolute', top: '1rem', left: '1rem', zIndex: 35,
+            background: 'rgba(13, 9, 28, 0.96)', backdropFilter: 'blur(18px)',
+            border: `2px solid ${selectedAgroBelt.color || '#059669'}`,
+            borderRadius: '16px', padding: '1rem 1.3rem', maxWidth: '380px',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.75)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span className="badge" style={{
+                background: `${selectedAgroBelt.color}33`, color: selectedAgroBelt.color,
+                border: `1px solid ${selectedAgroBelt.color}66`, fontSize: '0.72rem', fontWeight: 800
+              }}>
+                {selectedAgroBelt.badge} • {selectedAgroBelt.zone}
+              </span>
+              <button
+                onClick={() => setSelectedAgroBelt(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem' }}
+              >✕</button>
+            </div>
+
+            <h4 style={{ margin: '0.2rem 0 0.1rem', fontSize: '1.15rem', color: '#f8fafc', fontWeight: 900 }}>
+              {lang === 'hi' ? selectedAgroBelt.name_hi : selectedAgroBelt.name_en}
+            </h4>
+            <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginBottom: '0.6rem' }}>
+              📍 {selectedAgroBelt.district}, {selectedAgroBelt.state}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.65rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{lang === 'hi' ? 'वर्षा संभावना' : 'Rain Probability'}</span>
+                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#38bdf8' }}>💧 {selectedAgroBelt.rain_prob_pct}%</p>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{lang === 'hi' ? 'तापमान' : 'Temperature'}</span>
+                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>🌡️ {selectedAgroBelt.temp_c}°C</p>
+              </div>
+            </div>
+
+            <div style={{ padding: '0.6rem 0.75rem', borderRadius: '10px', background: 'rgba(5, 150, 105, 0.12)', border: '1px solid #059669', marginBottom: '0.8rem' }}>
+              <strong style={{ fontSize: '0.76rem', color: '#34d399', display: 'block', marginBottom: '0.2rem' }}>
+                🌾 {lang === 'hi' ? 'फसल व रोपाई सलाह:' : 'Sowing Recommendation:'}
+              </strong>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#f1f5f9', lineHeight: 1.45 }}>
+                {lang === 'hi' ? selectedAgroBelt.recommendation_hi : selectedAgroBelt.recommendation_en}
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleApplyBeltToDashboard(selectedAgroBelt)}
+              className="btn btn-primary"
+              style={{ width: '100%', fontSize: '0.82rem', padding: '0.5rem', fontWeight: 700, borderRadius: '8px' }}
+            >
+              🌾 {lang === 'hi' ? 'इस क्षेत्र को डैशबोर्ड में सेट करें' : 'Set Dashboard Location to this Hub'}
+            </button>
+          </div>
+        )}
 
         {/* INTERACTIVE HUD: HISTORICAL EXTREME EVENT SELECTION MODAL */}
         {selectedFeature && selectedFeature.type === 'HISTORICAL_EVENT' && (

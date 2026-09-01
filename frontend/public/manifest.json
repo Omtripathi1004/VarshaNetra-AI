@@ -1,0 +1,16 @@
+{
+  "short_name": "VarshaNetra",
+  "name": "VarshaNetra AI — Climate-Aware Agri-Hydrological System",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0a0618",
+  "theme_color": "#0284c7",
+  "display": "standalone",
+  "orientation": "portrait"
+}
