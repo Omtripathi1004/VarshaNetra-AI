@@ -326,80 +326,8 @@ export default function OverviewTab() {
             📍 {location.display_name} • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr} IST • UTC+05:30)
           </p>
         </div>
-
-        {/* UI / UX View Switcher: Farmer / User, Developer, Administrator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(18, 14, 40, 0.72)', padding: '0.3rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', padding: '0 0.4rem' }}>
-            {lang === 'hi' ? 'दृष्टिकोण:' : 'View Mode:'}
-          </span>
-          <button
-            onClick={() => setUserRole('farmer')}
-            style={{
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: userRole === 'farmer' ? '#059669' : 'transparent',
-              color: userRole === 'farmer' ? '#ffffff' : '#334155',
-              transition: 'all 0.2s',
-            }}
-          >
-            🌾 {lang === 'hi' ? 'किसान मोड' : 'Farmer / User'}
-          </button>
-          <button
-            onClick={() => setUserRole('developer')}
-            style={{
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: userRole === 'developer' ? '#0284c7' : 'transparent',
-              color: userRole === 'developer' ? '#ffffff' : '#334155',
-              transition: 'all 0.2s',
-            }}
-          >
-            💻 {lang === 'hi' ? 'डेवलपर मोड' : 'Developer'}
-          </button>
-          <button
-            onClick={() => setUserRole('admin')}
-            style={{
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: userRole === 'admin' ? '#7c3aed' : 'transparent',
-              color: userRole === 'admin' ? '#ffffff' : '#334155',
-              transition: 'all 0.2s',
-            }}
-          >
-            🏛️ {lang === 'hi' ? 'प्रशासक मोड' : 'Administrator'}
-          </button>
-        </div>
       </div>
 
-      {/* DEVELOPER TELEMETRY STRIP (Shown in Developer Mode) */}
-      {userRole === 'developer' && (
-        <div style={{ padding: '0.85rem 1.1rem', background: '#0f172a', color: '#38bdf8', borderRadius: '12px', marginBottom: '1.25rem', fontSize: '0.78rem', border: '1px solid #334155' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-            <strong style={{ color: '#4ade80' }}>⚡ Developer & ML Telemetry Diagnostics</strong>
-            <span style={{ color: '#94a3b8' }}>Timezone: Asia/Kolkata (UTC+05:30) • Gateway: Active</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem', color: '#cbd5e1' }}>
-            <div>Lat/Lon: <code>{location.lat}, {location.lon}</code></div>
-            <div>Observation Time: <code>{weather?.fetched_at || 'Live IST'}</code></div>
-            <div>NOAA Teleconnection Coupled: <code>Active (ONI/DMI/MJO)</code></div>
-            <div>Hourly Chrono Sort: <code>Strict Timestamp Epoch</code></div>
-          </div>
-        </div>
-      )}
-
-      {/* ROLE MODE SWITCHER BAR */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
