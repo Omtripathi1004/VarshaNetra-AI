@@ -8,8 +8,9 @@ import {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useApp } from '../common/AppContext';
+import { INDIA_BOUNDARY_GEOJSON, INDIA_STATES_GEOJSON } from '../../data/indiaGeoJson';
 
-// Safe MapLibre module wrapper
+// Universal MapLibre module wrapper
 const maplibregl = {
   Map: MLMap || (typeof window !== 'undefined' && window.maplibregl?.Map),
   Marker: MLMarker || (typeof window !== 'undefined' && window.maplibregl?.Marker),
@@ -19,8 +20,8 @@ const maplibregl = {
 };
 
 /**
- * 1. IMMUTABLE, VERIFIED AGRO-CLIMATIC HUB DATASET
- * Strict (lat, lng) coordinates for official Indian agro-zones.
+ * 1. IMMUTABLE AGRO-CLIMATIC HUB DATASET
+ * Verified exact (lat, lng) pairs across India
  */
 export const AGRO_HUBS = [
   { id: 'ladakh', name: 'Ladakh High-Altitude Zone', lat: 34.1526, lng: 77.5771, belt: 'Trans-Himalayan', status: 'Cold Arid Window', rain: '12%', color: '#38bdf8', icon: '🏔️', district: 'Leh', state: 'Ladakh' },
@@ -33,20 +34,70 @@ export const AGRO_HUBS = [
   { id: 'thar', name: 'Thar Arid Zone (Jodhpur/Bikaner)', lat: 26.2389, lng: 73.0243, belt: 'Bajra/Millet', status: 'Conserve Soil Moisture', rain: '18%', color: '#f97316', icon: '🏜️', district: 'Jodhpur', state: 'Rajasthan' }
 ];
 
-export default function HydroMap() {
-  const { location, setLocation, tr, lang } = useApp();
+// Helper to resolve Mappls API key
+const getMapplsApiKey = () => {
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
+  const raw = (
+    env.NEXT_PUBLIC_MAPPLS_MAP_KEY ||
+    env.VITE_MAPPLS_MAP_KEY ||
+    env.VITE_MAPPLS_API_KEY ||
+    env.VITE_MAPMYINDIA_API_KEY ||
+    'rtaifoqegttbkllwgnjslfovrmkwrizhqvwu'
+  ).trim();
+  if (raw && raw !== 'YOUR_KEY' && raw !== 'undefined' && raw.length > 6) return raw;
+  return 'rtaifoqegttbkllwgnjslfovrmkwrizhqvwu';
+};
 
-  // 2-BUTTON DUAL ENGINE TOGGLE: 'mappls' (Street View) | 'satellite' (Satellite View)
+/**
+ * Loads official Mappls Web Map JS SDK (Vector v3.0)
+ */
+const loadMapplsSDK = (token) => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(null);
+    if (window.mappls && (window.mappls.Map || typeof window.mappls === 'function')) {
+      return resolve(window.mappls);
+    }
+
+    const scriptId = 'mappls-web-sdk-v3';
+    const existing = document.getElementById(scriptId);
+    if (existing) {
+      if (window.mappls) return resolve(window.mappls);
+      existing.addEventListener('load', () => resolve(window.mappls));
+      existing.addEventListener('error', () => resolve(null));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://apis.mappls.com/advancedmaps/api/${token}/map_sdk?v=3.0&layer=vector`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      console.log('Mappls Map SDK v3.0 loaded successfully.');
+      resolve(window.mappls);
+    };
+    script.onerror = (err) => {
+      console.warn('Mappls SDK script load notice:', err);
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+};
+
+export default function HydroMap() {
+  const { location, setLocation } = useApp();
+
+  // Dual engine state: 'mappls' (Mappls Street View) | 'satellite' (MapLibre Satellite)
   const [activeEngine, setActiveEngine] = useState('mappls');
-  const [selectedHub, setSelectedHub] = useState(AGRO_HUBS[1]); // Default Gangetic
+  const [activeHub, setActiveHub] = useState(AGRO_HUBS[1]);
   const [statusToast, setStatusToast] = useState(null);
-  const [mapplsCenter, setMapplsCenter] = useState({ lat: 22.5937, lng: 78.9629, zoom: 5 });
+  const [mapplsLoaded, setMapplsLoaded] = useState(false);
 
   const mapContainerRef = useRef(null);
-  const activeMapInstanceRef = useRef(null);
+  const activeMapRef = useRef(null);
   const markersRef = useRef([]);
 
-  // Generate popup HTML for a hub
+  // Popup HTML template for Agro-Hubs
   const createPopupHTML = useCallback((hub, isActive) => {
     return `
       <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 240px; padding: 4px;">
@@ -95,9 +146,9 @@ export default function HydroMap() {
     `;
   }, []);
 
-  // Set as Active Hub & Telemetry Dashboard Sync
+  // Set Active Hub & Update Telemetry Dashboard
   const handleSetActiveHub = useCallback((hub) => {
-    setSelectedHub(hub);
+    setActiveHub(hub);
     setLocation({
       lat: hub.lat,
       lon: hub.lng,
@@ -108,23 +159,31 @@ export default function HydroMap() {
       display_name: `${hub.name} (${hub.belt})`
     });
 
-    setStatusToast(`Active Telemetry Synced to ${hub.name} [${hub.lat.toFixed(4)}, ${hub.lng.toFixed(4)}]`);
+    setStatusToast(`Active Telemetry Synced: ${hub.name} [${hub.lat.toFixed(4)}, ${hub.lng.toFixed(4)}]`);
     setTimeout(() => setStatusToast(null), 3500);
 
-    // Pan Mappls or MapLibre instance
-    if (activeEngine === 'mappls') {
-      setMapplsCenter({ lat: hub.lat, lng: hub.lng, zoom: 7 });
-    } else if (activeMapInstanceRef.current && activeMapInstanceRef.current.flyTo) {
-      activeMapInstanceRef.current.flyTo({
-        center: [hub.lng, hub.lat], // Strictly [lng, lat] Longitude first for MapLibre
-        zoom: 7.5,
-        duration: 1400,
-        essential: true
-      });
+    // Pan map to hub
+    if (activeMapRef.current) {
+      const map = activeMapRef.current;
+      if (activeEngine === 'satellite' && map.flyTo) {
+        map.flyTo({
+          center: [hub.lng, hub.lat], // Longitude first for MapLibre
+          zoom: 7.5,
+          duration: 1400,
+          essential: true
+        });
+      } else if (activeEngine === 'mappls') {
+        if (map.panTo) {
+          try { map.panTo({ lat: hub.lat, lng: hub.lng }); } catch {
+            try { map.panTo([hub.lat, hub.lng]); } catch {}
+          }
+        }
+        if (map.setZoom) map.setZoom(8);
+      }
     }
   }, [activeEngine, setLocation]);
 
-  // Global window listener for popup buttons
+  // Global window handler for popup button clicks
   useEffect(() => {
     window.__varshanetra_set_active_hub = (hubId) => {
       const hub = AGRO_HUBS.find(h => h.id === hubId);
@@ -135,7 +194,7 @@ export default function HydroMap() {
     };
   }, [handleSetActiveHub]);
 
-  // Container clean-up on toggle to prevent DOM/Canvas stacking bugs
+  // Clean active map and markers to prevent DOM/Canvas stacking bugs
   const cleanActiveMap = useCallback(() => {
     if (markersRef.current && markersRef.current.length > 0) {
       markersRef.current.forEach((m) => {
@@ -146,15 +205,15 @@ export default function HydroMap() {
       markersRef.current = [];
     }
 
-    if (activeMapInstanceRef.current) {
+    if (activeMapRef.current) {
       try {
-        if (typeof activeMapInstanceRef.current.remove === 'function') {
-          activeMapInstanceRef.current.remove();
+        if (typeof activeMapRef.current.remove === 'function') {
+          activeMapRef.current.remove();
         }
       } catch (err) {
         console.warn('Map cleanup error:', err);
       }
-      activeMapInstanceRef.current = null;
+      activeMapRef.current = null;
     }
 
     if (mapContainerRef.current) {
@@ -162,8 +221,179 @@ export default function HydroMap() {
     }
   }, []);
 
-  // Initialize Satellite View (MapLibre GL with Esri World Imagery raster)
-  const initMapLibreSatellite = useCallback(() => {
+  // 2A. MAPPLS WEB ENGINE (OFFICIAL MAPMYINDIA SURVEY OF INDIA BASE)
+  const initMapplsMap = useCallback(async () => {
+    cleanActiveMap();
+    if (!mapContainerRef.current) return;
+
+    const token = getMapplsApiKey();
+    const container = mapContainerRef.current;
+    container.id = 'mappls-hydromap-canvas';
+
+    // Attempt loading official Mappls Web Map SDK v3
+    const mappls = await loadMapplsSDK(token);
+
+    if (mappls && (mappls.Map || typeof mappls === 'function')) {
+      try {
+        const MapConstructor = mappls.Map || mappls;
+        const mapplsInstance = new MapConstructor('mappls-hydromap-canvas', {
+          center: [22.5937, 78.9629],
+          zoom: 5,
+        });
+
+        // STRICT MAPPLS COORDINATE ADAPTER: position { lat, lng }
+        markersRef.current = AGRO_HUBS.map((hub) => {
+          const marker = new mappls.Marker({
+            position: { lat: hub.lat, lng: hub.lng },
+            map: mapplsInstance,
+            fitbounds: false,
+          });
+
+          if (mappls.InfoWindow) {
+            const infoWindow = new mappls.InfoWindow({
+              content: createPopupHTML(hub, activeHub?.id === hub.id),
+            });
+            if (marker.addListener) {
+              marker.addListener('click', () => {
+                infoWindow.setContent(createPopupHTML(hub, activeHub?.id === hub.id));
+                infoWindow.open(mapplsInstance, marker);
+              });
+            }
+          }
+          return marker;
+        });
+
+        activeMapRef.current = mapplsInstance;
+        setMapplsLoaded(true);
+        return;
+      } catch (err) {
+        console.warn('Mappls SDK Map initialization error, initializing official SOI vector base:', err);
+      }
+    }
+
+    // SURVEY OF INDIA COMPLIANT MAP (ZERO LEAFLET / ZERO CARTO TILES)
+    // Uses official national GeoJSON boundary and state borders with zero external tile watermarks
+    const soiMap = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+        sources: {
+          'soi-national-boundary': {
+            type: 'geojson',
+            data: INDIA_BOUNDARY_GEOJSON
+          },
+          'soi-states': {
+            type: 'geojson',
+            data: INDIA_STATES_GEOJSON
+          }
+        },
+        layers: [
+          {
+            id: 'soi-base-bg',
+            type: 'background',
+            paint: { 'background-color': '#080d1a' }
+          },
+          {
+            id: 'soi-states-fill',
+            type: 'fill',
+            source: 'soi-states',
+            paint: {
+              'fill-color': '#0f172a',
+              'fill-opacity': 0.8
+            }
+          },
+          {
+            id: 'soi-states-line',
+            type: 'line',
+            source: 'soi-states',
+            paint: {
+              'line-color': '#1e293b',
+              'line-width': 1.2
+            }
+          },
+          {
+            id: 'soi-boundary-line',
+            type: 'line',
+            source: 'soi-national-boundary',
+            paint: {
+              'line-color': '#38bdf8',
+              'line-width': 2.5,
+              'line-opacity': 0.95
+            }
+          }
+        ]
+      },
+      center: [78.9629, 22.5937],
+      zoom: 4.8,
+      minZoom: 3,
+      maxZoom: 18
+    });
+
+    soiMap.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
+
+    soiMap.on('load', () => {
+      markersRef.current = AGRO_HUBS.map((hub) => {
+        const markerEl = document.createElement('div');
+        markerEl.className = 'varshanetra-agro-marker';
+        markerEl.style.cursor = 'pointer';
+        markerEl.style.display = 'flex';
+        markerEl.style.flexDirection = 'column';
+        markerEl.style.alignItems = 'center';
+        markerEl.style.transform = 'translate(-50%, -50%)';
+
+        markerEl.innerHTML = `
+          <div style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(13, 9, 28, 0.95);
+            border: 2px solid ${hub.color};
+            box-shadow: 0 0 16px ${hub.color}99, 0 4px 12px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+          ">
+            ${hub.icon}
+          </div>
+          <div style="
+            margin-top: 3px;
+            background: rgba(13, 9, 28, 0.95);
+            color: #ffffff;
+            border: 1px solid ${hub.color}99;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 4px;
+            white-space: nowrap;
+          ">
+            ${hub.name.split(' ')[0]}
+          </div>
+        `;
+
+        const popupNode = document.createElement('div');
+        popupNode.innerHTML = createPopupHTML(hub, activeHub?.id === hub.id);
+
+        const popup = new maplibregl.Popup({
+          offset: 24,
+          closeButton: true,
+          closeOnClick: false,
+        }).setDOMContent(popupNode);
+
+        return new maplibregl.Marker({ element: markerEl })
+          .setLngLat([hub.lng, hub.lat])
+          .setPopup(popup)
+          .addTo(soiMap);
+      });
+    });
+
+    activeMapRef.current = soiMap;
+    setMapplsLoaded(true);
+  }, [cleanActiveMap, createPopupHTML, activeHub?.id]);
+
+  // 2B. SATELLITE ENGINE (MAPLIBRE GL + ESRI WORLD IMAGERY RASTER)
+  const initSatelliteMap = useCallback(() => {
     cleanActiveMap();
     if (!mapContainerRef.current) return;
 
@@ -180,6 +410,10 @@ export default function HydroMap() {
             ],
             tileSize: 256,
             attribution: '&copy; Esri, Maxar, Earthstar Geographics &bull; MapLibre GL'
+          },
+          'soi-national-boundary': {
+            type: 'geojson',
+            data: INDIA_BOUNDARY_GEOJSON
           }
         },
         layers: [
@@ -194,6 +428,16 @@ export default function HydroMap() {
             source: 'esri-satellite',
             minzoom: 0,
             maxzoom: 20
+          },
+          {
+            id: 'soi-boundary-overlay',
+            type: 'line',
+            source: 'soi-national-boundary',
+            paint: {
+              'line-color': '#38bdf8',
+              'line-width': 2.0,
+              'line-opacity': 0.8
+            }
           }
         ]
       },
@@ -207,7 +451,6 @@ export default function HydroMap() {
     mapInstance.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
 
     mapInstance.on('load', () => {
-      // STRICT COORDINATE PROJECTION ADAPTER: MapLibre .setLngLat([hub.lng, hub.lat])
       markersRef.current = AGRO_HUBS.map((hub) => {
         const markerEl = document.createElement('div');
         markerEl.className = 'varshanetra-agro-marker';
@@ -229,7 +472,6 @@ export default function HydroMap() {
             align-items: center;
             justify-content: center;
             font-size: 17px;
-            transition: transform 0.2s ease;
           ">
             ${hub.icon}
           </div>
@@ -243,54 +485,51 @@ export default function HydroMap() {
             padding: 2px 7px;
             border-radius: 4px;
             white-space: nowrap;
-            text-shadow: 0 1px 2px #000;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
           ">
             ${hub.name.split(' ')[0]}
           </div>
         `;
 
         const popupNode = document.createElement('div');
-        popupNode.innerHTML = createPopupHTML(hub, selectedHub?.id === hub.id);
+        popupNode.innerHTML = createPopupHTML(hub, activeHub?.id === hub.id);
 
         const popup = new maplibregl.Popup({
           offset: 24,
           closeButton: true,
           closeOnClick: false,
-          className: 'varshanetra-maplibre-popup'
         }).setDOMContent(popupNode);
 
-        // Longitude First: [hub.lng, hub.lat]
-        const marker = new maplibregl.Marker({ element: markerEl })
+        // Strictly [hub.lng, hub.lat]
+        return new maplibregl.Marker({ element: markerEl })
           .setLngLat([hub.lng, hub.lat])
           .setPopup(popup)
           .addTo(mapInstance);
-
-        markerEl.addEventListener('click', () => {
-          popupNode.innerHTML = createPopupHTML(hub, selectedHub?.id === hub.id);
-        });
-
-        return marker;
       });
     });
 
-    activeMapInstanceRef.current = mapInstance;
-  }, [cleanActiveMap, createPopupHTML, selectedHub?.id]);
+    activeMapRef.current = mapInstance;
+  }, [cleanActiveMap, createPopupHTML, activeHub?.id]);
 
-  // Handle switching between Mappls and MapLibre Satellite
+  // Switch engine on toggle
   useEffect(() => {
     if (activeEngine === 'satellite') {
-      initMapLibreSatellite();
+      initSatelliteMap();
     } else {
-      cleanActiveMap();
+      initMapplsMap();
     }
     return () => {
       cleanActiveMap();
     };
-  }, [activeEngine, initMapLibreSatellite, cleanActiveMap]);
+  }, [activeEngine, initSatelliteMap, initMapplsMap, cleanActiveMap]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', minHeight: '620px', height: '620px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)', background: '#070512' }}>
+    <div style={{ position: 'relative', width: '100%', minHeight: '640px', height: '640px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)', background: '#070512' }}>
+      {/* MAP CANVAS CONTAINER */}
+      <div
+        ref={mapContainerRef}
+        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+      />
+
       {/* 2-BUTTON DUAL ENGINE TOGGLE (TOP-RIGHT) */}
       <div style={{
         position: 'absolute',
@@ -310,7 +549,7 @@ export default function HydroMap() {
         <button
           id="btn-engine-mappls"
           onClick={() => setActiveEngine('mappls')}
-          title="Survey of India Boundary Map (Official Mappls)"
+          title="Survey of India Boundary Map (Mappls)"
           style={{
             background: activeEngine === 'mappls' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
             color: activeEngine === 'mappls' ? '#ffffff' : '#94a3b8',
@@ -333,7 +572,7 @@ export default function HydroMap() {
         <button
           id="btn-engine-satellite"
           onClick={() => setActiveEngine('satellite')}
-          title="Satellite View (MapLibre GL)"
+          title="High-Resolution Satellite View (MapLibre GL)"
           style={{
             background: activeEngine === 'satellite' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
             color: activeEngine === 'satellite' ? '#ffffff' : '#94a3b8',
@@ -377,114 +616,17 @@ export default function HydroMap() {
           </div>
           <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
             {activeEngine === 'mappls'
-              ? 'Survey of India Compliant Cartography • Zero Leaflet/Carto Watermarks'
-              : 'ArcGIS Satellite Imagery • Strictly [Longitude, Latitude] WGS-84 Projected'}
+              ? 'Survey of India Compliant Cartography • Zero Leaflet / Zero Carto Watermarks'
+              : 'High-Res Esri Satellite Raster • Strictly [Lng, Lat] WGS-84 Projected'}
           </div>
         </div>
       </div>
-
-      {/* MAP ENGINE RENDER AREA */}
-      {activeEngine === 'mappls' ? (
-        /* OFFICIAL MAPPLS MAP (MAPMYINDIA) — NO LEAFLET / NO CARTO TILES */
-        <div style={{ position: 'relative', width: '100%', height: '100%', background: '#070512' }}>
-          <iframe
-            key={`mappls-${mapplsCenter.lat}-${mapplsCenter.lng}`}
-            src={`https://embed.mappls.com/?center=${mapplsCenter.lat},${mapplsCenter.lng}&zoom=${mapplsCenter.zoom}`}
-            title="Official Survey of India Compliant Mappls Map (MapmyIndia)"
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            allow="geolocation; camera"
-          />
-
-          {/* ACTIVE HUB FLOATING POPUP OVERLAY */}
-          {selectedHub && (
-            <div style={{
-              position: 'absolute',
-              top: '74px',
-              left: '14px',
-              zIndex: 32,
-              background: 'rgba(13, 9, 28, 0.96)',
-              border: `1.5px solid ${selectedHub.color}`,
-              padding: '12px 16px',
-              borderRadius: '12px',
-              maxWidth: '320px',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
-              color: '#f8fafc'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '1.2rem' }}>{selectedHub.icon}</span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  color: selectedHub.color,
-                  background: `${selectedHub.color}22`,
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  border: `1px solid ${selectedHub.color}55`
-                }}>
-                  {selectedHub.belt}
-                </span>
-              </div>
-              <div style={{ fontWeight: 800, fontSize: '0.94rem', marginBottom: '3px' }}>
-                {selectedHub.name}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '8px' }}>
-                📍 {selectedHub.lat.toFixed(4)}° N, {selectedHub.lng.toFixed(4)}° E ({selectedHub.state})
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.06)', padding: '6px 10px', borderRadius: '8px', marginBottom: '8px', fontSize: '0.74rem' }}>
-                <div><strong style={{ color: '#38bdf8' }}>Status:</strong> {selectedHub.status}</div>
-                <div><strong style={{ color: '#34d399' }}>Rain Probability:</strong> {selectedHub.rain}</div>
-              </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  onClick={() => handleSetActiveHub(selectedHub)}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #059669, #10b981)',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '7px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  🎯 Set as Active Hub
-                </button>
-                <button
-                  onClick={() => setMapplsCenter({ lat: selectedHub.lat, lng: selectedHub.lng, zoom: 8 })}
-                  style={{
-                    background: 'rgba(56, 189, 248, 0.2)',
-                    color: '#38bdf8',
-                    border: '1px solid rgba(56, 189, 248, 0.4)',
-                    padding: '7px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  🔍 Zoom
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* MAPLIBRE GL SATELLITE CANVAS */
-        <div
-          ref={mapContainerRef}
-          id="varshanetra-satellite-canvas"
-          style={{ width: '100%', height: '100%' }}
-        />
-      )}
 
       {/* TOAST NOTIFICATION ON TELEMETRY SYNC */}
       {statusToast && (
         <div style={{
           position: 'absolute',
-          bottom: '72px',
+          bottom: '74px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 40,
@@ -505,7 +647,7 @@ export default function HydroMap() {
         </div>
       )}
 
-      {/* BOTTOM AGRO-HUBS SELECTOR BAR (ALL 8 HUBS) */}
+      {/* BOTTOM AGRO-HUBS SELECTOR BAR */}
       <div style={{
         position: 'absolute',
         bottom: '12px',
@@ -537,7 +679,7 @@ export default function HydroMap() {
         </div>
 
         {AGRO_HUBS.map((hub) => {
-          const isSelected = selectedHub?.id === hub.id;
+          const isSelected = activeHub?.id === hub.id;
           return (
             <button
               key={hub.id}
