@@ -1,0 +1,8 @@
+backend/dist/
+dist/
+scratch/
+backend/tests/
+*.log
+*.sqlite
+*.sqlite3
+*.db
