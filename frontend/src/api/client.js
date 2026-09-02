@@ -502,13 +502,37 @@ export const api = {
     }
   },
 
+  getCropStageAdvisory: async (crop = 'rice', stage = 'sowing', loc = {}) => {
+    const STAGE_ADVISORIES = {
+      sowing: { action_label_en: '🌱 Sow Now', action_label_hi: '🌱 अभी बुवाई करें', stage_name_en: 'Sowing & Transplanting', stage_name_hi: 'बुवाई व रोपाई', badge_color: '#059669', rationale_en: 'Soil moisture and temperature are within optimal sowing range. Complete transplanting within the active monsoon window for maximum germination.', rationale_hi: 'मिट्टी की नमी व तापमान बुवाई के लिए अनुकूल है। अधिकतम अंकुरण के लिए सक्रिय मानसून के दौरान रोपाई पूरी करें।', pest_warning_en: 'Scout for damping-off and stem fly at seedling stage.', pest_warning_hi: 'पौध अवस्था में डैम्पिंग-ऑफ और तना मक्खी की निगरानी करें।' },
+      land_prep: { action_label_en: '🚜 Prepare Fields', action_label_hi: '🚜 खेत तैयार करें', stage_name_en: 'Land Preparation', stage_name_hi: 'भूमि तैयारी', badge_color: '#0284c7', rationale_en: 'Ideal pre-sowing window. Deep plough and apply basal organic matter (FYM 8–10 t/ha). Level fields to ensure uniform moisture distribution.', rationale_hi: 'बुवाई पूर्व का उत्तम समय। गहरी जुताई करें और 8-10 टन/हेक्टेयर FYM का आधार प्रयोग करें। खेत की समतल जुताई करें।', pest_warning_en: 'White grub and cutworm may be present in soil. Deep ploughing exposes and destroys them.', pest_warning_hi: 'सफेद गिडार व कटवर्म मिट्टी में हो सकते हैं। गहरी जुताई से ये नष्ट होते हैं।' },
+      vegetative: { action_label_en: '🌿 Monitor Growth', action_label_hi: '🌿 वृद्धि निगरानी', stage_name_en: 'Vegetative Growth', stage_name_hi: 'बढ़वार अवस्था', badge_color: '#7c3aed', rationale_en: 'Active vegetative stage. Apply nitrogen top-dressing (33% urea split). Ensure drainage channels are open during heavy rainfall events.', rationale_hi: 'सक्रिय वृद्धि अवस्था। 33% यूरिया की टॉप-ड्रेसिंग करें। भारी वर्षा में जल निकासी नालियां खुली रखें।', pest_warning_en: 'Monitor for leaf folder, stem borer, and aphids. Apply Neem oil spray if incidence exceeds ETL.', pest_warning_hi: 'पत्ती मोड़क, तना छेदक व माहू की निगरानी करें। ETL से अधिक होने पर नीम तेल छिड़कें।' },
+      flowering: { action_label_en: '🌸 Protect Flowers', action_label_hi: '🌸 फूलों की सुरक्षा', stage_name_en: 'Flowering & Tasseling', stage_name_hi: 'फूल अवस्था', badge_color: '#d97706', rationale_en: 'Critical pollination window. Avoid chemical sprays that harm pollinators. Ensure adequate moisture but no standing water. Temperature above 35°C may cause sterility.', rationale_hi: 'परागण की महत्वपूर्ण अवस्था। ऐसे रसायन न छिड़कें जो परागणकों को नुकसान पहुंचाएं। पर्याप्त नमी बनाए रखें लेकिन जलभराव न हो।', pest_warning_en: 'Thrips and flower borers are critical threats. Use systemic insecticide only if infestation exceeds 5%.', pest_warning_hi: 'थ्रिप्स और फूल छेदक गंभीर खतरा हैं। प्रकोप 5% से अधिक होने पर ही प्रणालीगत कीटनाशक प्रयोग करें।' },
+      grain_fill: { action_label_en: '🌾 Protect Grain', action_label_hi: '🌾 दाने की सुरक्षा', stage_name_en: 'Grain Filling', stage_name_hi: 'दाना भराव', badge_color: '#ea580c', rationale_en: 'Grain filling requires sustained moisture and nutrition. Potassium spray (0.5% KCl) enhances grain weight. Protect from lodging by staking or ridge earthing-up.', rationale_hi: 'दाना भराव के लिए निरंतर नमी व पोषण आवश्यक है। 0.5% पोटेशियम क्लोराइड के छिड़काव से दाने का वज़न बढ़ता है।', pest_warning_en: 'Protect from bird damage and grain borer. Cover or net small plot nurseries.', pest_warning_hi: 'चिड़ियों और दाना छेदक से फसल बचाएं। छोटी नर्सरी को जाल से ढकें।' },
+      harvesting: { action_label_en: '✂️ Harvest Ready', action_label_hi: '✂️ कटाई का समय', stage_name_en: 'Harvesting', stage_name_hi: 'कटाई', badge_color: '#0ea5e9', rationale_en: 'Physiological maturity reached. Harvest within 3–5 days to prevent shattering and post-harvest losses. Prefer early morning harvesting to minimize grain moisture.', rationale_hi: 'फसल पूरी तरह पकी है। दाने झड़ने से बचाने के लिए 3-5 दिन में कटाई पूरी करें। दाने की नमी कम करने के लिए सुबह के समय कटाई करें।', pest_warning_en: 'Post-harvest storage pest (weevil, grain moth): dry grain below 12% moisture before storage.', pest_warning_hi: 'भंडारण कीट (घुन, अनाज पतंगा): भंडारण से पहले दाना 12% नमी से नीचे सुखाएं।' },
+    };
+    const cropNames = { rice: { en: 'Paddy (Rice)', hi: 'धान (चावल)' }, basmati: { en: 'Basmati Rice', hi: 'बासमती चावल' }, wheat: { en: 'Wheat', hi: 'गेहूं' }, cotton: { en: 'Cotton', hi: 'कपास' }, soybean: { en: 'Soybean', hi: 'सोयाबीन' }, maize: { en: 'Maize', hi: 'मक्का' }, groundnut: { en: 'Groundnut', hi: 'मूंगफली' }, mustard: { en: 'Mustard', hi: 'सरसों' }, sugarcane: { en: 'Sugarcane', hi: 'गन्ना' }, pulses: { en: 'Pigeon Pea (Arhar)', hi: 'अरहर / तुअर' }, bajra: { en: 'Pearl Millet (Bajra)', hi: 'बाजरा' }, jowar: { en: 'Sorghum (Jowar)', hi: 'ज्वार' }, potato: { en: 'Potato', hi: 'आलू' }, tomato: { en: 'Tomato', hi: 'टमाटर' } };
+    try {
+      return await axios.get(`${BASE}/agri/stage-advisory`, { params: { crop, stage, ...locParams(loc) }, timeout: 4000 });
+    } catch {
+      const stageData = STAGE_ADVISORIES[stage] || STAGE_ADVISORIES.sowing;
+      const cropName = cropNames[crop] || { en: crop.charAt(0).toUpperCase() + crop.slice(1), hi: crop };
+      return {
+        data: {
+          ...stageData,
+          crop_name_en: cropName.en,
+          crop_name_hi: cropName.hi,
+        }
+      };
+    }
+  },
+
   // Crops
   getCropAdvisor: async (loc, season = 'ALL', topN = 25) => {
     try {
       return await axios.get(`${BASE}/crops/advisor`, { params: { ...locParams(loc), season, top_n: topN }, timeout: 3000 });
     } catch {
       const allList = [
-        // KHARIF
         { rank: 1, name_en: 'Paddy (Rice)', name_hi: 'धान (चावल)', season: 'KHARIF', icon: '🌾', suitability_score: 92.4, sowing_window: 'Jun 15 – Jul 30', duration_days: 120, market_price_inr_qtl: 2183, advice_en: 'Optimal conditions for Paddy sowing. Soil moisture and rain alignment are excellent.', advice_hi: 'धान बुवाई के लिए उत्कृष्ट परिस्थितियाँ। मिट्टी की नमी और मानसून अनुकूल हैं।' },
         { rank: 2, name_en: 'Maize (Corn)', name_hi: 'मक्का', season: 'KHARIF', icon: '🌽', suitability_score: 88.2, sowing_window: 'Jun 1 – Jul 15', duration_days: 95, market_price_inr_qtl: 2090, advice_en: 'Very good conditions for Maize. Ensure proper field drainage during heavy showers.', advice_hi: 'मक्का के लिए अच्छी परिस्थितियाँ। भारी बारिश में जल निकासी सुनिश्चित करें।' },
         { rank: 3, name_en: 'Sugarcane', name_hi: 'गन्ना', season: 'KHARIF', icon: '🎋', suitability_score: 87.0, sowing_window: 'Feb 15 – Jul 30', duration_days: 300, market_price_inr_qtl: 350, advice_en: 'High soil moisture favorable for grand growth phase. Ensure trench drainage.', advice_hi: 'अधिक नमी गन्ने की तीव्र वृद्धि हेतु उत्तम। मेड़ों में जल निकासी रखें।' },
@@ -520,8 +544,6 @@ export const api = {
         { rank: 9, name_en: 'Pulses (Arhar / Tur)', name_hi: 'अरहर (तुअर दाल)', season: 'KHARIF', icon: '🥣', suitability_score: 82.0, sowing_window: 'Jun 15 – Jul 15', duration_days: 170, market_price_inr_qtl: 7000, advice_en: 'Deep taproot system thrives in well-drained soils. Intercrop with soybean or maize.', advice_hi: 'गहरी जड़ों वाली दलहनी फसल। मक्का या सोयाबीन के साथ अंतःफसल उपयुक्त।' },
         { rank: 10, name_en: 'Urad (Black Gram)', name_hi: 'उड़द', season: 'KHARIF', icon: '🫘', suitability_score: 80.0, sowing_window: 'Jun 25 – Jul 20', duration_days: 80, market_price_inr_qtl: 6600, advice_en: 'Short-duration pulse crop that enriches soil nitrogen through bio-fixation.', advice_hi: 'कम अवधि की दलहनी फसल जो मिट्टी में नाइट्रोजन की मात्रा बढ़ाती है।' },
         { rank: 11, name_en: 'Jute', name_hi: 'जूट (पटसन)', season: 'KHARIF', icon: '🌾', suitability_score: 86.5, sowing_window: 'Apr 1 – May 30', duration_days: 120, market_price_inr_qtl: 4750, advice_en: 'High humidity and warm conditions ideal for rapid bast fiber growth.', advice_hi: 'अधिक आर्द्रता व गर्म मौसम उत्तम रेशेदार जूट उत्पादन हेतु अनुकूल।' },
-
-        // RABI
         { rank: 12, name_en: 'Wheat', name_hi: 'गेहूं', season: 'RABI', icon: '🌾', suitability_score: 88.0, sowing_window: 'Oct 25 – Nov 25', duration_days: 135, market_price_inr_qtl: 2275, advice_en: 'Cool ambient temperatures promote robust tillering and grain size.', advice_hi: 'शीतल मौसम कल्ले फूटने व मोटे चमकदार दाने बनने के लिए आदर्श है।' },
         { rank: 13, name_en: 'Mustard (Sarson)', name_hi: 'सरसों', season: 'RABI', icon: '🌼', suitability_score: 89.5, sowing_window: 'Oct 1 – Oct 31', duration_days: 115, market_price_inr_qtl: 5450, advice_en: 'Low moisture requirement and high oil yield potential in conserved soil moisture.', advice_hi: 'कम पानी में संरक्षित नमी पर अधिकतम तेल प्रतिशत व उत्पादन देती है।' },
         { rank: 14, name_en: 'Chickpea (Chana)', name_hi: 'चना (ग्राम)', season: 'RABI', icon: '🫘', suitability_score: 85.5, sowing_window: 'Oct 15 – Nov 15', duration_days: 110, market_price_inr_qtl: 5600, advice_en: 'Requires cool weather with sunny days. Sensitive to waterlogging.', advice_hi: 'ठंडे व धूप वाले मौसम की आवश्यकता। खेत में पानी जमा न होने दें।' },
@@ -847,23 +869,7 @@ export const api = {
     });
   },
 
-  getCropAdvisor: async (loc = {}, season = 'ALL', days = 30) => {
-    try {
-      return await axios.get(`${BASE}/agri/advisor`, { params: { ...locParams(loc), season, days }, timeout: 4000 });
-    } catch {
-      return {
-        data: [
-          { crop: 'Paddy (Rice / धान)', season: 'KHARIF', score: 92, moisture_match: 'Optimal (38%)', temp_match: '28.5°C', recommendation_en: 'Ideal Wetland Sowing Window: Complete 20-day seedling transplanting before heavy spell.', recommendation_hi: 'रोपाई हेतु सर्वोत्तम समय: भारी वर्षा से पूर्व 20-दिवसीय पौध रोपाई पूरी करें।' },
-          { crop: 'Basmati Rice (बासमती)', season: 'KHARIF', score: 94, moisture_match: 'Optimal (36%)', temp_match: '27.8°C', recommendation_en: 'Maintain 3-5cm water level during tillering phase.', recommendation_hi: 'कल्ले फूटते समय 3-5 सेमी जल स्तर बनाए रखें।' },
-          { crop: 'Cotton (कपास)', season: 'KHARIF', score: 83, moisture_match: 'Moderate (28%)', temp_match: '30.2°C', recommendation_en: 'Clear furrow drainage channels to prevent root waterlogging.', recommendation_hi: 'नालियों द्वारा जल निकासी: जड़ गलन व जलभराव रोकने हेतु नालियां साफ़ रखें।' },
-          { crop: 'Soybean (सोयाबीन)', season: 'KHARIF', score: 81, moisture_match: 'Adequate (32%)', temp_match: '28.1°C', recommendation_en: '6-Day Dry Break Watch: Keep supplemental sprinkler irrigation ready.', recommendation_hi: 'शुष्क विराम निगरानी: अतिरिक्त स्प्रिंकलर सिंचाई तैयार रखें।' },
-          { crop: 'Maize / Corn (मक्का)', season: 'KHARIF', score: 88, moisture_match: 'Optimal (30%)', temp_match: '29.0°C', recommendation_en: 'Scout Fall Armyworm: Heavy rain break favors pest monitoring & biocontrol.', recommendation_hi: 'फॉल आर्मीवर्म कीट निगरानी: वर्षा के बाद कीट नियंत्रण व नीम तेल का छिड़काव करें।' },
-          { crop: 'Groundnut (मूंगफली)', season: 'KHARIF', score: 84, moisture_match: 'Moderate (26%)', temp_match: '31.5°C', recommendation_en: 'Apply gypsum before light shower for pod development.', recommendation_hi: 'फली विकास हेतु हल्की वर्षा से पहले जिप्सम बुरकाव करें।' },
-        ]
-      };
-    }
-  },
-
+  // Crop Stage Specific Advisory
   getCropStageAdvisory: async (crop = 'rice', stage = 'sowing', loc = {}) => {
     try {
       return await axios.get(`${BASE}/agri/stage-advisory`, { params: { crop, stage, ...locParams(loc) }, timeout: 4000 });
@@ -961,7 +967,24 @@ export const api = {
 
 
   // Simulation — Crop-Specific Agronomic Physiology Engine
-  runSimulation: async (loc, crop, rainfallChangePct, dryDays, tempChangeC, durationDays = 14) => {
+  runSimulation: async (arg1, arg2, arg3, arg4, arg5, arg6) => {
+    let loc, crop, rainfallChangePct, dryDays, tempChangeC, durationDays;
+    if (typeof arg1 === 'object' && arg1 !== null && ('crop_name' in arg1 || 'rainfall_change_pct' in arg1 || 'crop' in arg1)) {
+      loc = { lat: arg1.lat, lon: arg1.lon };
+      crop = arg1.crop_name || arg1.crop || 'Paddy (Rice)';
+      rainfallChangePct = Number(arg1.rainfall_change_pct ?? arg1.rainfallChangePct ?? 0);
+      dryDays = Number(arg1.dry_days ?? arg1.dryDays ?? 0);
+      tempChangeC = Number(arg1.temperature_change_c ?? arg1.tempChangeC ?? 0);
+      durationDays = Number(arg1.duration_days ?? arg1.durationDays ?? 14);
+    } else {
+      loc = arg1 || {};
+      crop = arg2 || 'Paddy (Rice)';
+      rainfallChangePct = Number(arg3 ?? 0);
+      dryDays = Number(arg4 ?? 0);
+      tempChangeC = Number(arg5 ?? 0);
+      durationDays = Number(arg6 ?? 14);
+    }
+
     try {
       const res = await axios.post(`${BASE}/simulation/what-if`, null, {
         params: {
@@ -1721,136 +1744,7 @@ export const api = {
     }
   },
 
-  // Interactive What-If Simulation Lab
-  runSimulation: async (params) => {
-    try {
-      return await axios.post(`${BASE}/simulation/what-if`, null, { params, timeout: 3000 });
-    } catch {
-      const rainChg = Number(params?.rainfall_change_pct || 0);
-      const dryDays = Number(params?.dry_days || 0);
-      const tempChg = Number(params?.temperature_change_c || 0);
-      const stress = Math.min(100, Math.max(5, Math.abs(rainChg) * 0.6 + dryDays * 3.5 + tempChg * 5));
-      const yieldImpact = Number((-stress * 0.65).toFixed(1));
-      const soilMoisture = Number(Math.max(0.12, 0.32 + rainChg / 250 - dryDays * 0.012).toFixed(3));
-      return {
-        data: {
-          crop_stress_index_pct: Math.round(stress),
-          yield_impact_pct: yieldImpact,
-          soil_moisture_projected: soilMoisture,
-          recommended_contingency_en: dryDays > 7 ? 'Initiate emergency protective irrigation. Mulch with straw to preserve moisture.' : rainChg < -25 ? 'Deficit moisture scenario. Apply organic mulching and anti-transpirant spray.' : 'Normal agronomic monitoring.',
-          recommended_contingency_hi: dryDays > 7 ? 'आपातकालीन सुरक्षात्मक सिंचाई शुरू करें। पुआल की मल्चिंग करें।' : 'सामान्य कृषि निगरानी बनाए रखें।',
-          scenario_summary: `Rainfall ${rainChg >= 0 ? '+' : ''}${rainChg}%, ${dryDays} dry days, Temp ${tempChg >= 0 ? '+' : ''}${tempChg}°C`,
-        }
-      };
-    }
-  },
-
-  // AI Agricultural & Monsoon Decision Chatbot
-  chat: async (message, language = 'en', loc = {}, extra = {}) => {
-    try {
-      const payload = {
-        message,
-        language,
-        lat: loc?.lat,
-        lon: loc?.lon,
-        state: loc?.state,
-        district: loc?.district,
-        city: loc?.city,
-        village: loc?.village,
-        request_id: extra?.request_id || `chat_${Date.now()}`,
-        session_id: extra?.session_id || 'default_session',
-        history: extra?.history || [],
-      };
-      return await axios.post(`${BASE}/chat`, payload, {
-        params: { message, language, lat: loc?.lat, lon: loc?.lon },
-        timeout: 10000,
-      });
-    } catch {
-      // Robust client-side domain fallback ensuring zero repetition
-      const q = (message || '').toLowerCase();
-      const isHi = language === 'hi';
-      let reply_en = '';
-      let reply_hi = '';
-      let intent = 'WHAT';
-      let topic = 'general';
-
-      if (q.includes('enso') || q.includes('el nino') || q.includes('la nina') || q.includes('ईएनएसओ')) {
-        intent = 'WHAT';
-        topic = 'enso';
-        reply_en = `🌊 **Oceanic Niño Index (ENSO ONI) Analysis:**\n\n• **Status:** Neutral / Weak La Niña anomaly (-0.1°C SST in Niño 3.4 region).\n• **Impact on India:** Equatorial Pacific trade winds are stable, preventing synoptic-scale suppression of the Indian Monsoon.\n• **Agricultural Relevance:** Reduces drought risk across central India during late Kharif.`;
-        reply_hi = `🌊 **ईएनएसओ (ENSO ONI) विश्लेषण:**\n\n• **स्थिति:** तटस्थ / हल्का ला-नीना प्रभाव (नीनो 3.4 क्षेत्र में -0.1°C विसंगति)।\n• **भारत पर प्रभाव:** भूमध्यरेखीय प्रशांत व्यापारिक हवाएं स्थिर हैं, जो भारतीय मानसून में रुकावट को रोकती हैं।\n• **कृषि प्रासंगिकता:** खरीफ मौसम के दौरान मध्य भारत में सूखे के जोखिम को कम करता है।`;
-      } else if (q.includes('iod') || q.includes('indian ocean dipole') || q.includes('आईओडी')) {
-        intent = 'WHAT';
-        topic = 'iod';
-        reply_en = `🌊 **Dipole Mode Index (IOD / DMI) Analysis:**\n\n• **Status:** Positive IOD (+0.15°C anomaly in Western Indian Ocean).\n• **Impact on India:** Warmer waters in the Arabian Sea enhance cross-equatorial moisture flux towards the Indian landmass.\n• **Agricultural Relevance:** Supports sustained rainfall intervals across Western Ghats, Vidarbha, and central agricultural belts.`;
-        reply_hi = `🌊 **हिंद महासागर द्विध्रुव (IOD / DMI) विश्लेषण:**\n\n• **स्थिति:** सकारात्मक IOD (पश्चिमी हिंद महासागर में +0.15°C गर्म पानी)।\n• **भारत पर प्रभाव:** अरब सागर से भारतीय भूभाग की ओर नमी का संचार बढ़ता है।\n• **कृषि प्रासंगिकता:** पश्चिमी घाट, विदर्भ और मध्य कृषि बेल्ट में वर्षा के चक्र को मजबूत करता है।`;
-      } else if (q.includes('mjo') || q.includes('madden') || q.includes('एमजेओ')) {
-        intent = 'WHAT';
-        topic = 'mjo';
-        reply_en = `🌀 **Madden-Julian Oscillation (MJO) Analysis:**\n\n• **Status:** Phase 3 (Indian Ocean) with amplitude 1.25.\n• **Impact on India:** Convectively active phase directly over the Indian Ocean, triggering low-pressure systems and active monsoon surges.\n• **Agricultural Relevance:** High moisture availability for paddy transplanting and field saturation.`;
-        reply_hi = `🌀 **मैडेन-जूलियन दोलन (MJO) विश्लेषण:**\n\n• **स्थिति:** चरण 3 (हिंद महासागर), आयाम 1.25।\n• **भारत पर प्रभाव:** हिंद महासागर के ऊपर संवहनीय सक्रिय चरण, जिससे मानसूनी निम्न दबाव प्रणाली तीव्र होती है।\n• **कृषि प्रासंगिकता:** धान की रोपाई और खेतों में नमी हेतु अत्यंत अनुकूल।`;
-      } else if (q.includes('78') || q.includes('why') && q.includes('prediction') || q.includes('पूर्वानुमान') && q.includes('क्यों')) {
-        intent = 'WHY';
-        topic = 'xai_prediction_explanation';
-        reply_en = `🧠 **Why is the Rainfall Prediction 78%? (XAI Breakdown):**\n\n• **1. Atmospheric Moisture Convergence (SHAP +0.28):** Live relative humidity is 82% with deep vertical column water vapor.\n• **2. Monsoon Trough Alignment (SHAP +0.22):** Active synoptic convergence line positioned directly across the district.\n• **3. Teleconnection Support (SHAP +0.18):** MJO Phase 3 + Positive IOD (+0.15°C) generating strong moisture flux.\n• **4. Model Architecture:** LightGBM Hybrid v2.0 Ensemble trained on 10-year historical telemetry (2015–2024, 0-leakage forward chaining). ROC-AUC: 0.94, F1: 0.88.`;
-        reply_hi = `🧠 **वर्षा का 78% पूर्वानुमान क्यों है? (XAI विस्तृत विश्लेषण):**\n\n• **1. वायुमंडलीय आर्द्रता संचय (SHAP +0.28):** सापेक्ष आर्द्रता 82% है और बादलों में नमी का उच्च घनत्व है।\n• **2. मानसूनी द्रोणिका अक्ष (SHAP +0.22):** मानसूनी ट्रफ रेखा सीधे आपके जिले से होकर गुजर रही है।\n• **3. वैश्विक जलवायु समर्थन (SHAP +0.18):** MJO चरण 3 और सकारात्मक IOD से अरब सागर की नमी लगातार बढ़ रही है।\n• **4. मॉडल संरचना:** LightGBM हाइब्रिड v2.0 मॉडल 10 वर्षों (2015-2024) के डेटा पर प्रशिक्षित है। ROC-AUC 0.94 और शुद्धता 91.4% है।`;
-      } else if (q.includes('cotton') || q.includes('कपास') || q.includes('drain')) {
-        intent = 'HOW';
-        topic = 'cotton_drainage';
-        reply_en = `🌧️ **Cotton Rain & Drainage Management:**\n\n• **Immediate Action:** Open furrow drainage trenches every 4–6 rows to avoid root asphyxiation.\n• **Foliar Nutrition:** Spray 2% DAP or 1% 19:19:19 water-soluble fertilizer after water recedes to restore root vigor.\n• **Pest Vigilance:** Check for sucking pests (whiteflies, jassids) under cloudy humid spells; avoid chemical spray during active rain.`;
-        reply_hi = `🌧️ **कपास वर्षा व जल निकासी प्रबंधन:**\n\n• **त्वरित कार्रवाई:** जड़ों को सड़न से बचाने के लिए हर 4–6 कतारों के बीच जल निकासी नालियां खोलें।\n• **पोषक तत्व प्रबंधन:** जलभराव समाप्त होने पर 2% डीएपी या 1% 19:19:19 घुलनशील खाद का पर्णीय छिड़काव करें।\n• **कीट निगरानी:** बादलों वाले आर्द्र मौसम में रसचूसक कीटों (सफेद मक्खी, हरा तेला) की निगरानी रखें; बारिश में छिड़काव न करें।`;
-      } else if (q.includes('soybean') || q.includes('सोयाबीन') || q.includes('dry break') || q.includes('सूखा') || q.includes('विराम')) {
-        intent = 'WHAT SHOULD I DO';
-        topic = 'soybean_dry_spell';
-        reply_en = `🌱 **Soybean Moisture Conservation Advisory:**\n\n• **Mulching:** Apply crop residue/straw mulch (3–4 tonnes/ha) between rows to reduce evaporation.\n• **Anti-transpirant:** Spray 2% Potassium Chloride (KCl) or glycerol to reduce leaf transpiration during prolonged dry breaks.\n• **Protective Irrigation:** If pod-filling stage coincides with dry spell > 7 days, provide life-saving sprinkler irrigation.`;
-        reply_hi = `🌱 **सोयाबीन नमी संरक्षण सलाह:**\n\n• **पुआल मल्चिंग:** वाष्पीकरण रोकने के लिए कतारों के बीच 3–4 टन/हेक्टेयर की दर से फसल अवशेष या पुआल बिछाएं।\n• **पोषक सुरक्षा:** लंबे सूखे दौर में 2% पोटेशियम क्लोराइड (KCl) का छिड़काव करें ताकि पौधों की नमी बनी रहे।\n• **जीवनरक्षक सिंचाई:** यदि फली बनने के समय 7 दिन से अधिक सूखा रहे, तो फव्वारा विधि से हल्की सिंचाई दें।`;
-      } else if (q.includes('paddy') || q.includes('धान') || q.includes('rice') || q.includes('transplant') || q.includes('रोपाई')) {
-        intent = 'WHEN';
-        topic = 'paddy_management';
-        reply_en = `🌾 **Paddy (Rice) Sowing & Transplanting Advisory:**\n\n• **Transplanting Window:** Ideal at 20–25 days of nursery age. Maintain 2–3 cm standing water during transplanting.\n• **Fertilizer Split:** Apply 50% Nitrogen as basal with full Phosphorous and Potash. Hold top-dressing urea if heavy downpour is forecast.\n• **Submergence Defense:** For low-lying flood-prone plots, choose submergence-tolerant varieties (Swarna-Sub1).`;
-        reply_hi = `🌾 **धान रोपाई व प्रबंधन सलाह:**\n\n• **रोपाई का समय:** नर्सरी के 20–25 दिन की उम्र में रोपाई सर्वोत्तम है। रोपाई के समय खेत में 2–3 सेमी पानी बनाए रखें।\n• **उर्वरक प्रबंधन:** 50% नाइट्रोजन, पूरी फास्फोरस व पोटाश बेसल खुराक के रूप में दें। भारी बारिश का अनुमान होने पर यूरिया न डालें।\n• **जलभराव से बचाव:** निचले क्षेत्रों में जलभराव सहने वाली किस्में (जैसे स्वर्ण-सब1) अपनाएं।`;
-      } else if (q.includes('maize') || q.includes('मक्का') || q.includes('armyworm') || q.includes('कीट')) {
-        intent = 'HOW';
-        topic = 'maize_pest';
-        reply_en = `🌽 **Maize & Fall Armyworm (FAW) Management:**\n\n• **Pest Scouting:** Inspect plant whorls for pinholes and saw-dust-like frass.\n• **Biocontrol:** Release *Trichogramma* egg parasitoids or apply Neem oil (1500 ppm @ 5ml/L).\n• **Targeted Spray:** If infestation >10%, apply Emamectin Benzoate 5% SG @ 0.4g/L directly into whorls during clear weather.`;
-        reply_hi = `🌽 **मक्का एवं फॉल आर्मीवर्म कीट नियंत्रण:**\n\n• **कीट निगरानी:** पौधों की पोंगो में छोटे छेद और लकड़ी के बुरादे जैसे मल की जांच करें।\n• **जैविक नियंत्रण:** ट्राइकोग्रामा परजीवी छोड़ें या 1500 पीपीएम नीम तेल (5 मिली/लीटर) का छिड़काव करें।\n• **सटीक दवा:** प्रकोप 10% से अधिक होने पर इमामेक्टिन बेंजोएट 5% एसजी (0.4 ग्राम/लीटर) का पोंगे में छिड़काव करें।`;
-      } else if (q.includes('false') || q.includes('झूठी') || q.includes('onset')) {
-        intent = 'WHY';
-        topic = 'false_onset';
-        reply_en = `⚠️ **False-Onset Risk Explanation:**\n\n• **Mechanism:** Pre-monsoon convection triggered high rainfall (>25mm), but lower tropospheric westerly shear is below 15 knots and teleconnection indices indicate a collapsing surge.\n• **Agro Impact:** Direct dry-sown seeds face germination failure if followed by 6–8 rainless days.\n• **Action:** Delay dry sowing until consecutive active monsoon pulses are confirmed across the district.`;
-        reply_hi = `⚠️ **झूठी शुरुआत (False-Onset) जोखिम विश्लेषण:**\n\n• **कारण:** प्री-मानसून वर्षा तीव्र रही परंतु पश्चिमी मानसूनी हवाओं की निरंतरता कमजोर है जिससे 6–8 दिन का शुष्क दौर संभावित है।\n• **फसल प्रभाव:** बिना सिंचाई बुवाई करने पर बीज सूखकर नष्ट हो सकते हैं।\n• **कार्य योजना:** जब तक मानसून की नियमित बारिश शुरू न हो, तब तक बिना सिंचाई वाली बुवाई स्थगित रखें।`;
-      } else {
-        intent = 'WHAT';
-        topic = 'weather_forecast';
-        reply_en = `🌧️ **VarshaNetra AI Real-Time Advisory for ${loc?.display_name || 'your region'}:**\n\n• **Precipitation:** Synoptic moisture convergence active across the agro-climatic zone.\n• **Crop Action:** Maintain field drainage channels and stage-wise crop scouting.\n• **Teleconnections:** Coupled ENSO/IOD/MJO telemetry integrated for 0-leakage predictive accuracy.`;
-        reply_hi = `🌧️ **VarshaNetra AI वास्तविक सलाह (${loc?.display_name || 'आपके क्षेत्र'} हेतु):**\n\n• **वर्षा स्थिति:** आपके कृषि-जलवायु क्षेत्र में वायुमंडलीय नमी का संचार सक्रिय है।\n• **किसान कार्य योजना:** खेतों में जल निकासी खुली रखें और फसलों की नियमित निगरानी करें।\n• **जलवायु विश्लेषण:** सटीक पूर्वानुमान हेतु ENSO/IOD/MJO वैश्विक संकेतकों का वास्तविक विश्लेषण सक्रिय है।`;
-      }
-
-      return {
-        data: {
-          reply: isHi ? reply_hi : reply_en,
-          reply_en,
-          reply_hi,
-          intent_detected: intent,
-          topic_detected: topic,
-          confidence: 0.95,
-        }
-      };
-    }
-  },
-
-  getMapStats: () => axios.get(`${BASE}/map/stats`).catch(() => ({
-    data: {
-      states_and_uts: 36,
-      districts: 766,
-      sub_districts_blocks: 6854,
-      gram_panchayats_lgd: 255286,
-      villages: 664369,
-    }
-  })),
-
-  searchMap: (q, limit = 10) => axios.get(`${BASE}/map/search`, { params: { q, limit } }).catch(() => ({
-    data: { count: 0, results: [] }
-  })),
+  // Verification & Endpoints Ready
 };
+
 

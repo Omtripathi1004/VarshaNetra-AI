@@ -470,6 +470,21 @@ label.field-label { display: block; font-size: 0.75rem; color: var(--text-muted)
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: rgba(13, 9, 28, 0.95) !important; }
 .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: rgba(13, 9, 28, 0.95) !important; }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: rgba(13, 9, 28, 0.95) !important; }
+.varshanetra-maplibre-popup .maplibregl-popup-close-button {
+  color: #94a3b8;
+  font-size: 16px;
+  padding: 4px 8px;
+  right: 4px;
+  top: 4px;
+}
+.varshanetra-maplibre-popup .maplibregl-popup-close-button:hover {
+  color: #ffffff;
+  background: transparent;
+}
+.varshanetra-agro-marker {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
 
 /* ── HydroMap Layer Control & Legend Panels ────────────────── */
 .map-layer-control-panel {

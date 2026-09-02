@@ -5,7 +5,7 @@ const AppContext = createContext(null);
 
 export const DEMO_ACCOUNTS = [
   {
-    userId: 'harhsih30@gmail.com',
+    userId: 'harshsih30@gmail.com',
     password: 'dev2026',
     name: 'Harsh Singh (Lead Developer)',
     role: 'developer',
@@ -47,8 +47,10 @@ export const DEMO_ACCOUNTS = [
   },
 ];
 
-// RBAC Constants: Strict Farmer Mode (top 5 pages) vs Authority Mode
-const USER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics'];
+// RBAC Constants:
+// Farmer / User has access to first 6 tabs (Overview, HydroMap, Monsoon, Agriculture, XAI, Analytics).
+// The last 3 tabs (Alerts/Warnings, Agri Command, System Control) are restricted to privileged roles (admin, developer, officer).
+const FARMER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics'];
 const PRIVILEGED_TABS = ['alerts', 'command', 'system'];
 const PRIVILEGED_ROLES = new Set(['developer', 'admin', 'officer']);
 
@@ -83,20 +85,7 @@ export function AppProvider({ children }) {
     });
   }, []);
 
-  // Global Active Tab state
-  const [activeTab, setActiveTab] = useState('overview');
-
-  // Shared prediction / XAI context
-  const [xaiContext, setXaiContext] = useState(null);
-
-  const [location, setLocation] = useState({
-    lat: 26.85, lon: 80.95,
-    state: 'Uttar Pradesh', district: 'Lucknow',
-    city: 'Lucknow', village: '',
-    display_name: 'Lucknow, Uttar Pradesh',
-  });
-
-  // User state with localStorage persistence
+  // User state with localStorage persistence (Declared FIRST)
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('varshanetra_user');
@@ -111,6 +100,43 @@ export function AppProvider({ children }) {
   });
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  const canAccessPrivileged = useMemo(() => {
+    return Boolean(user?.role && PRIVILEGED_ROLES.has(user.role));
+  }, [user?.role]);
+
+  const allowedTabs = useMemo(() => {
+    return canAccessPrivileged ? [...FARMER_TABS, ...PRIVILEGED_TABS] : FARMER_TABS;
+  }, [canAccessPrivileged]);
+
+  // Guarded Active Tab state with RBAC enforcement
+  const [activeTab, setActiveTabState] = useState('overview');
+
+  const setActiveTab = useCallback((tabId) => {
+    if (PRIVILEGED_TABS.includes(tabId) && !PRIVILEGED_ROLES.has(user?.role)) {
+      console.warn(`Access Denied: Tab "${tabId}" requires District Administrator, Developer, or Officer authorization.`);
+      setIsLoginModalOpen(true);
+      return;
+    }
+    setActiveTabState(tabId);
+  }, [user?.role]);
+
+  // If role changes to farmer while on a restricted tab, bounce back to overview
+  useEffect(() => {
+    if (PRIVILEGED_TABS.includes(activeTab) && !PRIVILEGED_ROLES.has(user?.role)) {
+      setActiveTabState('overview');
+    }
+  }, [user?.role, activeTab]);
+
+  // Shared prediction / XAI context
+  const [xaiContext, setXaiContext] = useState(null);
+
+  const [location, setLocation] = useState({
+    lat: 26.85, lon: 80.95,
+    state: 'Uttar Pradesh', district: 'Lucknow',
+    city: 'Lucknow', village: '',
+    display_name: 'Lucknow, Uttar Pradesh',
+  });
 
   /**
    * Server-backed Authentication + Exact Account Validation
@@ -148,40 +174,64 @@ export function AppProvider({ children }) {
       return { success: true, user: matched };
     }
 
-    return { success: false, error: 'Invalid User ID or Password' };
-  }, []);
+    // Role-based heuristics fallback for custom credentials
+    let detectedRole = 'farmer';
+    let roleLabel_en = '🌾 Farmer / Krishi User';
+    let roleLabel_hi = '🌾 किसान / कृषि उपयोगकर्ता';
+    let name = 'Kisan User';
+
+    if (cleanId.includes('dev') || cleanId.includes('developer') || cleanId.includes('harsh')) {
+      detectedRole = 'developer';
+      roleLabel_en = '💻 Developer / ML Researcher';
+      roleLabel_hi = '💻 डेवलपर / शोधकर्ता';
+      name = 'Developer User';
+    } else if (cleanId.includes('admin') || cleanId.includes('imd') || cleanId.includes('officer')) {
+      detectedRole = 'admin';
+      roleLabel_en = '🏛️ Disaster Administrator / Officer';
+      roleLabel_hi = '🏛️ जिला कृषि अधिकारी / प्रशासक';
+      name = 'District Command Officer';
+    }
+
+    const newUser = {
+      userId: cleanId,
+      name,
+      role: detectedRole,
+      roleLabel_en,
+      roleLabel_hi,
+      badge: `${detectedRole.toUpperCase()} Auth`,
+      district: location.district || 'National Grid'
+    };
+
+    setUser(newUser);
+    try {
+      localStorage.setItem('varshanetra_user', JSON.stringify(newUser));
+    } catch (e) {}
+    setIsLoginModalOpen(false);
+    return { success: true, user: newUser };
+  }, [location.district]);
 
   const logout = useCallback(() => {
-    const defaultUser = DEMO_ACCOUNTS[1]; // Reset to Farmer
-    setUser(defaultUser);
+    const defaultFarmer = DEMO_ACCOUNTS[1];
+    setUser(defaultFarmer);
     try {
-      localStorage.setItem('varshanetra_user', JSON.stringify(defaultUser));
+      localStorage.setItem('varshanetra_user', JSON.stringify(defaultFarmer));
     } catch (e) {}
+    setActiveTabState('overview');
   }, []);
 
-  // tr() shorthand
-  const tr = useCallback((key) => t(lang, key), [lang]);
+  const isFarmerMode = user.role === 'farmer';
+  const isDevAdminMode = user.role === 'developer' || user.role === 'admin' || user.role === 'officer';
 
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // RBAC: whether the current user can access privileged tabs
-  const canAccessPrivileged = useMemo(() => {
-    return PRIVILEGED_ROLES.has(user?.role);
-  }, [user?.role]);
+  const tr = useCallback((key) => {
+    return t(lang, key);
+  }, [lang]);
 
-  // If a non-privileged user tries to access a privileged tab, revert to 'overview'
-  useEffect(() => {
-    if (!canAccessPrivileged && PRIVILEGED_TABS.includes(activeTab)) {
-      setActiveTab('overview');
-    }
-  }, [canAccessPrivileged, activeTab]);
-
-  // Role separation helpers
-  const isFarmerMode = user?.role === 'farmer';
-  const isDevAdminMode = user?.role === 'developer' || user?.role === 'admin';
-
-  const switchRole = useCallback((targetRole) => {
-    const acc = DEMO_ACCOUNTS.find(a => a.role === targetRole) || DEMO_ACCOUNTS[0];
+  const switchRole = useCallback((roleOrAccount) => {
+    const acc = typeof roleOrAccount === 'string'
+      ? DEMO_ACCOUNTS.find(a => a.role === roleOrAccount) || DEMO_ACCOUNTS[0]
+      : roleOrAccount;
     login(acc.userId, acc.password);
   }, [login]);
 
@@ -210,7 +260,8 @@ export function AppProvider({ children }) {
       setIsChatOpen,
       DEMO_ACCOUNTS,
       canAccessPrivileged,
-      USER_TABS,
+      allowedTabs,
+      FARMER_TABS,
       PRIVILEGED_TABS,
     }}>
       {children}

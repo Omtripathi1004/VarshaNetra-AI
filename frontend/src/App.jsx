@@ -196,21 +196,19 @@ function LoginModal() {
 }
 
 function AppInner() {
-  const { tr, lang, toggleLang, user, activeTab, setActiveTab, setIsLoginModalOpen, isChatOpen, setIsChatOpen, canAccessPrivileged, USER_TABS, PRIVILEGED_TABS } = useApp();
+  const { tr, lang, toggleLang, user, activeTab, setActiveTab, setIsLoginModalOpen, isChatOpen, setIsChatOpen, canAccessPrivileged, allowedTabs, FARMER_TABS, PRIVILEGED_TABS } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef(null);
   const triggerRef = useRef(null);
 
-  // RBAC: compute visible tabs based on user role
-  const visibleTabs = TABS.filter(tab =>
-    USER_TABS.includes(tab.id) || (canAccessPrivileged && PRIVILEGED_TABS.includes(tab.id))
-  );
+  // Visible tabs: all 9 core dashboard tabs accessible
+  const visibleTabs = TABS;
 
-  // RBAC: if current activeTab is not allowed, redirect to overview
+  // Global tab router safety check
   useEffect(() => {
-    const allowed = visibleTabs.some(t => t.id === activeTab);
-    if (!allowed && setActiveTab) setActiveTab('overview');
-  }, [user?.role, canAccessPrivileged, activeTab]);
+    const valid = TABS.some(t => t.id === activeTab);
+    if (!valid && setActiveTab) setActiveTab('overview');
+  }, [activeTab]);
 
   // Drawer close handlers
   const closeDrawer = useCallback(() => {
@@ -369,7 +367,6 @@ function AppInner() {
 
       {/* DRAWER OVERLAY */}
       {drawerOpen && (
-
         <div
           className="drawer-overlay"
           onClick={closeDrawer}
@@ -381,7 +378,7 @@ function AppInner() {
         />
       )}
 
-      {/* RIGHT-SIDE NAVIGATION DRAWER */}
+      {/* RIGHT-SIDE NAVIGATION DRAWER (PRIMARY NAVIGATION VIA THREE-DOT MENU) */}
       <div
         ref={drawerRef}
         role="navigation"
@@ -425,58 +422,77 @@ function AppInner() {
 
         {/* Navigation Items */}
         <div style={{ padding: '0.6rem', flex: 1 }}>
-          {/* Section: User Pages */}
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', padding: '0.4rem 0.8rem 0.25rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            {lang === 'hi' ? 'निगरानी व विश्लेषण' : 'Observe · Predict · Explain'}
+          {/* Section: Farmer / Krishi Modules */}
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#38bdf8', padding: '0.4rem 0.8rem 0.25rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+            {lang === 'hi' ? '🌾 कृषि व मौसम सेवाएं' : '🌾 Farmer & Weather Intelligence'}
           </div>
-          {visibleTabs.filter(t => USER_TABS.includes(t.id)).map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); closeDrawer(); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.65rem',
-                width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px',
-                border: 'none', textAlign: 'left', cursor: 'pointer',
-                background: activeTab === tab.id ? 'linear-gradient(135deg, #a855f7, #06b6d4)' : 'transparent',
-                color: activeTab === tab.id ? '#ffffff' : '#cbd5e1',
-                fontWeight: activeTab === tab.id ? 700 : 500, fontSize: '0.86rem',
-                transition: 'all 0.15s', marginBottom: '0.15rem',
-              }}
-            >
-              <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>{tab.icon}</span>
-              <span>{tr ? tr(tab.trKey) : tab.id}</span>
-            </button>
-          ))}
+          {TABS.filter(t => !PRIVILEGED_TABS.includes(t.id)).map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); closeDrawer(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.65rem',
+                  width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px',
+                  border: 'none', textAlign: 'left', cursor: 'pointer',
+                  background: isActive ? 'linear-gradient(135deg, #a855f7, #06b6d4)' : 'transparent',
+                  color: isActive ? '#ffffff' : '#cbd5e1',
+                  fontWeight: isActive ? 700 : 500, fontSize: '0.86rem',
+                  transition: 'all 0.15s', marginBottom: '0.15rem',
+                }}
+              >
+                <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>{tab.icon}</span>
+                <span>{tr ? tr(tab.trKey) : tab.id}</span>
+              </button>
+            );
+          })}
 
-          {/* Section: Privileged Pages (only for admin/dev) */}
+          {/* Section: Privileged Disaster & System Command (Visible only for Admin / Developer / Officer) */}
           {canAccessPrivileged && (
             <>
-              <div style={{
-                fontSize: '0.65rem', fontWeight: 700, color: '#f87171', padding: '0.6rem 0.8rem 0.25rem',
-                letterSpacing: '0.5px', textTransform: 'uppercase', marginTop: '0.4rem',
-                borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.6rem',
-              }}>
-                {lang === 'hi' ? '🔒 अधिकार-संरक्षित (Decide · Act)' : '🔒 Authority Protected (Decide · Act)'}
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#f87171', padding: '0.9rem 0.8rem 0.25rem', letterSpacing: '0.5px', textTransform: 'uppercase', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '0.5rem' }}>
+                {lang === 'hi' ? '🏛️ आपदा व प्रशासनिक कमांड' : '🏛️ Disaster & System Command'}
               </div>
-              {visibleTabs.filter(t => PRIVILEGED_TABS.includes(t.id)).map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); closeDrawer(); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.65rem',
-                    width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px',
-                    border: 'none', textAlign: 'left', cursor: 'pointer',
-                    background: activeTab === tab.id ? 'linear-gradient(135deg, #dc2626, #ea580c)' : 'transparent',
-                    color: activeTab === tab.id ? '#ffffff' : '#cbd5e1',
-                    fontWeight: activeTab === tab.id ? 700 : 500, fontSize: '0.86rem',
-                    transition: 'all 0.15s', marginBottom: '0.15rem',
-                  }}
-                >
-                  <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>{tab.icon}</span>
-                  <span>{tr ? tr(tab.trKey) : tab.id}</span>
-                </button>
-              ))}
+              {TABS.filter(t => PRIVILEGED_TABS.includes(t.id)).map(tab => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); closeDrawer(); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.65rem',
+                      width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px',
+                      border: 'none', textAlign: 'left', cursor: 'pointer',
+                      background: isActive ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : 'rgba(239, 68, 68, 0.05)',
+                      color: isActive ? '#ffffff' : '#fca5a5',
+                      fontWeight: isActive ? 700 : 500, fontSize: '0.86rem',
+                      transition: 'all 0.15s', marginBottom: '0.2rem',
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>{tab.icon}</span>
+                    <span>{tr ? tr(tab.trKey) : tab.id}</span>
+                  </button>
+                );
+              })}
             </>
+          )}
+
+          {!canAccessPrivileged && (
+            <div style={{ marginTop: '1rem', padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                🔒 {lang === 'hi' ? 'आपदा अलर्ट व कमांड सेंटर केवल अधिकृत अधिकारियों के लिए है।' : 'Disaster Alerts & Command Center restricted to authorized personnel.'}
+              </div>
+              <button
+                onClick={() => { setIsLoginModalOpen(true); closeDrawer(); }}
+                style={{
+                  width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.4)',
+                  background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                🔐 {lang === 'hi' ? 'अधिकारी लॉगिन करें' : 'Admin / Dev Login'}
+              </button>
+            </div>
           )}
         </div>
 
@@ -505,8 +521,8 @@ function AppInner() {
         </button>
 
         <button
-          className={`mobile-nav-item ${activeTab === 'alerts' && canAccessPrivileged ? 'active' : ''}`}
-          onClick={() => canAccessPrivileged ? setActiveTab('alerts') : setIsLoginModalOpen(true)}
+          className={`mobile-nav-item ${activeTab === 'alerts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('alerts')}
         >
           <span className="nav-icon">🚨</span>
           <span>{lang === 'hi' ? 'अलर्ट' : 'Alerts'}</span>

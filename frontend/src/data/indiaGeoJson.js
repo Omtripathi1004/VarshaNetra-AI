@@ -797,7 +797,7 @@ export const VARSHANETRA_RISK_ZONES_GEOJSON = {
         prediction_confidence: "Telemetry Pending",
         monsoon_phase: "ZERO_TELEMETRY_COVERAGE",
         soil_moisture_saturation: "Uncalibrated Sensor",
-        weather_summary: "Automated Weather Station (AWS) telemetry awaiting satellite uplink verification.",
+        centroid: [70.65, 26.65],
         ai_advisory_en: "Sparse telemetry zone. Rely on regional IMD synoptic radar for alerts.",
         ai_advisory_hi: "सीमित मौसम केंद्र क्षेत्र। क्षेत्रीय मौसम विभाग के रडार अलर्ट पर निर्भर रहें।"
       },
@@ -818,6 +818,7 @@ export const VARSHANETRA_RISK_ZONES_GEOJSON = {
         risk_score: 0,
         color: "#64748b",
         stroke_color: "#94a3b8",
+        centroid: [77.5771, 34.1526],
         rainfall_24h_mm: "Sensor Snow-Covered",
         rainfall_7d_forecast: "Sub-Zero Precipitation",
         prediction_confidence: "Satellite Optical Only",

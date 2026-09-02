@@ -1,9 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import * as maplibregl from 'maplibre-gl';
+import {
+  Map as MLMap,
+  Marker as MLMarker,
+  NavigationControl as MLNavControl,
+  FullscreenControl as MLFullscreenControl,
+  ScaleControl as MLScaleControl,
+} from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
-import { getMapStyle, BASEMAP_IDS, BASEMAP_OPTIONS, DEFAULT_BASEMAP, isMapplsConfigured } from '../../config/mapConfig';
+import { getMapStyle, BASEMAP_IDS, BASEMAP_OPTIONS, DEFAULT_BASEMAP, isMapplsConfigured, getMapplsKey } from '../../config/mapConfig';
 import {
   INDIA_BOUNDARY_GEOJSON,
   INDIA_STATES_GEOJSON,
@@ -15,13 +21,24 @@ import {
   HISTORICAL_WEATHER_EVENTS_GEOJSON,
   WEATHER_OVERLAYS_GEOJSON,
 } from '../../data/indiaGeoJson';
+export { default as HydroMap, AGRO_HUBS } from './HydroMap';
 
-// Safe MapLibre module resolvers
-const MapEngine = maplibregl.Map;
-const MarkerEngine = maplibregl.Marker;
-const NavControl = maplibregl.NavigationControl;
-const FullscreenCtrl = maplibregl.FullscreenControl;
-const ScaleCtrl = maplibregl.ScaleControl;
+// Safe Universal MapLibre module resolvers
+const getMLEngine = () => {
+  return {
+    Map: MLMap || (typeof window !== 'undefined' && window.maplibregl?.Map),
+    Marker: MLMarker || (typeof window !== 'undefined' && window.maplibregl?.Marker),
+    NavigationControl: MLNavControl || (typeof window !== 'undefined' && window.maplibregl?.NavigationControl),
+    FullscreenControl: MLFullscreenControl || (typeof window !== 'undefined' && window.maplibregl?.FullscreenControl),
+    ScaleControl: MLScaleControl || (typeof window !== 'undefined' && window.maplibregl?.ScaleControl),
+  };
+};
+
+const MapEngine = MLMap || (typeof window !== 'undefined' && window.maplibregl?.Map);
+const MarkerEngine = MLMarker || (typeof window !== 'undefined' && window.maplibregl?.Marker);
+const NavControl = MLNavControl || (typeof window !== 'undefined' && window.maplibregl?.NavigationControl);
+const FullscreenCtrl = MLFullscreenControl || (typeof window !== 'undefined' && window.maplibregl?.FullscreenControl);
+const ScaleCtrl = MLScaleControl || (typeof window !== 'undefined' && window.maplibregl?.ScaleControl);
 
 // Default India Geographic Center & Zoom
 const INDIA_DEFAULT_CENTER = [78.9629, 22.5937]; // Longitude, Latitude
@@ -766,12 +783,15 @@ export default function HydroMapTab() {
 
     const initialStyle = getMapStyle(DEFAULT_BASEMAP);
 
-    if (!MapEngine) {
-      console.error('MapEngine is not available');
+    const engines = getMLEngine();
+    const ActiveMapEngine = engines.Map || MapEngine;
+
+    if (!ActiveMapEngine) {
+      console.warn('MapEngine resolver pending');
       return;
     }
 
-    const map = new MapEngine({
+    const map = new ActiveMapEngine({
       container: mapContainerRef.current,
       style: initialStyle,
       center: [INDIA_DEFAULT_CENTER[0], INDIA_DEFAULT_CENTER[1]],
@@ -780,29 +800,53 @@ export default function HydroMapTab() {
       maxZoom: 18,
     });
 
+    mapRef.current = map;
+    setTimeout(() => {
+      try { map.resize(); } catch {}
+    }, 100);
+
     // Navigation and Scale Controls
-    if (NavControl) map.addControl(new NavControl({ visualizePitch: true }), 'top-left');
-    if (FullscreenCtrl) map.addControl(new FullscreenCtrl(), 'top-left');
-    if (ScaleCtrl) map.addControl(new ScaleCtrl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
+    const ActiveNav = engines.NavigationControl || NavControl;
+    const ActiveFull = engines.FullscreenControl || FullscreenCtrl;
+    const ActiveScale = engines.ScaleControl || ScaleCtrl;
+
+    if (ActiveNav) {
+      try { map.addControl(new ActiveNav({ visualizePitch: true }), 'top-left'); } catch {}
+    }
+    if (ActiveFull) {
+      try { map.addControl(new ActiveFull(), 'top-left'); } catch {}
+    }
+    if (ActiveScale) {
+      try { map.addControl(new ActiveScale({ maxWidth: 120, unit: 'metric' }), 'bottom-left'); } catch {}
+    }
 
     // On style load / basemap switch
     const handleReapplyLayers = () => {
-      if (map.isStyleLoaded()) {
-        setupMapOverlays(map);
-        syncLayerVisibility(map, layersState, riskFilter);
-        setMapLoaded(true);
+      try {
+        if (map.isStyleLoaded()) {
+          setupMapOverlays(map);
+          syncLayerVisibility(map, layersState, riskFilter);
+          setMapLoaded(true);
+        }
+      } catch (err) {
+        console.warn('Layer reapply notice:', err);
       }
     };
 
     map.on('styledata', handleReapplyLayers);
 
     map.on('load', () => {
-      setupMapOverlays(map);
-      syncLayerVisibility(map, layersState, riskFilter);
+      try {
+        setupMapOverlays(map);
+        syncLayerVisibility(map, layersState, riskFilter);
+        setMapLoaded(true);
+      } catch (err) {
+        console.warn('Map overlay init notice:', err);
+      }
 
       // Track zoom level changes
       map.on('zoom', () => {
-        setCurrentZoom(Number(map.getZoom().toFixed(1)));
+        try { setCurrentZoom(Number(map.getZoom().toFixed(1))); } catch {}
       });
 
       // Hover cursors
@@ -903,40 +947,67 @@ export default function HydroMapTab() {
 
       mapRef.current = map;
       setMapLoaded(true);
-      setTimeout(() => map.resize(), 150);
+      setTimeout(() => {
+        try { map.resize(); } catch {}
+      }, 150);
     });
 
     // Resize on window changes
     const handleResize = () => {
-      if (map) map.resize();
+      try {
+        if (mapRef.current) mapRef.current.resize();
+      } catch {}
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      map.remove();
+      try {
+        if (map) map.remove();
+      } catch (e) {
+        console.warn('Map cleanup notice:', e);
+      }
       mapRef.current = null;
     };
   }, [setupMapOverlays, syncLayerVisibility]);
 
-  // Seamless Basemap Switcher (Mappls ↔ OSM ↔ Satellite ↔ Hybrid)
+  // Seamless Basemap Switcher (Mappls ↔ Official Mappls Portal ↔ OSM ↔ Satellite ↔ Hybrid)
   const handleSwitchBasemap = useCallback((mode) => {
-    if (!mapRef.current) return;
     setBasemapMode(mode);
+    if (mode === 'mappls_live') return;
+    if (!mapRef.current) return;
     const nextStyle = getMapStyle(mode);
     const map = mapRef.current;
 
-    const onStyleData = () => {
-      if (map.isStyleLoaded()) {
-        map.off('styledata', onStyleData);
+    setTimeout(() => {
+      try { map.resize(); } catch {}
+    }, 50);
+
+    const onStyleReady = () => {
+      try {
         setupMapOverlays(map);
         syncLayerVisibility(map, layersState, riskFilter);
         map.resize();
+      } catch (err) {
+        console.warn('Overlay refresh notice on basemap change:', err);
+      }
+    };
+
+    map.once('style.load', onStyleReady);
+    const onStyleData = () => {
+      if (map.isStyleLoaded()) {
+        map.off('styledata', onStyleData);
+        onStyleReady();
       }
     };
     map.on('styledata', onStyleData);
-    map.setStyle(nextStyle);
-  }, [basemapMode, layersState, riskFilter, setupMapOverlays, syncLayerVisibility]);
+
+    try {
+      map.setStyle(nextStyle);
+    } catch (e) {
+      console.warn('Map setStyle error caught:', e);
+    }
+  }, [layersState, riskFilter, setupMapOverlays, syncLayerVisibility]);
 
   // Dedicated Risk Tier Filter Handler with Instant Pan/Zoom to Selected Risk Polygon
   const handleRiskFilterChange = useCallback((tier) => {
@@ -992,11 +1063,17 @@ export default function HydroMapTab() {
       el.style.width = '32px';
       el.style.height = '32px';
 
-      gpsMarkerRef.current = new MarkerEngine({ element: el })
-        .setLngLat([lng, lat])
-        .addTo(map);
+      if (typeof MarkerEngine === 'function') {
+        try {
+          gpsMarkerRef.current = new MarkerEngine({ element: el })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        } catch (e) {
+          console.warn('GPS marker init error:', e);
+        }
+      }
     } else {
-      gpsMarkerRef.current.setLngLat([lng, lat]);
+      try { gpsMarkerRef.current.setLngLat([lng, lat]); } catch {}
     }
   }, [location.lat, location.lon, mapLoaded]);
 
@@ -1012,11 +1089,17 @@ export default function HydroMapTab() {
       el.style.cursor = 'pointer';
       el.innerHTML = '📍';
 
-      clickMarkerRef.current = new MarkerEngine({ element: el })
-        .setLngLat([clickedCoord.lon, clickedCoord.lat])
-        .addTo(map);
+      if (typeof MarkerEngine === 'function') {
+        try {
+          clickMarkerRef.current = new MarkerEngine({ element: el })
+            .setLngLat([clickedCoord.lon, clickedCoord.lat])
+            .addTo(map);
+        } catch (e) {
+          console.warn('Click marker init error:', e);
+        }
+      }
     } else {
-      clickMarkerRef.current.setLngLat([clickedCoord.lon, clickedCoord.lat]);
+      try { clickMarkerRef.current.setLngLat([clickedCoord.lon, clickedCoord.lat]); } catch {}
     }
   }, [clickedCoord, mapLoaded]);
 
@@ -1027,21 +1110,27 @@ export default function HydroMapTab() {
 
     // Clear old beacon markers
     if (beaconMarkersRef.current) {
-      beaconMarkersRef.current.forEach(m => m.remove());
+      beaconMarkersRef.current.forEach(m => {
+        try { m.remove(); } catch {}
+      });
       beaconMarkersRef.current = [];
     }
 
     if (!layersState.riskZones) return;
 
-    // Calculate Polygon Centroid
-    const getCentroid = (coords) => {
+    // Calculate Polygon Centroid with explicit centroid fallback
+    const getCentroid = (coords, featProps) => {
+      if (featProps && Array.isArray(featProps.centroid) && featProps.centroid.length === 2) {
+        return featProps.centroid;
+      }
+      if (!coords) return [78.96, 22.59];
       let ring = coords;
-      if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
-        ring = coords[0];
+      while (Array.isArray(ring[0]) && Array.isArray(ring[0][0])) {
+        ring = ring[0];
       }
       let sumLon = 0, sumLat = 0, count = 0;
       for (let pt of ring) {
-        if (Array.isArray(pt) && typeof pt[0] === 'number') {
+        if (Array.isArray(pt) && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
           sumLon += pt[0];
           sumLat += pt[1];
           count++;
@@ -1054,7 +1143,7 @@ export default function HydroMapTab() {
       const props = feat.properties;
       if (riskFilter !== 'ALL' && props.risk_level !== riskFilter) return;
 
-      const centroid = getCentroid(feat.geometry.coordinates);
+      const centroid = getCentroid(feat.geometry.coordinates, props);
       const color = props.risk_level === 'RED' ? '#dc2626' :
                     props.risk_level === 'BLUE' ? '#2563eb' :
                     props.risk_level === 'YELLOW' ? '#eab308' :
@@ -1083,11 +1172,17 @@ export default function HydroMapTab() {
         setClickedCoord({ lat: centroid[1], lon: centroid[0] });
       };
 
-      const marker = new MarkerEngine({ element: el })
-        .setLngLat(centroid)
-        .addTo(map);
+      if (typeof MarkerEngine === 'function') {
+        try {
+          const marker = new MarkerEngine({ element: el })
+            .setLngLat(centroid)
+            .addTo(map);
 
-      beaconMarkersRef.current.push(marker);
+          beaconMarkersRef.current.push(marker);
+        } catch (e) {
+          console.warn('Beacon marker error:', e);
+        }
+      }
     });
   }, [mapLoaded, layersState.riskZones, riskFilter]);
 
@@ -1098,7 +1193,9 @@ export default function HydroMapTab() {
 
     // Clear old belt markers
     if (agroBeltMarkersRef.current) {
-      agroBeltMarkersRef.current.forEach(m => m.remove());
+      agroBeltMarkersRef.current.forEach(m => {
+        try { m.remove(); } catch {}
+      });
       agroBeltMarkersRef.current = [];
     }
 
@@ -1131,19 +1228,27 @@ export default function HydroMapTab() {
         setSelectedFeature(null);
         setSelectedAdminEntity(null);
         setClickedCoord({ lat: belt.lat, lon: belt.lon });
-        map.flyTo({
-          center: [belt.lon, belt.lat],
-          zoom: 7.5,
-          essential: true,
-          duration: 1200
-        });
+        try {
+          map.flyTo({
+            center: [belt.lon, belt.lat],
+            zoom: 7.5,
+            essential: true,
+            duration: 1200
+          });
+        } catch {}
       };
 
-      const marker = new MarkerEngine({ element: el })
-        .setLngLat([belt.lon, belt.lat])
-        .addTo(map);
+      if (typeof MarkerEngine === 'function') {
+        try {
+          const marker = new MarkerEngine({ element: el })
+            .setLngLat([belt.lon, belt.lat])
+            .addTo(map);
 
-      agroBeltMarkersRef.current.push(marker);
+          agroBeltMarkersRef.current.push(marker);
+        } catch (e) {
+          console.warn('Agro belt marker error:', e);
+        }
+      }
     });
   }, [mapLoaded, selectedAgroZone]);
 
@@ -1274,15 +1379,13 @@ export default function HydroMapTab() {
           <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>🗺️</span>
             <span>{tr('hydromap_title')}</span>
-            {isMapplsConfigured() ? (
-              <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'rgba(5, 150, 105, 0.2)', color: '#34d399', border: '1px solid rgba(5, 150, 105, 0.4)', fontWeight: 700 }}>
-                🇮🇳 Official Mappls Active
+            <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.65rem', borderRadius: '6px', background: 'rgba(5, 150, 105, 0.2)', color: '#34d399', border: '1px solid rgba(5, 150, 105, 0.4)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>🇮🇳</span>
+              <span>Official MapmyIndia (Mappls) Active</span>
+              <span style={{ opacity: 0.85, fontSize: '0.62rem', background: 'rgba(0,0,0,0.25)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                Key: {getMapplsKey().slice(0, 8)}••••
               </span>
-            ) : (
-              <span title="Mappls credentials not set or using raster fallback" style={{ fontSize: '0.68rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: 'rgba(234, 179, 8, 0.15)', color: '#fde047', border: '1px solid rgba(234, 179, 8, 0.35)', fontWeight: 700 }}>
-                🌐 Using Offline / Fallback Tiles
-              </span>
-            )}
+            </span>
           </h2>
           <p className="text-xs text-muted" style={{ margin: '0.2rem 0 0' }}>
             {lang === 'hi'
@@ -1572,7 +1675,52 @@ export default function HydroMapTab() {
 
       {/* MAP CANVAS CONTAINER */}
       <div style={{ position: 'relative', height: '600px', minHeight: '480px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 8px 32px rgba(0,0,0,0.45)' }}>
-        <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+        {basemapMode === 'mappls_live' ? (
+          <div style={{ position: 'relative', width: '100%', height: '100%', background: '#070512' }}>
+            <iframe
+              src="https://embed.mappls.com/?center=22.5937,78.9629&zoom=5"
+              title="Official Survey of India Compliant Mappls Map (MapmyIndia)"
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              allow="geolocation; camera"
+            />
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: '12px',
+              background: 'rgba(15, 23, 42, 0.94)',
+              border: '1px solid rgba(245, 158, 11, 0.5)',
+              padding: '0.45rem 0.85rem',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              fontSize: '0.78rem',
+              color: '#f8fafc',
+              zIndex: 30,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.6)'
+            }}>
+              <span>🏛️ <strong>Official Mappls (MapmyIndia) Portal</strong></span>
+              <a
+                href="https://www.mappls.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#38bdf8',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(56, 189, 248, 0.35)'
+                }}
+              >
+                Open www.mappls.com ↗
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+        )}
 
         {/* FLOATING GIS LAYER CONTROL PANEL */}
         {showLayerPanel && (

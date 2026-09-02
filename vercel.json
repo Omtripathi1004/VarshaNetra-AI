@@ -1,30 +1,58 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/send-sms",
-      "destination": "/api/send-sms.js"
+      "src": "api/index.py",
+      "use": "@vercel/python"
     },
     {
-      "source": "/api/send-email",
-      "destination": "/api/send-email.js"
+      "src": "api/send-sms.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py?_path=/$1"
+      "src": "api/send-email.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/docs",
-      "destination": "/api/index.py?_path=/docs"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/send-sms",
+      "dest": "/api/send-sms.js"
     },
     {
-      "source": "/openapi.json",
-      "destination": "/api/index.py?_path=/openapi.json"
+      "src": "/api/send-email",
+      "dest": "/api/send-email.js"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/api/health",
+      "dest": "/api/index.py?_path=/health"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.py?_path=/$1"
+    },
+    {
+      "src": "/docs",
+      "dest": "/api/index.py?_path=/docs"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "/api/index.py?_path=/openapi.json"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
