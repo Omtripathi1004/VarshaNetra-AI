@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, Component } from 'reac
 import { AppProvider, useApp, DEMO_ACCOUNTS } from './components/common/AppContext';
 import LocationBar from './components/common/LocationBar';
 import OverviewTab from './components/overview/OverviewTab';
-import HydroMapTab from './components/hydromap/HydroMapTab';
+import HydroMap from './components/hydromap/HydroMap';
 import MonsoonPhaseTab from './components/monsoon/MonsoonPhaseTab';
 import AgricultureTab from './components/agriculture/AgricultureTab';
 import XAITab from './components/xai/XAITab';
@@ -55,7 +55,7 @@ class ErrorBoundary extends Component {
 
 const TABS = [
   { id: 'overview', icon: '🌧️', trKey: 'tab_home', Component: OverviewTab },
-  { id: 'hydromap', icon: '🗺️', trKey: 'tab_hydromap', Component: HydroMapTab },
+  { id: 'hydromap', icon: '🗺️', trKey: 'tab_hydromap', Component: HydroMap },
   { id: 'monsoon', icon: '🌊', trKey: 'tab_monsoon', Component: MonsoonPhaseTab },
   { id: 'agriculture', icon: '🌾', trKey: 'tab_season', Component: AgricultureTab },
   { id: 'xai', icon: '🧠', trKey: 'tab_xai', Component: XAITab },

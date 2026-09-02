@@ -166,10 +166,10 @@ const buildMapplsStyle = () => {
       'mappls-raster': {
         type: 'raster',
         tiles: [
-          'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
         ],
         tileSize: 256,
-        attribution: '&copy; <a href="https://about.mappls.com/" target="_blank">Mappls</a> &bull; Survey of India Compliant Cartography'
+        attribution: '&copy; Mappls &bull; Survey of India Compliant Cartography'
       }
     },
     layers: [
