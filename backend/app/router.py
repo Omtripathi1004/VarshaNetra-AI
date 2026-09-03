@@ -52,6 +52,7 @@ from .services import (
 )
 from .ml_engine import evaluate_10yr_models
 from .climate import get_all_climate_teleconnections
+from .crop_intelligence import compute_smart_crop_recommendations
 
 from . import models
 from . import schemas
@@ -638,8 +639,58 @@ async def monsoon_phase(
 
 
 # =============================================================================
-# 6. CROP ADVISOR
+# 6. CROP ADVISOR & SMART CROP RECOMMENDATIONS
 # =============================================================================
+
+@router.get("/crops/smart-recommendations")
+async def smart_crop_recommendations(
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    state: Optional[str] = Query(None),
+    district: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
+    village: Optional[str] = Query(None),
+    season: Optional[str] = Query(None),
+):
+    """
+    Intelligent Crop & Variety Recommendation Engine adhering to VarshaNetra AI Final Spec:
+    - Multi-factor evaluation across location, telemetry, forecast, thermal thresholds,
+      rainfall volume/timing, soil moisture, maturity duration, and multi-hazard risks
+    - Returns top 2-3 crops with condition-matched verified ICAR/SAU varieties
+    - Never uses water as the sole variable
+    """
+    rlat, rlon, label = await _resolve_latlon(
+        lat, lon, state, district, city, village
+    )
+
+    weather = await fetch_current_weather(rlat, rlon, label)
+
+    try:
+        forecast = await fetch_forecast(rlat, rlon, 7, label)
+    except Exception:
+        forecast = None
+
+    prediction = predict_rainfall(weather)
+    monsoon = compute_monsoon_phase(weather, prediction["probability_pct"])
+
+    loc_dict = {
+        "lat": rlat,
+        "lon": rlon,
+        "state": state or "Uttar Pradesh",
+        "district": district or city or "Lucknow",
+        "display_name": label,
+    }
+
+    result = compute_smart_crop_recommendations(
+        location=loc_dict,
+        weather=weather,
+        forecast=forecast,
+        monsoon_phase=monsoon.get("phase", "ACTIVE"),
+        season_filter=season,
+    )
+
+    return result
+
 
 @router.get("/crops/advisor")
 async def crop_advisor(
@@ -667,6 +718,11 @@ async def crop_advisor(
         label,
     )
 
+    try:
+        forecast = await fetch_forecast(rlat, rlon, 7, label)
+    except Exception:
+        forecast = None
+
     prediction = predict_rainfall(weather)
 
     monsoon = compute_monsoon_phase(
@@ -680,6 +736,22 @@ async def crop_advisor(
         weather,
         monsoon["phase"],
         season_filter,
+    )
+
+    loc_dict = {
+        "lat": rlat,
+        "lon": rlon,
+        "state": state or "Uttar Pradesh",
+        "district": district or city or "Lucknow",
+        "display_name": label,
+    }
+
+    smart_rec = compute_smart_crop_recommendations(
+        location=loc_dict,
+        weather=weather,
+        forecast=forecast,
+        monsoon_phase=monsoon.get("phase", "ACTIVE"),
+        season_filter=season,
     )
 
     return {
@@ -704,6 +776,7 @@ async def crop_advisor(
             ),
         },
         "top_crops": crops[:top_n],
+        "smart_recommendations": smart_rec,
     }
 
 

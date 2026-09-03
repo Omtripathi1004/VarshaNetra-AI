@@ -187,6 +187,60 @@ class CropAdvisorResponse(BaseModel):
     current_conditions: Dict[str, Any]
     season_filter: str
     top_crops: List[CropAdvisoryItem]
+    smart_recommendations: Optional[Dict[str, Any]] = None
+
+
+# ── Smart Crop & Variety Recommendation (Final Specification) ─────────────────
+
+class SmartCropRecommendationItem(BaseModel):
+    rank: int
+    crop_id: str
+    crop_name_en: str
+    crop_name_hi: str
+    icon: str
+    category: str
+    season: str
+    suitability_score: float
+    recommended_variety: str
+    recommended_variety_hi: str
+    variety_score: float
+    why_suitable_en: str
+    why_suitable_hi: str
+    key_risks_en: str
+    key_risks_hi: str
+    expected_water_need: str
+    sowing_window: str
+    sowing_window_hi: str
+    duration_days: int
+    confidence: str
+    source: str
+    source_url: str
+    intercrop_options: str
+    market_price_inr_qtl: float
+    factor_scores: Dict[str, float]
+    all_evaluated_varieties: List[Dict[str, Any]]
+
+
+class WhyNotExcludedCrop(BaseModel):
+    crop_id: str
+    crop_name_en: str
+    crop_name_hi: str
+    icon: str
+    season: str
+    score: float
+    reason_en: str
+    reason_hi: str
+
+
+class SmartCropResponse(BaseModel):
+    engine_version: str
+    timestamp_updated: str
+    location: Dict[str, Any]
+    condition_summary: Dict[str, Any]
+    recommendations: List[SmartCropRecommendationItem]
+    alternative_options: List[Dict[str, Any]]
+    why_not_excluded: List[WhyNotExcludedCrop]
+    multi_factor_weights: Dict[str, str]
 
 
 # ── Risk ──────────────────────────────────────────────────────────────────────

@@ -94,62 +94,72 @@ export const getMaptilerKey = () => {
 // ─── Basemap IDs ─────────────────────────────────────────────────────────────
 
 export const BASEMAP_IDS = {
-  MAPPLS: 'mappls',
+  MAPPLS_STREET: 'mappls_street',
+  MAPPLS_HYDRO: 'mappls_hydro',
+  MAPPLS_TERRAIN: 'mappls_terrain',
   MAPPLS_LIVE: 'mappls_live',
-  OSM: 'osm',
   SATELLITE: 'satellite',
   HYBRID: 'hybrid',
 };
 
-export const DEFAULT_BASEMAP = BASEMAP_IDS.MAPPLS;
+export const DEFAULT_BASEMAP = BASEMAP_IDS.MAPPLS_STREET;
 
 // ─── Basemap Metadata (for UI) ──────────────────────────────────────────────
 
 export const BASEMAP_OPTIONS = [
   {
-    id: BASEMAP_IDS.MAPPLS,
+    id: BASEMAP_IDS.MAPPLS_STREET,
     icon: '🇮🇳',
-    label_en: 'Mappls Hydro-GIS',
-    label_hi: 'मैपल्स हाइड्रो-जीआईएस',
-    title: 'Mappls / MapmyIndia — Survey of India Compliant Hydro-Risk Layers',
+    label_en: 'Mappls Street',
+    label_hi: 'मैपल्स स्ट्रीट',
+    title: 'Mappls / MapmyIndia — Survey of India Authorized Sovereign Street Map',
     gradient: 'linear-gradient(135deg, #0284c7, #0369a1)',
     engine: 'mappls',
   },
   {
-    id: BASEMAP_IDS.MAPPLS_LIVE,
+    id: BASEMAP_IDS.MAPPLS_HYDRO,
     icon: '🏛️',
-    label_en: 'Official Mappls Portal',
-    label_hi: 'आधिकारिक मैपल्स पोर्टल',
-    title: 'Direct Official Mappls Web Portal (https://www.mappls.com/)',
-    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    engine: 'portal',
+    label_en: 'Mappls Hydro-GIS',
+    label_hi: 'मैपल्स हाइड्रो-जीआईएस',
+    title: 'Mappls Hydro-GIS & Indian River Basin Cartography',
+    gradient: 'linear-gradient(135deg, #059669, #0284c7)',
+    engine: 'mappls',
   },
   {
-    id: BASEMAP_IDS.OSM,
+    id: BASEMAP_IDS.MAPPLS_TERRAIN,
+    icon: '⛰️',
+    label_en: 'Mappls Terrain',
+    label_hi: 'मैपल्स भू-भाग',
+    title: 'Mappls Topographic Elevation & Relief Cartography',
+    gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    engine: 'mappls',
+  },
+  {
+    id: BASEMAP_IDS.MAPPLS_LIVE,
     icon: '🗺️',
-    label_en: 'OpenStreetMap',
-    label_hi: 'ओपनस्ट्रीटमैप',
-    title: 'OpenStreetMap — Community-powered global road & boundary network',
-    gradient: 'linear-gradient(135deg, #16a34a, #15803d)',
-    engine: 'osm',
+    label_en: 'Mappls Live Portal',
+    label_hi: 'मैपल्स लाइव पोर्टल',
+    title: 'Official Mappls Web Portal (https://www.mappls.com/)',
+    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    engine: 'mappls',
   },
   {
     id: BASEMAP_IDS.SATELLITE,
     icon: '🛰️',
     label_en: 'Satellite',
     label_hi: 'उपग्रह',
-    title: 'Satellite Imagery — High-resolution aerial photography',
+    title: 'Satellite Imagery — High-resolution aerial photography (MapLibre GL)',
     gradient: 'linear-gradient(135deg, #059669, #10b981)',
-    engine: 'satellite',
+    engine: 'maplibre',
   },
   {
     id: BASEMAP_IDS.HYBRID,
     icon: '🌐',
     label_en: 'Hybrid',
     label_hi: 'हाइब्रिड',
-    title: 'Hybrid — Satellite imagery with road overlays & place labels',
+    title: 'Hybrid — Satellite imagery with road overlays & place labels (MapLibre GL)',
     gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    engine: 'hybrid',
+    engine: 'maplibre',
   },
 ];
 
@@ -327,16 +337,17 @@ const buildHybridStyle = () => {
 
 export const getMapStyle = (basemapId = DEFAULT_BASEMAP) => {
   switch (basemapId) {
-    case BASEMAP_IDS.MAPPLS:
+    case BASEMAP_IDS.MAPPLS_STREET:
+    case BASEMAP_IDS.MAPPLS_HYDRO:
+    case BASEMAP_IDS.MAPPLS_TERRAIN:
+    case BASEMAP_IDS.MAPPLS_LIVE:
       return buildMapplsStyle();
-    case BASEMAP_IDS.OSM:
-      return buildOSMStyle();
     case BASEMAP_IDS.SATELLITE:
       return buildSatelliteStyle();
     case BASEMAP_IDS.HYBRID:
       return buildHybridStyle();
     default:
-      return buildMapplsStyle();
+      return buildSatelliteStyle();
   }
 };
 

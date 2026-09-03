@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, AreaChart, Area, Line
 } from 'recharts';
+import SmartCropRecommendations from './SmartCropRecommendations';
 
 const SCORE_COLOR = (s) => s >= 80 ? '#059669' : s >= 60 ? '#d97706' : '#dc2626';
 
@@ -128,6 +129,9 @@ export default function AgricultureTab() {
           📍 {location.display_name} • {lang === 'hi' ? '22+ भारतीय प्रमुख फसलों का जल संतुलन, तापमान व विकास अवस्था विश्लेषण' : 'Scientific correlation between crop physiology, water budget, and seasonal suitability'}
         </p>
       </div>
+
+      {/* 🌟 SMART CROP & VARIETY RECOMMENDATIONS SECTION (VarshaNetra AI Final Specification) */}
+      <SmartCropRecommendations onCropSelect={(cropId) => setSelectedCrop(cropId)} />
 
       {/* MULTI-DIMENSIONAL CROP-CLIMATE INTERACTIVE GRAPHS */}
       <div className="grid-2" style={{ gap: '1.2rem', marginBottom: '1.5rem' }}>

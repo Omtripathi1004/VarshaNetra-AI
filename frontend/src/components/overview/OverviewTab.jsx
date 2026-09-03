@@ -8,6 +8,7 @@ import { api } from '../../api/client';
 import { useLiveDate, generateDynamicWeekData } from '../../hooks/useLiveDate';
 import KisanActionWidgets from '../agriculture/KisanActionWidgets';
 import VernacularTTSButton from '../common/VernacularTTSButton';
+import SmartCropRecommendations from '../agriculture/SmartCropRecommendations';
 
 ChartJS.register(...registerables);
 
@@ -956,6 +957,8 @@ export default function OverviewTab() {
         </div>
       </div>
 
+      {/* 🌟 SMART CROP & VARIETY RECOMMENDATIONS SECTION (VarshaNetra AI Final Specification) */}
+      <SmartCropRecommendations onCropSelect={(cropId) => handleCropStageChange(cropId, 'sowing')} />
 
       {/* 5 REGIONAL AGRICULTURAL SITUATION HUBS (As Requested) */}
       <div style={{ marginBottom: '1.4rem' }}>
