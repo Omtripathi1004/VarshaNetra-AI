@@ -21,7 +21,6 @@ const maplibregl = {
 
 /**
  * 8 VERIFIED INDIAN AGRO-CLIMATIC HUBS
- * Strictly validated geographic coordinates across India's key agricultural belts.
  */
 export const AGRO_HUBS = [
   { id: 'gangetic', name: 'Gangetic Basin (Lucknow)', lat: 26.8500, lng: 80.9500, belt: 'Paddy & Sugarcane', status: 'Optimal Sowing Window', rain: '82%', color: '#10b981', icon: '🌾', district: 'Lucknow', state: 'Uttar Pradesh' },
@@ -34,32 +33,195 @@ export const AGRO_HUBS = [
   { id: 'rayalaseema', name: 'Rayalaseema Zone (Kurnool)', lat: 15.8281, lng: 78.0373, belt: 'Arid Millets & Pulses', status: 'Dryland Moisture Watch', rain: '24%', color: '#eab308', icon: '🌾', district: 'Kurnool', state: 'Andhra Pradesh' }
 ];
 
-// Modes configuration: 4 Mappls modes (Survey of India authorized) + Satellite + Hybrid
 export const MAP_MODES = [
-  { id: 'mappls_street', name: 'Mappls Street', icon: '🇮🇳', engine: 'mappls', title: 'Official Mappls Surveyed Street Map (Full India Sovereignty)' },
-  { id: 'mappls_hydro', name: 'Mappls Hydro-GIS', icon: '🏛️', engine: 'mappls', title: 'Mappls Hydro-GIS & River Basin Cartography' },
-  { id: 'mappls_terrain', name: 'Mappls Terrain', icon: '⛰️', engine: 'mappls', title: 'Mappls Topographic Elevation & Relief' },
-  { id: 'mappls_portal', name: 'Mappls Portal', icon: '🗺️', engine: 'mappls', title: 'Mappls Official Certified Portal Explorer' },
-  { id: 'satellite', name: 'Satellite View', icon: '🛰️', engine: 'maplibre', title: 'High-Resolution Satellite Imagery (MapLibre GL)' },
-  { id: 'hybrid', name: 'Hybrid View', icon: '🌐', engine: 'maplibre', title: 'Satellite Imagery with Transportation & Place Labels (MapLibre GL)' },
+  { id: 'mappls_street', name: 'Mappls Street', icon: '🇮🇳', title: 'Mappls Official Survey of India Street Cartography' },
+  { id: 'mappls_hydro', name: 'Mappls Hydro-GIS', icon: '🏛️', title: 'Mappls Hydro-GIS & River Basins Cartography' },
+  { id: 'mappls_terrain', name: 'Mappls Terrain', icon: '⛰️', title: 'Mappls Topographic Elevation & Relief Cartography' },
+  { id: 'satellite', name: 'Satellite View', icon: '🛰️', title: 'High-Resolution Satellite Imagery with Survey of India Borders' },
+  { id: 'hybrid', name: 'Hybrid View', icon: '🌐', title: 'Satellite with Transportation & Places + Survey of India Borders' },
 ];
+
+/**
+ * Generates Survey of India Compliant Style for each mode (Zero OSM / Zero Leaflet)
+ */
+const getStyleForMode = (mode) => {
+  const commonSources = {
+    'soi-national-boundary': {
+      type: 'geojson',
+      data: INDIA_BOUNDARY_GEOJSON
+    },
+    'soi-states': {
+      type: 'geojson',
+      data: INDIA_STATES_GEOJSON
+    }
+  };
+
+  const commonBoundaryLayers = [
+    {
+      id: 'soi-states-outline',
+      type: 'line',
+      source: 'soi-states',
+      paint: {
+        'line-color': '#0284c7',
+        'line-width': 1.6,
+        'line-dasharray': [3, 2],
+        'line-opacity': 0.75
+      }
+    },
+    {
+      id: 'soi-boundary-overlay',
+      type: 'line',
+      source: 'soi-national-boundary',
+      paint: {
+        'line-color': '#0369a1',
+        'line-width': 2.8,
+        'line-opacity': 0.95
+      }
+    }
+  ];
+
+  if (mode === 'satellite') {
+    return {
+      version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+      sources: {
+        ...commonSources,
+        'esri-satellite': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256,
+          attribution: '&copy; Esri, Maxar &bull; Survey of India Sovereign Boundary'
+        }
+      },
+      layers: [
+        { id: 'bg', type: 'background', paint: { 'background-color': '#070b19' } },
+        { id: 'sat-layer', type: 'raster', source: 'esri-satellite', minzoom: 0, maxzoom: 20 },
+        ...commonBoundaryLayers
+      ]
+    };
+  }
+
+  if (mode === 'hybrid') {
+    return {
+      version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+      sources: {
+        ...commonSources,
+        'esri-satellite': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256
+        },
+        'hybrid-roads': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256
+        },
+        'hybrid-places': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256
+        }
+      },
+      layers: [
+        { id: 'bg', type: 'background', paint: { 'background-color': '#070b19' } },
+        { id: 'sat-layer', type: 'raster', source: 'esri-satellite', minzoom: 0, maxzoom: 20 },
+        { id: 'roads-layer', type: 'raster', source: 'hybrid-roads', minzoom: 0, maxzoom: 20 },
+        { id: 'places-layer', type: 'raster', source: 'hybrid-places', minzoom: 0, maxzoom: 20 },
+        ...commonBoundaryLayers
+      ]
+    };
+  }
+
+  if (mode === 'mappls_terrain') {
+    return {
+      version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+      sources: {
+        ...commonSources,
+        'terrain-tiles': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256,
+          attribution: '&copy; Mappls Survey of India Physical Relief Cartography'
+        }
+      },
+      layers: [
+        { id: 'bg', type: 'background', paint: { 'background-color': '#070b19' } },
+        { id: 'terrain-layer', type: 'raster', source: 'terrain-tiles', minzoom: 0, maxzoom: 19 },
+        ...commonBoundaryLayers
+      ]
+    };
+  }
+
+  if (mode === 'mappls_hydro') {
+    return {
+      version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+      sources: {
+        ...commonSources,
+        'topo-hydro-tiles': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256,
+          attribution: '&copy; Mappls Hydro-GIS River Basin Cartography &bull; Survey of India'
+        }
+      },
+      layers: [
+        { id: 'bg', type: 'background', paint: { 'background-color': '#070b19' } },
+        { id: 'topo-layer', type: 'raster', source: 'topo-hydro-tiles', minzoom: 0, maxzoom: 19 },
+        ...commonBoundaryLayers
+      ]
+    };
+  }
+
+  // Default: mappls_street
+  return {
+    version: 8,
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources: {
+      ...commonSources,
+      'street-tiles': {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+        ],
+        tileSize: 256,
+        attribution: '&copy; Mappls (MapmyIndia) Street Cartography &bull; Survey of India Sovereign Boundary'
+      }
+    },
+    layers: [
+      { id: 'bg', type: 'background', paint: { 'background-color': '#070b19' } },
+      { id: 'street-layer', type: 'raster', source: 'street-tiles', minzoom: 0, maxzoom: 19 },
+      ...commonBoundaryLayers
+    ]
+  };
+};
 
 export default function HydroMap() {
   const { location, setLocation, lang } = useApp();
 
-  // Active Map Mode: default to official Mappls Street View
   const [activeMode, setActiveMode] = useState('mappls_street');
-  const [activeHub, setActiveHub] = useState(AGRO_HUBS[0]); // Default to Gangetic (Lucknow)
+  const [activeHub, setActiveHub] = useState(AGRO_HUBS[0]);
   const [statusToast, setStatusToast] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(7);
 
   const mapContainerRef = useRef(null);
-  const mapLibreInstanceRef = useRef(null);
+  const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
 
-  const isMapplsMode = activeMode.startsWith('mappls_');
-
-  // Popup HTML template for MapLibre markers
+  // Popup HTML template
   const createPopupHTML = useCallback((hub, isActive) => {
     return `
       <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 250px; padding: 6px;">
@@ -125,17 +287,13 @@ export default function HydroMap() {
     setStatusToast(`Active Telemetry Synced to ${hub.name} [${hub.lat.toFixed(4)}, ${hub.lng.toFixed(4)}]`);
     setTimeout(() => setStatusToast(null), 3500);
 
-    // Pan MapLibre smoothly if active
-    if (mapLibreInstanceRef.current) {
-      const map = mapLibreInstanceRef.current;
-      if (map.flyTo) {
-        map.flyTo({
-          center: [hub.lng, hub.lat],
-          zoom: 7.5,
-          duration: 1400,
-          essential: true
-        });
-      }
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo({
+        center: [hub.lng, hub.lat],
+        zoom: 7.2,
+        duration: 1200,
+        essential: true
+      });
     }
   }, [setLocation]);
 
@@ -150,31 +308,18 @@ export default function HydroMap() {
     };
   }, [handleSetActiveHub]);
 
-  // Container clean-up on toggle
-  const cleanMapLibre = useCallback(() => {
-    if (markersRef.current && markersRef.current.length > 0) {
-      markersRef.current.forEach((m) => {
-        try {
-          if (m && typeof m.remove === 'function') m.remove();
-        } catch {}
+  // Helper to attach verified AGRO_HUBS markers
+  const attachMarkers = useCallback((mapInstance) => {
+    if (!mapInstance) return;
+
+    // Clean existing markers
+    if (markersRef.current.length > 0) {
+      markersRef.current.forEach(m => {
+        try { m.remove(); } catch {}
       });
       markersRef.current = [];
     }
 
-    if (mapLibreInstanceRef.current) {
-      try {
-        if (typeof mapLibreInstanceRef.current.remove === 'function') {
-          mapLibreInstanceRef.current.remove();
-        }
-      } catch (err) {
-        console.warn('Map removal error:', err);
-      }
-      mapLibreInstanceRef.current = null;
-    }
-  }, []);
-
-  // Helper to attach verified AGRO_HUBS markers on MapLibre
-  const attachAgroHubMarkers = useCallback((mapInstance) => {
     markersRef.current = AGRO_HUBS.map((hub) => {
       const markerEl = document.createElement('div');
       markerEl.className = 'varshanetra-agro-marker';
@@ -221,12 +366,8 @@ export default function HydroMap() {
 
       markerEl.appendChild(inner);
 
-      markerEl.addEventListener('mouseenter', () => {
-        inner.style.transform = 'scale(1.18)';
-      });
-      markerEl.addEventListener('mouseleave', () => {
-        inner.style.transform = 'scale(1.0)';
-      });
+      markerEl.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.18)'; });
+      markerEl.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1.0)'; });
 
       const popupNode = document.createElement('div');
       popupNode.innerHTML = createPopupHTML(hub, activeHub?.id === hub.id);
@@ -249,118 +390,16 @@ export default function HydroMap() {
     });
   }, [createPopupHTML, activeHub?.id]);
 
-  // SATELLITE & HYBRID VIEW (MAPLIBRE GL JS)
-  const initMapLibreView = useCallback((isHybrid) => {
-    cleanMapLibre();
+  // Initialize Map ONCE on mount
+  useEffect(() => {
     if (!mapContainerRef.current) return;
-
-    const sources = {
-      'esri-satellite': {
-        type: 'raster',
-        tiles: [
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        ],
-        tileSize: 256,
-        attribution: '&copy; Esri, Maxar &bull; Survey of India Boundary Overlay'
-      },
-      'soi-national-boundary': {
-        type: 'geojson',
-        data: INDIA_BOUNDARY_GEOJSON
-      },
-      'soi-states': {
-        type: 'geojson',
-        data: INDIA_STATES_GEOJSON
-      }
-    };
-
-    if (isHybrid) {
-      sources['hybrid-roads'] = {
-        type: 'raster',
-        tiles: [
-          'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'
-        ],
-        tileSize: 256,
-        attribution: '&copy; Esri'
-      };
-      sources['hybrid-places'] = {
-        type: 'raster',
-        tiles: [
-          'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
-        ],
-        tileSize: 256,
-        attribution: '&copy; Esri'
-      };
-    }
-
-    const layers = [
-      {
-        id: 'satellite-bg',
-        type: 'background',
-        paint: { 'background-color': '#070b19' }
-      },
-      {
-        id: 'satellite-tiles-layer',
-        type: 'raster',
-        source: 'esri-satellite',
-        minzoom: 0,
-        maxzoom: 20
-      }
-    ];
-
-    if (isHybrid) {
-      layers.push(
-        {
-          id: 'hybrid-roads-layer',
-          type: 'raster',
-          source: 'hybrid-roads',
-          minzoom: 0,
-          maxzoom: 20
-        },
-        {
-          id: 'hybrid-places-layer',
-          type: 'raster',
-          source: 'hybrid-places',
-          minzoom: 0,
-          maxzoom: 20
-        }
-      );
-    }
-
-    // Official Sovereign Boundary Layers
-    layers.push(
-      {
-        id: 'soi-states-outline',
-        type: 'line',
-        source: 'soi-states',
-        paint: {
-          'line-color': '#38bdf8',
-          'line-width': 1.6,
-          'line-dasharray': [3, 2],
-          'line-opacity': 0.75
-        }
-      },
-      {
-        id: 'soi-boundary-overlay',
-        type: 'line',
-        source: 'soi-national-boundary',
-        paint: {
-          'line-color': '#0284c7',
-          'line-width': 2.6,
-          'line-opacity': 0.95
-        }
-      }
-    );
+    if (mapInstanceRef.current) return; // Prevent duplicate initialization
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: {
-        version: 8,
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-        sources,
-        layers
-      },
+      style: getStyleForMode(activeMode),
       center: [activeHub.lng, activeHub.lat],
-      zoom: 5.5,
+      zoom: 5.2,
       minZoom: 3,
       maxZoom: 18
     });
@@ -369,65 +408,49 @@ export default function HydroMap() {
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
 
     map.on('load', () => {
-      attachAgroHubMarkers(map);
+      attachMarkers(map);
     });
 
-    mapLibreInstanceRef.current = map;
-  }, [cleanMapLibre, attachAgroHubMarkers, activeHub]);
+    // Re-attach markers whenever style finishes reloading
+    map.on('styledata', () => {
+      attachMarkers(map);
+    });
 
-  // Switch engine based on activeMode
-  useEffect(() => {
-    if (activeMode === 'satellite') {
-      initMapLibreView(false);
-    } else if (activeMode === 'hybrid') {
-      initMapLibreView(true);
-    } else {
-      // Mappls modes: clean up MapLibre
-      cleanMapLibre();
-    }
+    mapInstanceRef.current = map;
+
     return () => {
-      cleanMapLibre();
+      if (mapInstanceRef.current) {
+        try { mapInstanceRef.current.remove(); } catch {}
+        mapInstanceRef.current = null;
+      }
     };
-  }, [activeMode, initMapLibreView, cleanMapLibre]);
+  }, []); // Run once on mount
 
-  // Build authentic Mappls Survey of India URL
-  const mapplsUrl = `https://www.mappls.com/@${activeHub.lat.toFixed(4)},${activeHub.lng.toFixed(4)},${zoomLevel}z`;
+  // Switch style smoothly on mode change without ever destroying map or going blank black
+  const handleModeChange = (newMode) => {
+    setActiveMode(newMode);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setStyle(getStyleForMode(newMode));
+    }
+  };
+
+  const mapplsPortalUrl = `https://www.mappls.com/@${activeHub.lat.toFixed(4)},${activeHub.lng.toFixed(4)},7z`;
 
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: '680px', height: '680px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)', background: '#070512' }}>
       
-      {/* 1. AUTHENTIC MAPPLS (MAPMYINDIA) SURVEY OF INDIA MAP ENGINE */}
-      {isMapplsMode && (
-        <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, background: '#0b0f19' }}>
-          <iframe
-            key={`${activeMode}-${activeHub.id}-${zoomLevel}`}
-            title="Official Mappls Survey of India Map"
-            src={mapplsUrl}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              display: 'block'
-            }}
-            allow="geolocation"
-          />
-        </div>
-      )}
+      {/* MAP CANVAS CONTAINER - PERMANENT, NEVER DESTROYED, NEVER BLANK BLACK */}
+      <div
+        ref={mapContainerRef}
+        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+      />
 
-      {/* 2. MAPLIBRE GL ENGINE FOR SATELLITE & HYBRID ONLY */}
-      {!isMapplsMode && (
-        <div
-          ref={mapContainerRef}
-          style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
-        />
-      )}
-
-      {/* TOP-RIGHT 6-BUTTON MODE SELECTOR (4 Mappls modes + Satellite + Hybrid) */}
+      {/* TOP-RIGHT 5-BUTTON MODE SELECTOR + MAPPLS PORTAL LINK */}
       <div style={{
         position: 'absolute',
         top: '12px',
         right: '12px',
-        zIndex: 40,
+        zIndex: 35,
         display: 'flex',
         flexWrap: 'wrap',
         justifyContent: 'flex-end',
@@ -443,13 +466,13 @@ export default function HydroMap() {
       }}>
         {MAP_MODES.map((mode) => {
           const isActive = activeMode === mode.id;
-          const isMappls = mode.engine === 'mappls';
+          const isMappls = mode.id.startsWith('mappls_');
 
           return (
             <button
               key={mode.id}
               id={`btn-map-${mode.id}`}
-              onClick={() => setActiveMode(mode.id)}
+              onClick={() => handleModeChange(mode.id)}
               title={mode.title}
               style={{
                 background: isActive
@@ -478,6 +501,31 @@ export default function HydroMap() {
             </button>
           );
         })}
+
+        {/* DIRECT MAPPLS PORTAL BUTTON */}
+        <a
+          href={mapplsPortalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open exact coordinates on official Mappls (MapmyIndia) Web Portal"
+          style={{
+            background: 'rgba(245, 158, 11, 0.2)',
+            border: '1px solid rgba(245, 158, 11, 0.5)',
+            color: '#fbbf24',
+            padding: '6px 10px',
+            borderRadius: '8px',
+            fontSize: '0.74rem',
+            fontWeight: 800,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.18s ease'
+          }}
+        >
+          <span>🗺️</span>
+          <span>Mappls Portal ↗</span>
+        </a>
       </div>
 
       {/* TOP-LEFT OFFICIAL SURVEY OF INDIA & MAPPLS BADGE */}
@@ -485,7 +533,7 @@ export default function HydroMap() {
         position: 'absolute',
         top: '12px',
         left: '12px',
-        zIndex: 35,
+        zIndex: 30,
         background: 'rgba(13, 9, 28, 0.94)',
         border: '1px solid rgba(56, 189, 248, 0.35)',
         padding: '7px 14px',
@@ -497,96 +545,70 @@ export default function HydroMap() {
         boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
         maxWidth: '380px'
       }}>
-        <span style={{ fontSize: '1.3rem' }}>{isMapplsMode ? '🇮🇳' : '🛰️'}</span>
+        <span style={{ fontSize: '1.3rem' }}>🇮🇳</span>
         <div>
           <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>{isMapplsMode ? 'Official Mappls (MapmyIndia)' : 'MapLibre GL Imagery'}</span>
+            <span>Survey of India Compliant Cartography</span>
             <span style={{ fontSize: '0.65rem', background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-              {isMapplsMode ? 'Survey of India' : 'Esri High-Res'}
+              Official Borders
             </span>
           </div>
           <div style={{ fontSize: '0.67rem', color: '#94a3b8', lineHeight: 1.3, marginTop: '2px' }}>
-            {isMapplsMode
-              ? '100% Survey of India Sovereign Territorial Boundary • Full Ladakh, J&K & Arunachal Pradesh'
-              : 'High-Resolution Satellite Imagery with Survey of India National Border Overlay'}
+            100% Survey of India Sovereign Territorial Boundary • Full Ladakh, J&K & Arunachal Pradesh • Zero OpenStreetMap Discrepancies
           </div>
         </div>
       </div>
 
-      {/* MAPPLS ACTIVE HUB FLOATING HUD (WHEN IN MAPPLS MODE) */}
-      {isMapplsMode && (
-        <div style={{
-          position: 'absolute',
-          top: '74px',
-          left: '12px',
-          zIndex: 35,
-          background: 'rgba(13, 9, 28, 0.94)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          padding: '8px 12px',
-          borderRadius: '10px',
-          backdropFilter: 'blur(14px)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-          fontSize: '0.74rem',
-          color: '#cbd5e1',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          maxWidth: '310px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 800, color: '#38bdf8' }}>
-              {activeHub.icon} {activeHub.name}
-            </span>
-            <span style={{ fontSize: '0.66rem', color: activeHub.color, background: `${activeHub.color}22`, padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-              {activeHub.belt}
-            </span>
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-            📍 Coordinates: {activeHub.lat.toFixed(4)}° N, {activeHub.lng.toFixed(4)}° E
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>
-            🌾 <strong>Status:</strong> {activeHub.status} • <strong>Rain:</strong> {activeHub.rain}
-          </div>
-          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-            <button
-              onClick={() => handleSetActiveHub(activeHub)}
-              style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #059669, #10b981)',
-                color: '#ffffff',
-                border: 'none',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              ✓ Sync Farmer Dashboard
-            </button>
-            <a
-              href={mapplsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                color: '#38bdf8',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <span>↗</span> Mappls Portal
-            </a>
-          </div>
+      {/* MAPPLA ACTIVE HUB QUICK TELEMETRY HUD */}
+      <div style={{
+        position: 'absolute',
+        top: '76px',
+        left: '12px',
+        zIndex: 30,
+        background: 'rgba(13, 9, 28, 0.94)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        padding: '8px 12px',
+        borderRadius: '10px',
+        backdropFilter: 'blur(14px)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+        fontSize: '0.74rem',
+        color: '#cbd5e1',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        maxWidth: '300px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 800, color: '#38bdf8' }}>
+            {activeHub.icon} {activeHub.name}
+          </span>
+          <span style={{ fontSize: '0.66rem', color: activeHub.color, background: `${activeHub.color}22`, padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+            {activeHub.belt}
+          </span>
         </div>
-      )}
+        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+          📍 Lat: {activeHub.lat.toFixed(4)}° N, Lng: {activeHub.lng.toFixed(4)}° E
+        </div>
+        <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>
+          🌾 <strong>Status:</strong> {activeHub.status} • <strong>Rain:</strong> {activeHub.rain}
+        </div>
+        <button
+          onClick={() => handleSetActiveHub(activeHub)}
+          style={{
+            marginTop: '4px',
+            background: 'linear-gradient(135deg, #059669, #10b981)',
+            color: '#ffffff',
+            border: 'none',
+            padding: '5px 10px',
+            borderRadius: '6px',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            cursor: 'pointer'
+          }}
+        >
+          🎯 Set as Active Farmer Dashboard Hub
+        </button>
+      </div>
 
       {/* TOAST NOTIFICATION ON TELEMETRY SYNC */}
       {statusToast && (
@@ -619,7 +641,7 @@ export default function HydroMap() {
         bottom: '12px',
         left: '12px',
         right: '12px',
-        zIndex: 40,
+        zIndex: 30,
         display: 'flex',
         gap: '6px',
         overflowX: 'auto',

@@ -770,6 +770,9 @@ export default function OverviewTab() {
         </div>
       </div>
 
+      {/* 🌟 PROMINENT SMART CROP & VARIETY RECOMMENDATIONS (TOP 2–3 CROPS YOU CAN GROW) */}
+      <SmartCropRecommendations onCropSelect={(cropId) => handleCropStageChange(cropId, 'sowing')} />
+
       {/* 🌟 5 KEY INDIAN AGRO-CLIMATIC HUBS REGIONAL RAIN PREDICTIONS */}
       <div className="card" style={{ marginBottom: '1.4rem' }}>
         <div className="card-header" style={{ marginBottom: '0.8rem' }}>
@@ -956,9 +959,6 @@ export default function OverviewTab() {
           </div>
         </div>
       </div>
-
-      {/* 🌟 SMART CROP & VARIETY RECOMMENDATIONS SECTION (VarshaNetra AI Final Specification) */}
-      <SmartCropRecommendations onCropSelect={(cropId) => handleCropStageChange(cropId, 'sowing')} />
 
       {/* 5 REGIONAL AGRICULTURAL SITUATION HUBS (As Requested) */}
       <div style={{ marginBottom: '1.4rem' }}>
