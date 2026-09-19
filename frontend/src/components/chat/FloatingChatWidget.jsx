@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
-import { getUserActiveSession, appendMessageToSession } from '../../utils/chatStorage';
+import {
+  getUserSessions,
+  getUserActiveSession,
+  appendMessageToSession,
+  deleteUserSession,
+  groupSessionsByDate,
+} from '../../utils/chatStorage';
 
 export default function FloatingChatWidget() {
-  const { lang, location, user, isChatOpen: isOpen, setIsChatOpen: setIsOpen } = useApp();
-  const sessionIdRef = React.useRef(null);
-  const [activeCategory, setActiveCategory] = useState('crops');
+  const { lang, location, user, isChatOpen, setIsChatOpen } = useApp();
+
+  const isOpen = isChatOpen;
+  const setIsOpen = setIsChatOpen;
   
   const userId = user?.userId || user?.email || 'farmer@varshanetra.ai';
 
@@ -15,7 +22,7 @@ export default function FloatingChatWidget() {
     role: 'bot',
     text: l === 'hi'
       ? `नमस्ते! मैं **VarshaNetra AI** कृषि सलाहकार हूँ।\n\nआप मुझसे **${loc?.display_name || 'आपके क्षेत्र'}** के लिए कपास, सोयाबीन, धान, मक्का या गेहूं की फसल प्रबंधन, झूठी शुरुआत (False-Onset), सूखा विराम या वर्षा पूर्वानुमान के बारे में कुछ भी पूछ सकते हैं।`
-      : `Hello! I am **VarshaNetra AI** Agricultural Decision Advisor.\n\nAsk me anything about Cotton, Soybean, Paddy, Maize, or Wheat management, False-Onset risks, dry breaks, or rainfall forecasts for **${loc?.display_name || 'your area'}**.`
+      : `Hello! I am **VarshaNetra AI** Agricultural Decision Advisor.\n\nAsk me anything about Cotton, Soybean, Paddy, Maize, or Wheat management, False-Onset risks, dry breaks, or rainfall forecasts for **${loc?.display_name || 'your area'}**.`,
   });
 
   const [msgs, setMsgs] = useState(() => {
@@ -28,7 +35,10 @@ export default function FloatingChatWidget() {
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
   const bottomRef = useRef(null);
+  const sessionIdRef = useRef(null);
 
   // Synchronize active session strictly per authenticated user account
   useEffect(() => {
@@ -40,23 +50,26 @@ export default function FloatingChatWidget() {
       sessionIdRef.current = null;
       setMsgs([getWelcomeMessage(lang, location)]);
     }
+    setHistoryList(getUserSessions(userId));
   }, [userId]);
 
   // Scroll to bottom when new message arrives or widget opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !showHistory) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [msgs, isOpen]);
+  }, [msgs, isOpen, showHistory]);
 
   // Listen to cross-component chat storage updates for this specific user
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.detail?.userId && e.detail.userId.includes(userId.toLowerCase().replace(/[^a-z0-9_@.-]/g, '_'))) {
-        const activeSess = getUserActiveSession(userId);
-        if (activeSess && Array.isArray(activeSess.messages)) {
-          sessionIdRef.current = activeSess.id;
-          setMsgs(activeSess.messages);
+      const allSess = getUserSessions(userId);
+      setHistoryList(allSess);
+
+      if (e.detail?.sessionId && e.detail.sessionId === sessionIdRef.current) {
+        const currentSess = allSess.find(s => s.id === sessionIdRef.current);
+        if (currentSess && Array.isArray(currentSess.messages)) {
+          setMsgs(currentSess.messages);
         }
       }
     };
@@ -68,6 +81,28 @@ export default function FloatingChatWidget() {
   const handleNewChat = () => {
     sessionIdRef.current = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     setMsgs([getWelcomeMessage(lang, location)]);
+    setShowHistory(false);
+  };
+
+  // Switch to a previous conversation from history (ChatGPT style)
+  const handleSelectHistorySession = (session) => {
+    sessionIdRef.current = session.id;
+    if (Array.isArray(session.messages) && session.messages.length > 0) {
+      setMsgs(session.messages);
+    } else {
+      setMsgs([getWelcomeMessage(lang, location)]);
+    }
+    setShowHistory(false);
+  };
+
+  const handleDeleteHistorySession = (e, sessionId) => {
+    e.stopPropagation();
+    deleteUserSession(userId, sessionId);
+    const updated = getUserSessions(userId);
+    setHistoryList(updated);
+    if (sessionIdRef.current === sessionId) {
+      handleNewChat();
+    }
   };
 
   const send = async (msgText, isRegenerate = false, prevQuestion = null) => {
@@ -141,13 +176,12 @@ export default function FloatingChatWidget() {
       } catch {}
     } catch {
       const errMsg = {
-        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        id: `err_${Date.now()}`,
         role: 'bot',
         isError: true,
-        question: textToSend,
         text: lang === 'hi'
-          ? 'वर्तमान में उत्तर उत्पन्न करने में असमर्थ। कृपया पुनः प्रयास करें। (Unable to generate a response right now. Please try again.)'
-          : 'Unable to generate a response right now. Please try again.',
+          ? 'वर्तमान में उत्तर उत्पन्न करने में असमर्थ। कृपया पुनः प्रयास करें।'
+          : 'Unable to generate response right now. Please try again.',
         timestamp: new Date().toISOString(),
       };
       setMsgs(m => [...m, errMsg]);
@@ -197,7 +231,11 @@ export default function FloatingChatWidget() {
     },
   };
 
+  const [activeCategory, setActiveCategory] = useState('crops');
+
   if (!isOpen) return null;
+
+  const groupedHistory = groupSessionsByDate(historyList, lang);
 
   return (
     <div
@@ -205,10 +243,10 @@ export default function FloatingChatWidget() {
         position: 'fixed',
         bottom: '24px',
         right: '24px',
-        width: '400px',
+        width: '410px',
         maxWidth: 'calc(100vw - 32px)',
-        height: '560px',
-        maxHeight: 'calc(100vh - 100px)',
+        height: '580px',
+        maxHeight: 'calc(100vh - 80px)',
         background: '#0d131f',
         border: '1px solid rgba(56, 189, 248, 0.3)',
         borderRadius: '20px',
@@ -223,7 +261,7 @@ export default function FloatingChatWidget() {
       {/* Top Header */}
       <div
         style={{
-          padding: '0.85rem 1.1rem',
+          padding: '0.8rem 1.1rem',
           background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
@@ -253,13 +291,39 @@ export default function FloatingChatWidget() {
                 LIVE
               </span>
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-              🔒 {user?.name || userId} • {lang === 'hi' ? 'सुरक्षित व स्थायी चैट' : 'Encrypted & Permanent'}
+            <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+              🔒 {user?.name || userId}
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          {/* ChatGPT-style History Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setHistoryList(getUserSessions(userId));
+              setShowHistory(prev => !prev);
+            }}
+            style={{
+              background: showHistory ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.06)',
+              border: showHistory ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '8px',
+              color: showHistory ? '#38bdf8' : '#cbd5e1',
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title={lang === 'hi' ? 'वार्तालाप इतिहास देखें' : 'View Conversation History'}
+          >
+            <span>📜</span>
+            <span>{lang === 'hi' ? 'इतिहास' : 'History'}</span>
+          </button>
+
           {/* New Chat Button */}
           <button
             type="button"
@@ -268,15 +332,15 @@ export default function FloatingChatWidget() {
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '8px',
-              color: '#38bdf8',
-              padding: '0.25rem 0.55rem',
+              color: '#34d399',
+              padding: '0.25rem 0.5rem',
               fontSize: '0.7rem',
               fontWeight: 700,
               cursor: 'pointer',
             }}
             title={lang === 'hi' ? 'नया वार्तालाप शुरू करें' : 'Start New Conversation'}
           >
-            ➕ {lang === 'hi' ? 'नया चैट' : 'New'}
+            ➕ {lang === 'hi' ? 'नया' : 'New'}
           </button>
 
           {/* Close Button */}
@@ -298,205 +362,317 @@ export default function FloatingChatWidget() {
         </div>
       </div>
 
-      {/* Suggested Quick Question Tabs */}
-      <div
-        style={{
-          padding: '0.5rem 0.8rem',
-          background: 'rgba(0,0,0,0.2)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex',
-          gap: '0.4rem',
-          overflowX: 'auto',
-          flexWrap: 'nowrap',
-          scrollbarWidth: 'none',
-        }}
-      >
-        {Object.entries(QUESTION_CATEGORIES).map(([catKey, cat]) => (
-          <button
-            key={catKey}
-            type="button"
-            onClick={() => setActiveCategory(catKey)}
-            style={{
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-              background: activeCategory === catKey ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-              border: activeCategory === catKey ? '1px solid #38bdf8' : '1px solid transparent',
-              borderRadius: '999px',
-              padding: '0.2rem 0.6rem',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              color: activeCategory === catKey ? '#38bdf8' : '#94a3b8',
-              cursor: 'pointer',
-            }}
-          >
-            {lang === 'hi' ? cat.label_hi : cat.label_en}
-          </button>
-        ))}
-      </div>
-
-      {/* Suggested Questions Horizontal Carousel */}
-      <div
-        style={{
-          padding: '0.45rem 0.8rem',
-          display: 'flex',
-          gap: '0.5rem',
-          overflowX: 'auto',
-          flexWrap: 'nowrap',
-          alignItems: 'center',
-          background: 'rgba(0,0,0,0.25)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {(lang === 'hi' ? QUESTION_CATEGORIES[activeCategory].questions_hi : QUESTION_CATEGORIES[activeCategory].questions_en).map((q, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => send(q)}
-            disabled={loading}
-            style={{
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-              fontSize: '0.7rem',
-              lineHeight: 1.2,
-              padding: '0.28rem 0.72rem',
-              borderRadius: '999px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#e2e8f0',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.18)';
-              e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
-              e.currentTarget.style.color = '#38bdf8';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-              e.currentTarget.style.color = '#e2e8f0';
-            }}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-
-      {/* Messages Scroll Body */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '1rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.8rem',
-        }}
-      >
-        {msgs.map((m, idx) => (
-          <div
-            key={m.id || idx}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
-            }}
-          >
-            <div
-              style={{
-                maxWidth: '85%',
-                padding: '0.65rem 0.9rem',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: m.role === 'user'
-                  ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
-                  : m.isError
-                  ? 'rgba(239, 68, 68, 0.2)'
-                  : 'rgba(255, 255, 255, 0.05)',
-                border: m.isError ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.08)',
-                color: '#f8fafc',
-                fontSize: '0.8rem',
-                lineHeight: 1.45,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}
-            >
-              {m.text}
-            </div>
-
-            {m.timestamp && (
-              <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.2rem', padding: '0 0.3rem' }}>
-                {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-          </div>
-        ))}
-
-        {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', fontSize: '0.78rem' }}>
-            <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
-            <span>{lang === 'hi' ? 'VarshaNetra AI उत्तर तैयार कर रहा है...' : 'Generating agricultural response...'}</span>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input Form */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(input);
-        }}
-        style={{
-          padding: '0.75rem 0.9rem',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(10, 15, 26, 0.95)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-        }}
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={lang === 'hi' ? 'मौसम, फसल या वर्षा जोखिम पूछें...' : 'Ask about rainfall, crops, or dry break...'}
-          disabled={loading}
+      {/* ── CONDITIONAL: CHATGPT-STYLE CONVERSATION HISTORY VIEW ───────────── */}
+      {showHistory ? (
+        <div
           style={{
             flex: 1,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: '999px',
-            padding: '0.5rem 0.9rem',
-            color: '#f8fafc',
-            fontSize: '0.8rem',
-            outline: 'none',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          style={{
-            background: loading || !input.trim() ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #0284c7 0%, #10b981 100%)',
-            border: 'none',
-            borderRadius: '999px',
-            width: '36px',
-            height: '36px',
+            overflowY: 'auto',
+            padding: '1rem',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-            fontSize: '0.9rem',
+            flexDirection: 'column',
+            gap: '1rem',
+            background: 'rgba(10, 15, 26, 0.98)',
           }}
         >
-          ➤
-        </button>
-      </form>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              📜 {lang === 'hi' ? 'वार्तालाप इतिहास' : 'Chat History'} ({historyList.length})
+            </span>
+            <button
+              onClick={handleNewChat}
+              style={{
+                background: 'linear-gradient(135deg, #0284c7, #10b981)',
+                border: 'none',
+                color: '#fff',
+                padding: '0.25rem 0.65rem',
+                borderRadius: '6px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ➕ {lang === 'hi' ? 'नया चैट शुरू करें' : 'New Chat'}
+            </button>
+          </div>
+
+          {historyList.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+              <div>{lang === 'hi' ? 'कोई पूर्व वार्तालाप नहीं मिला।' : 'No previous conversations found.'}</div>
+            </div>
+          ) : (
+            Object.entries(groupedHistory).map(([bucketTitle, bucketSessions]) => (
+              <div key={bucketTitle}>
+                <div
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    paddingBottom: '0.25rem',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    marginBottom: '0.45rem',
+                  }}
+                >
+                  📅 {bucketTitle}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  {bucketSessions.map((sess) => {
+                    const isCurrent = sessionIdRef.current === sess.id;
+                    return (
+                      <div
+                        key={sess.id}
+                        onClick={() => handleSelectHistorySession(sess)}
+                        style={{
+                          background: isCurrent ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                          border: isCurrent ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.07)',
+                          borderRadius: '10px',
+                          padding: '0.6rem 0.8rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isCurrent ? '#38bdf8' : '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            💬 {sess.session_title}
+                          </div>
+                          <div style={{ fontSize: '0.64rem', color: '#64748b', marginTop: '2px' }}>
+                            {sess.message_count || sess.messages?.length || 0} msgs • {new Date(sess.updated_at || sess.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => handleDeleteHistorySession(e, sess.id)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            opacity: 0.6,
+                            padding: '2px',
+                          }}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        /* ── NORMAL DIALOGUE VIEW ─────────────────────────────────────────── */
+        <>
+          {/* Suggested Quick Question Tabs */}
+          <div
+            style={{
+              padding: '0.45rem 0.8rem',
+              background: 'rgba(0,0,0,0.2)',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              gap: '0.4rem',
+              overflowX: 'auto',
+              flexWrap: 'nowrap',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {Object.entries(QUESTION_CATEGORIES).map(([catKey, cat]) => (
+              <button
+                key={catKey}
+                type="button"
+                onClick={() => setActiveCategory(catKey)}
+                style={{
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  background: activeCategory === catKey ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  border: activeCategory === catKey ? '1px solid #38bdf8' : '1px solid transparent',
+                  borderRadius: '999px',
+                  padding: '0.2rem 0.6rem',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: activeCategory === catKey ? '#38bdf8' : '#94a3b8',
+                  cursor: 'pointer',
+                }}
+              >
+                {lang === 'hi' ? cat.label_hi : cat.label_en}
+              </button>
+            ))}
+          </div>
+
+          {/* Suggested Questions Horizontal Carousel */}
+          <div
+            style={{
+              padding: '0.45rem 0.8rem',
+              display: 'flex',
+              gap: '0.5rem',
+              overflowX: 'auto',
+              flexWrap: 'nowrap',
+              alignItems: 'center',
+              background: 'rgba(0,0,0,0.25)',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {(lang === 'hi' ? QUESTION_CATEGORIES[activeCategory].questions_hi : QUESTION_CATEGORIES[activeCategory].questions_en).map((q, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => send(q)}
+                disabled={loading}
+                style={{
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  fontSize: '0.7rem',
+                  lineHeight: 1.2,
+                  padding: '0.28rem 0.72rem',
+                  borderRadius: '999px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: '#e2e8f0',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.18)';
+                  e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                  e.currentTarget.style.color = '#38bdf8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                  e.currentTarget.style.color = '#e2e8f0';
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* Messages Scroll Body */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.8rem',
+            }}
+          >
+            {msgs.map((m, idx) => (
+              <div
+                key={m.id || idx}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
+                }}
+              >
+                <div
+                  style={{
+                    maxWidth: '85%',
+                    padding: '0.65rem 0.9rem',
+                    borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    background: m.role === 'user'
+                      ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                      : m.isError
+                      ? 'rgba(239, 68, 68, 0.2)'
+                      : 'rgba(255, 255, 255, 0.05)',
+                    border: m.isError ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.08)',
+                    color: '#f8fafc',
+                    fontSize: '0.8rem',
+                    lineHeight: 1.45,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {m.text}
+                </div>
+
+                {m.timestamp && (
+                  <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.2rem', padding: '0 0.3rem' }}>
+                    {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            ))}
+
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', fontSize: '0.78rem' }}>
+                <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
+                <span>{lang === 'hi' ? 'VarshaNetra AI उत्तर तैयार कर रहा है...' : 'Generating agricultural response...'}</span>
+              </div>
+            )}
+
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input Form */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            style={{
+              padding: '0.75rem 0.9rem',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(10, 15, 26, 0.95)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={lang === 'hi' ? 'फसल या मौसम पर कोई भी प्रश्न पूछें...' : 'Ask any crop or monsoon question...'}
+              disabled={loading}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px',
+                padding: '0.65rem 0.9rem',
+                color: '#f8fafc',
+                fontSize: '0.82rem',
+                outline: 'none',
+              }}
+            />
+
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              style={{
+                background: input.trim() && !loading
+                  ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                  : 'rgba(255,255,255,0.06)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '0.65rem 1rem',
+                color: input.trim() && !loading ? '#ffffff' : '#64748b',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              ➤
+            </button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
