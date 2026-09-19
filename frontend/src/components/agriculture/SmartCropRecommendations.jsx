@@ -7,7 +7,7 @@ import VernacularTTSButton from '../common/VernacularTTSButton';
  * Immediate, verified regional baseline generator.
  * Guarantees that the farmer sees the Top 2-3 Crops immediately on frame 1 without delay.
  */
-const getInitialBaseline = (loc) => {
+export const getInitialBaseline = (loc) => {
   const st = loc?.state || 'Uttar Pradesh';
   const dist = loc?.district || loc?.city || 'Lucknow';
   const isCentral = ['Maharashtra', 'Madhya Pradesh', 'Chhattisgarh'].includes(st);

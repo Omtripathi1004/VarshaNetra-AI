@@ -25,6 +25,9 @@ def get_db():
 def init_db():
     from ..models import (  # noqa: F401 - import all models so Base knows them
         User, Location, WeatherObservation, Prediction,
-        Alert, Notification, CropProfile, EmergencyEvent
+        Alert, Notification, CropProfile, EmergencyEvent,
+        AdminState, AdminDistrict, AdminSubDistrict, AdminBlock,
+        AdminPanchayat, AdminVillage,
+        ChatSession, ChatMessage, ActivityLog,
     )
     Base.metadata.create_all(bind=engine)

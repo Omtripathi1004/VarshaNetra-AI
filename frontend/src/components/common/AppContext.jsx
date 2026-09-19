@@ -48,9 +48,10 @@ export const DEMO_ACCOUNTS = [
 ];
 
 // RBAC Constants:
-// Farmer / User has access to first 6 tabs (Overview, HydroMap, Monsoon, Agriculture, XAI, Analytics).
+// Farmer / User has access to first 6 tabs (Overview, HydroMap, Monsoon, Agriculture, XAI, Analytics)
+// plus ChatStore, About — accessible to all roles.
 // The last 3 tabs (Alerts/Warnings, Agri Command, System Control) are restricted to privileged roles (admin, developer, officer).
-const FARMER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics'];
+const FARMER_TABS = ['overview', 'hydromap', 'monsoon', 'agriculture', 'xai', 'analytics', 'chatstore', 'about'];
 const PRIVILEGED_TABS = ['alerts', 'command', 'system'];
 const PRIVILEGED_ROLES = new Set(['developer', 'admin', 'officer']);
 

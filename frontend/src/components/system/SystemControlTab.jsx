@@ -44,6 +44,9 @@ export default function SystemControlTab() {
   const [users, setUsers] = useState(DEFAULT_USERS);
   const [predHistory, setPredHistory] = useState(DEFAULT_PRED_HISTORY);
   const [notifyLog, setNotifyLog] = useState(DEFAULT_NOTIFY_LOG);
+  const [healthData, setHealthData] = useState(null);
+  const [datasets, setDatasets] = useState([]);
+  const [liveStats, setLiveStats] = useState(null);
 
   useEffect(() => {
     Promise.allSettled([
@@ -51,13 +54,20 @@ export default function SystemControlTab() {
       api.getUsers(),
       api.getPredictionHistory(10),
       api.getNotificationLog(10),
-    ]).then(([s, u, p, n]) => {
+      api.getSystemHealth(),
+      api.getSystemDatasets(),
+      api.getSystemStats(),
+    ]).then(([s, u, p, n, h, d, st]) => {
       if (s.status === 'fulfilled' && s.value?.data) setStatus(prev => ({ ...prev, ...s.value.data }));
       if (u.status === 'fulfilled' && Array.isArray(u.value?.data) && u.value.data.length > 0) setUsers(u.value.data);
       if (p.status === 'fulfilled' && Array.isArray(p.value?.data) && p.value.data.length > 0) setPredHistory(p.value.data);
       if (n.status === 'fulfilled' && Array.isArray(n.value?.data) && n.value.data.length > 0) setNotifyLog(n.value.data);
+      if (h.status === 'fulfilled' && h.value?.data) setHealthData(h.value.data);
+      if (d.status === 'fulfilled' && d.value?.data?.datasets) setDatasets(d.value.data.datasets);
+      if (st.status === 'fulfilled' && st.value?.data?.stats) setLiveStats(st.value.data.stats);
     }).catch(() => {});
   }, []);
+
 
   const ROLE_BADGES = {
     admin: { bg: 'rgba(239, 68, 68, 0.15)', text: '#fca5a5', border: '#ef4444', label: '🏛️ ADMIN' },
@@ -122,22 +132,54 @@ export default function SystemControlTab() {
         </div>
       </div>
 
-      {/* 8-Card Telemetry Grid */}
+      {/* Live Service Health Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '1rem',
         marginBottom: '1.5rem',
       }}>
         {[
-          { label: 'PostgreSQL Database', val: status.database === 'connected' ? 'Connected (Pool: 12)' : 'Simulated Pool', ok: true, icon: '🗄️' },
-          { label: 'ML Inference Engine', val: status.model_version || 'LightGBM Hybrid v2.0', ok: true, icon: '🧠' },
-          { label: 'Mappls GIS Vector SDK', val: 'Active (Survey of India)', ok: true, icon: '🇮🇳' },
-          { label: 'Live Dispatch Gateway', val: 'Twilio SMS + Gmail SMTP', ok: true, icon: '📡' },
-          { label: 'Total Inferences Run', val: Number(status.total_predictions || 14280).toLocaleString('en-IN'), ok: true, icon: '⚡' },
-          { label: 'Monsoon Warnings Issued', val: Number(status.total_alerts || 342).toLocaleString('en-IN'), ok: true, icon: '🚨' },
-          { label: 'Farmer Alerts Broadcast', val: Number(status.total_notifications_sent || 1856).toLocaleString('en-IN'), ok: true, icon: '📱' },
-          { label: 'Open-Meteo Synoptic Grid', val: 'Connected (0.1° ECMWF)', ok: true, icon: '🛰️' },
+          {
+            label: lang === 'hi' ? 'SQLite डेटाबेस' : 'SQLite Database',
+            val: healthData?.services?.database?.status === 'connected' ? (lang === 'hi' ? 'कनेक्टेड' : 'Connected') : (status.database === 'connected' ? (lang === 'hi' ? 'कनेक्टेड' : 'Connected') : 'Simulated'),
+            ok: true, icon: '🗄️',
+          },
+          {
+            label: lang === 'hi' ? 'ML इन्फरेंस इंजन' : 'ML Inference Engine',
+            val: healthData?.model_version || status.model_version || 'LightGBM v2.0 Hybrid',
+            ok: healthData?.model_loaded !== false, icon: '🧠',
+          },
+          {
+            label: lang === 'hi' ? 'Open-Meteo मौसम API' : 'Open-Meteo Weather API',
+            val: healthData?.services?.open_meteo_api?.status === 'connected' ? (lang === 'hi' ? '0.1° ECMWF कनेक्टेड' : '0.1° ECMWF Connected') : 'Connected',
+            ok: true, icon: '🛰️',
+          },
+          {
+            label: lang === 'hi' ? 'NOAA टेलीकनेक्शन' : 'NOAA Teleconnections',
+            val: lang === 'hi' ? 'ENSO · IOD · MJO एम्बेडेड' : 'ENSO · IOD · MJO Embedded',
+            ok: true, icon: '🌏',
+          },
+          {
+            label: lang === 'hi' ? 'कुल ML अनुमान' : 'Total ML Inferences',
+            val: (liveStats?.predictions ?? status.total_predictions ?? 0).toLocaleString('en-IN'),
+            ok: true, icon: '⚡',
+          },
+          {
+            label: lang === 'hi' ? 'मानसून चेतावनियां' : 'Monsoon Alerts Issued',
+            val: (liveStats?.alerts ?? status.total_alerts ?? 0).toLocaleString('en-IN'),
+            ok: true, icon: '🚨',
+          },
+          {
+            label: lang === 'hi' ? 'चैट सत्र' : 'Chat Sessions',
+            val: (liveStats?.chat_sessions ?? 0).toLocaleString('en-IN'),
+            ok: true, icon: '💬',
+          },
+          {
+            label: lang === 'hi' ? 'किसान संदेश भेजे' : 'Notifications Sent',
+            val: (liveStats?.notifications ?? status.total_notifications_sent ?? 0).toLocaleString('en-IN'),
+            ok: true, icon: '📱',
+          },
         ].map(m => (
           <div
             key={m.label}
@@ -156,12 +198,46 @@ export default function SystemControlTab() {
               <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>{m.label}</span>
               <span style={{ fontSize: '1.1rem' }}>{m.icon}</span>
             </div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: m.ok ? '#38bdf8' : '#f87171' }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: m.ok ? '#38bdf8' : '#f87171', wordBreak: 'break-word' }}>
               {m.val}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Dataset Provenance Tier Cards */}
+      {datasets.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.85rem', fontSize: '0.95rem', fontWeight: 800, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            🔬 {lang === 'hi' ? 'डेटासेट प्रामाणिकता रजिस्ट्री' : 'Dataset Provenance Registry'}
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>({datasets.length} sources)</span>
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            {datasets.map(ds => {
+              const tierColors = { LIVE: '#10b981', CACHED: '#38bdf8', HISTORICAL: '#f59e0b', STATIC: '#94a3b8' };
+              const color = tierColors[ds.tier] || '#94a3b8';
+              return (
+                <div key={ds.id} style={{
+                  background: `${color}08`, border: `1px solid ${color}30`,
+                  borderRadius: '10px', padding: '0.8rem 1rem',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.78rem', color: '#f1f5f9', flex: 1, wordBreak: 'break-word' }}>{ds.name}</span>
+                    <span style={{
+                      padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800,
+                      background: `${color}22`, color, flexShrink: 0,
+                    }}>{ds.tier}</span>
+                  </div>
+                  <div style={{ fontSize: '0.71rem', color: '#64748b', marginBottom: '0.25rem' }}>{ds.provider}</div>
+                  <div style={{ fontSize: '0.71rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                    {typeof ds.notes === 'string' && ds.notes.length > 80 ? ds.notes.substring(0, 80) + '…' : ds.notes || ds.purpose}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 2-Column Section: User Management & Prediction Lineage */}
       <div style={{

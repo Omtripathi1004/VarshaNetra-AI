@@ -11,6 +11,10 @@ import AlertsTab from './components/alerts/AlertsTab';
 import AgriCommandTab from './components/crisis/AgriCommandTab';
 import SystemControlTab from './components/system/SystemControlTab';
 import FloatingChatWidget from './components/chat/FloatingChatWidget';
+import AboutTab from './components/about/AboutTab';
+import ChatStoreTab from './components/chat/ChatStoreTab';
+import TechnicalStackModal from './components/common/TechnicalStackModal';
+import JudgeTourModal from './components/common/JudgeTourModal';
 import './index.css';
 
 class ErrorBoundary extends Component {
@@ -62,7 +66,9 @@ const TABS = [
   { id: 'analytics', icon: '🔬', trKey: 'tab_analytics', Component: AnalyticsTab },
   { id: 'alerts', icon: '🚨', trKey: 'tab_alerts', Component: AlertsTab },
   { id: 'command', icon: '🏛️', trKey: 'tab_agri', Component: AgriCommandTab },
+  { id: 'chatstore', icon: '💬', trKey: 'tab_chatstore', Component: ChatStoreTab },
   { id: 'system', icon: '⚙️', trKey: 'tab_system', Component: SystemControlTab },
+  { id: 'about', icon: 'ℹ️', trKey: 'tab_about', Component: AboutTab },
 ];
 
 function LoginModal() {
@@ -196,8 +202,10 @@ function LoginModal() {
 }
 
 function AppInner() {
-  const { tr, lang, toggleLang, user, activeTab, setActiveTab, setIsLoginModalOpen, isChatOpen, setIsChatOpen, canAccessPrivileged, allowedTabs, FARMER_TABS, PRIVILEGED_TABS } = useApp();
+  const { tr, lang, toggleLang, user, activeTab, setActiveTab, setIsLoginModalOpen, isChatOpen, setIsChatOpen, canAccessPrivileged, allowedTabs, FARMER_TABS, PRIVILEGED_TABS, switchRole } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isTechStackOpen, setIsTechStackOpen] = useState(false);
+  const [isJudgeTourOpen, setIsJudgeTourOpen] = useState(false);
   const drawerRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -274,6 +282,56 @@ function AppInner() {
 
         {/* Right Action Container: Independent non-overlapping items */}
         <div className="navbar-right-container" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+          {/* ⚖️ Judge Tour (Hackathon PPT Interactive Controller) */}
+          <button
+            id="judge-tour-btn"
+            onClick={() => setIsJudgeTourOpen(true)}
+            title={lang === 'hi' ? '2–3 मिनट हैकथॉन मूल्यांकन गाइड एवं स्लाइड नियंत्रक' : '2–3 Min Hackathon Evaluation Guide & Interactive Slide Controller'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.35rem 0.7rem',
+              background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.35) 0%, rgba(56, 189, 248, 0.2) 100%)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.55)',
+              borderRadius: '999px',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 0 14px rgba(2, 132, 199, 0.4)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <span style={{ fontSize: '0.92rem' }}>⚖️</span>
+            <span>{lang === 'hi' ? 'जज टूर' : 'Judge Tour'}</span>
+          </button>
+
+          {/* 🥞 Tech Stack (System Architecture & Provenance Modal) */}
+          <button
+            id="tech-stack-btn"
+            onClick={() => setIsTechStackOpen(true)}
+            title={lang === 'hi' ? 'सिस्टम आर्किटेक्चर एवं डेटा प्रामाणिकता (तकनीकी प्रकटीकरण)' : 'System Architecture & Provenance (Technical Disclosure)'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.35rem 0.7rem',
+              background: 'rgba(255, 255, 255, 0.05)',
+              color: '#cbd5e1',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '999px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: '0.92rem' }}>🥞</span>
+            <span>{lang === 'hi' ? 'तकनीकी स्टैक' : 'Tech Stack'}</span>
+          </button>
+
           {/* User Role Pill */}
           <div
             onClick={() => setIsLoginModalOpen(true)}
@@ -422,6 +480,43 @@ function AppInner() {
 
         {/* Navigation Items */}
         <div style={{ padding: '0.6rem', flex: 1 }}>
+          {/* Hackathon Evaluation & Architecture Tools */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.4rem',
+            padding: '0.4rem 0.4rem 0.75rem',
+            marginBottom: '0.6rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+          }}>
+            <button
+              onClick={() => { setIsJudgeTourOpen(true); closeDrawer(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.65rem',
+                width: '100%', padding: '0.6rem 0.85rem', borderRadius: '10px',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.3) 0%, rgba(56, 189, 248, 0.15) 100%)',
+                color: '#38bdf8', fontWeight: 800, fontSize: '0.84rem', cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>⚖️</span>
+              <span>{lang === 'hi' ? '2–3 मिनट जज टूर (स्लाइड फ्लो)' : '2–3 Min Judge Tour (PPT Flow)'}</span>
+            </button>
+            <button
+              onClick={() => { setIsTechStackOpen(true); closeDrawer(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.65rem',
+                width: '100%', padding: '0.55rem 0.85rem', borderRadius: '10px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#cbd5e1', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '1.05rem' }}>🥞</span>
+              <span>{lang === 'hi' ? 'सिस्टम तकनीकी स्टैक एवं डेटा स्रोत' : 'System Tech Stack & Provenance'}</span>
+            </button>
+          </div>
+
           {/* Section: Farmer / Krishi Modules */}
           <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#38bdf8', padding: '0.4rem 0.8rem 0.25rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
             {lang === 'hi' ? '🌾 कृषि व मौसम सेवाएं' : '🌾 Farmer & Weather Intelligence'}
@@ -555,6 +650,25 @@ function AppInner() {
 
       {/* User Login & Occupation Modal */}
       <LoginModal />
+
+      {/* Technical Stack Architecture Modal */}
+      <TechnicalStackModal
+        isOpen={isTechStackOpen}
+        onClose={() => setIsTechStackOpen(false)}
+        lang={lang}
+      />
+
+      {/* Interactive Hackathon Judge Tour PPT Controller */}
+      <JudgeTourModal
+        isOpen={isJudgeTourOpen}
+        onClose={() => setIsJudgeTourOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenChat={() => setIsChatOpen(true)}
+        switchRole={switchRole}
+        userRole={user?.role}
+        lang={lang}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 
 export default function FloatingChatWidget() {
   const { lang, location, tr, isChatOpen: isOpen, setIsChatOpen: setIsOpen } = useApp();
+  const sessionIdRef = React.useRef(null);
   const [activeCategory, setActiveCategory] = useState('crops');
   const [msgs, setMsgs] = useState([
     {
@@ -50,6 +51,8 @@ export default function FloatingChatWidget() {
       });
 
       const reply = lang === 'hi' ? (res.data?.reply_hi || res.data?.reply) : (res.data?.reply_en || res.data?.reply);
+      const intent = res.data?.intent_detected || 'WHAT';
+      const crop = res.data?.crop_detected || '';
       
       setMsgs(m => {
         const base = isRegenerate ? m.filter(msg => msg.id !== m[m.length - 1]?.id) : m;
@@ -58,9 +61,20 @@ export default function FloatingChatWidget() {
           role: 'bot',
           question: textToSend,
           text: reply || (lang === 'hi' ? 'सलाहकार से उत्तर प्राप्त हुआ।' : 'Decision advisory response generated.'),
-          intent: res.data?.intent_detected || 'WHAT',
+          intent,
         }];
       });
+
+      // Auto-persist to Chat Store (fire-and-forget)
+      try {
+        const saveRes = await api.saveChatMessage(
+          textToSend, reply || '', lang,
+          sessionIdRef.current, intent, crop, ''
+        );
+        if (saveRes?.data?.session_id) {
+          sessionIdRef.current = saveRes.data.session_id;
+        }
+      } catch {}
     } catch {
       setMsgs(m => [...m, {
         id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,

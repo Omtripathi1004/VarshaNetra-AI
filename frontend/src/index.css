@@ -1070,3 +1070,171 @@ label.field-label { display: block; font-size: 0.75rem; color: var(--text-muted)
     padding: 0.75rem !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Mobile-First Responsiveness & Viewport Hardening
+   Verified at: 360×800, 390×844, 412×915, 768×1024, 1366×768, 1920×1080
+   ═══════════════════════════════════════════════════════════ */
+
+/* Global overflow prevention */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+* {
+  box-sizing: border-box;
+  min-width: 0; /* Prevents flex/grid children from overflowing */
+}
+
+/* ── Text Safety ───────────────────────────────────────────── */
+.word-break-all { word-break: break-all; }
+.word-break-word { word-break: break-word; overflow-wrap: break-word; }
+pre, code, .monospace {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* ── Responsive Typography ─────────────────────────────────── */
+@media (max-width: 480px) {
+  h1 { font-size: clamp(1.1rem, 5vw, 1.5rem) !important; }
+  h2 { font-size: clamp(1rem, 4.5vw, 1.25rem) !important; }
+  h3 { font-size: clamp(0.9rem, 4vw, 1.1rem) !important; }
+}
+
+/* ── Navbar Mobile Hardening ───────────────────────────────── */
+.navbar {
+  flex-wrap: nowrap !important;
+  overflow-x: hidden;
+  gap: 0.3rem !important;
+}
+
+.navbar-brand span:last-child {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .navbar-brand span:last-child {
+    display: inline;
+  }
+}
+
+.user-role-details {
+  display: none;
+}
+
+@media (min-width: 560px) {
+  .user-role-details {
+    display: flex;
+  }
+}
+
+.workflow-pipeline {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .workflow-pipeline {
+    display: flex !important;
+  }
+}
+
+/* ── Location Bar Mobile ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .location-bar-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.4rem !important;
+  }
+
+  .location-bar-row > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* ── Cards & Grids Mobile ──────────────────────────────────── */
+@media (max-width: 640px) {
+  [style*="grid-template-columns: repeat(auto-fit"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  [style*="grid-template-columns: repeat(auto-fill"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  [style*="minmax(280px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  [style*="minmax(300px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  [style*="minmax(480px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Bottom mobile nav safe area ──────────────────────────── */
+.mobile-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+}
+
+/* ── Table Mobile Overflow ─────────────────────────────────── */
+table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  table th, table td {
+    white-space: nowrap;
+    font-size: 0.72rem !important;
+    padding: 0.4rem 0.5rem !important;
+  }
+}
+
+/* ── Chat Store — Message Panel Mobile ────────────────────── */
+@media (max-width: 640px) {
+  .chat-store-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── About tab pipeline tags word-wrap ────────────────────── */
+.pipeline-step {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .pipeline-step {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+/* ── Dataset cards text overflow ──────────────────────────── */
+.dataset-card-name {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ── Drawer full-screen on very small screens ─────────────── */
+@media (max-width: 360px) {
+  .nav-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* ── Metric cards — prevent overflow ──────────────────────── */
+.metric-val {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}

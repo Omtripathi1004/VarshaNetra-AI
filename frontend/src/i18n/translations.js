@@ -21,7 +21,9 @@ const translations = {
     tab_alerts: 'Emergency Warning Center',
     tab_agri: 'Agri Command Center',
     tab_chat: 'AI Decision Advisor',
+    tab_chatstore: 'Chat Store',
     tab_system: 'System Control',
+    tab_about: 'About & Technical Stack',
 
     // Pipeline Steps
     observe: 'OBSERVE',
@@ -258,7 +260,9 @@ const translations = {
     tab_alerts: 'आपातकालीन चेतावनी केंद्र',
     tab_agri: 'कृषि कमांड सेंटर',
     tab_chat: 'AI निर्णय सलाहकार',
+    tab_chatstore: 'चैट स्टोर',
     tab_system: 'सिस्टम नियंत्रण',
+    tab_about: 'परियोजना परिचय और तकनीक',
 
     // Pipeline Steps
     observe: 'निगरानी (OBSERVE)',

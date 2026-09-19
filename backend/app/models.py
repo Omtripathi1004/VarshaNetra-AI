@@ -267,3 +267,54 @@ class AdminVillage(Base):
     irrigation_status = Column(String, default="Rainfed / Tube-well")
     created_at = Column(DateTime(timezone=True), default=_now)
 
+
+# =============================================================================
+# CHAT PERSISTENCE & ACTIVITY AUDIT MODELS
+# =============================================================================
+
+class ChatSession(Base):
+    """
+    Groups a series of ChatMessages belonging to one conversation.
+    Scoped strictly to user_id to enforce per-user isolation.
+    """
+    __tablename__ = "chat_sessions"
+    id = Column(String, primary_key=True)           # UUID
+    user_id = Column(String, index=True, nullable=False)
+    session_title = Column(String, default="New Conversation")
+    language = Column(String, default="en")
+    message_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class ChatMessage(Base):
+    """
+    Stores individual user question + bot response pairs.
+    User isolation is enforced by session_id → user_id chain.
+    """
+    __tablename__ = "chat_messages"
+    id = Column(String, primary_key=True)           # UUID
+    session_id = Column(String, ForeignKey("chat_sessions.id"), index=True, nullable=False)
+    user_id = Column(String, index=True, nullable=False)
+    role = Column(String, default="user")           # 'user' | 'bot'
+    message = Column(Text)                          # User's question
+    response = Column(Text, default="")             # Bot's reply
+    language = Column(String, default="en")
+    intent = Column(String, default="")
+    crop = Column(String, default="")
+    data_source = Column(String, default="")
+    timestamp = Column(DateTime(timezone=True), default=_now)
+
+
+class ActivityLog(Base):
+    """
+    Lightweight audit log for user actions on the platform.
+    Never stores passwords, tokens, API keys, or any PII beyond user_id.
+    """
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, index=True, nullable=False)
+    action = Column(String, nullable=False)
+    page = Column(String, default="")
+    extra_data = Column("metadata", JSON, default=dict)
+    timestamp = Column(DateTime(timezone=True), default=_now)

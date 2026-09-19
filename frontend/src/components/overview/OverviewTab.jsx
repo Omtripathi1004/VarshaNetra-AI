@@ -9,6 +9,7 @@ import { useLiveDate, generateDynamicWeekData } from '../../hooks/useLiveDate';
 import KisanActionWidgets from '../agriculture/KisanActionWidgets';
 import VernacularTTSButton from '../common/VernacularTTSButton';
 import SmartCropRecommendations from '../agriculture/SmartCropRecommendations';
+import DashboardVoiceBriefing from './DashboardVoiceBriefing';
 
 ChartJS.register(...registerables);
 
@@ -355,6 +356,17 @@ export default function OverviewTab() {
           </p>
         </div>
       </div>
+
+      {/* 🎙️ DASHBOARD AI VOICE BRIEFING — FULL BILINGUAL SPEAKING ASSISTANT */}
+      <DashboardVoiceBriefing
+        weather={weather}
+        prediction={prediction}
+        monsoon={monsoon}
+        risk={risk}
+        cropAdvisory={cropAdvisory}
+        location={location}
+        lang={lang}
+      />
 
       <div style={{
         display: 'flex',

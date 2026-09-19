@@ -3,7 +3,8 @@ import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
 
 export default function ChatBotTab() {
-  const { lang, location, tr } = useApp();
+  const { lang, location, tr, user } = useApp();
+  const sessionIdRef = React.useRef(null);
   const [msgs, setMsgs] = useState([
     {
       id: 'welcome',
@@ -44,6 +45,9 @@ export default function ChatBotTab() {
       const res = await api.chat(textToSend, lang, loc, { request_id: reqId, is_regenerate: isRegenerate });
       
       const reply = lang === 'hi' ? (res.data?.reply_hi || res.data?.reply) : (res.data?.reply_en || res.data?.reply);
+      const intent = res.data?.intent_detected || 'WHAT';
+      const crop = res.data?.crop_detected || '';
+      const dataSource = res.data?.data_source || '';
       
       setMsgs(m => {
         const base = isRegenerate ? m.slice(0, -1) : m;
@@ -52,11 +56,23 @@ export default function ChatBotTab() {
           role: 'bot',
           question: textToSend,
           text: reply || (lang === 'hi' ? 'सलाहकार से उत्तर प्राप्त हुआ।' : 'Decision advisory response generated.'),
-          intent: res.data?.intent_detected || 'WHAT',
-          crop: res.data?.crop_detected,
-          dataSource: res.data?.data_source
+          intent,
+          crop,
+          dataSource
         }];
       });
+
+      // Auto-persist to Chat Store (fire-and-forget, never blocks UI)
+      try {
+        const saveRes = await api.saveChatMessage(
+          textToSend, reply || '', lang,
+          sessionIdRef.current,
+          intent, crop, dataSource
+        );
+        if (saveRes?.data?.session_id) {
+          sessionIdRef.current = saveRes.data.session_id;
+        }
+      } catch {}
     } catch {
       setMsgs(m => [...m, {
         id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
