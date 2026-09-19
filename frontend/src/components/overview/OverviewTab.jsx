@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Chart as ChartJS, registerables
 } from 'chart.js';
@@ -8,7 +8,7 @@ import { api } from '../../api/client';
 import { useLiveDate, generateDynamicWeekData } from '../../hooks/useLiveDate';
 import KisanActionWidgets from '../agriculture/KisanActionWidgets';
 import VernacularTTSButton from '../common/VernacularTTSButton';
-import SmartCropRecommendations from '../agriculture/SmartCropRecommendations';
+import SmartCropRecommendations, { getInitialBaseline } from '../agriculture/SmartCropRecommendations';
 import DashboardVoiceBriefing from './DashboardVoiceBriefing';
 
 ChartJS.register(...registerables);
@@ -126,6 +126,15 @@ export default function OverviewTab() {
   const [selectedCrop, setSelectedCrop] = useState('rice');
   const [selectedStage, setSelectedStage] = useState('sowing');
   const [cropAdvisory, setCropAdvisory] = useState(null);
+  const [smartCropRecs, setSmartCropRecs] = useState(() => {
+    try {
+      const b = getInitialBaseline(location);
+      return b?.recommendations || [];
+    } catch {
+      return [];
+    }
+  });
+  const [gpsDetecting, setGpsDetecting] = useState(false);
   const [forecastDays, setForecastDays] = useState(7);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -152,7 +161,8 @@ export default function OverviewTab() {
       api.getMonsoonFalseOnset(loc).catch(() => ({ data: null })),
       api.getMonsoonOutlook(loc).catch(() => ({ data: null })),
       api.getCropStageAdvisory(selectedCrop, selectedStage, loc).catch(() => ({ data: null })),
-    ]).then(([w, f, p, m, r, pf, tc, fo, mo, ca]) => {
+      api.getSmartCropRecommendations(loc, 'ALL').catch(() => ({ data: null })),
+    ]).then(([w, f, p, m, r, pf, tc, fo, mo, ca, scr]) => {
       if (w?.data && typeof w.data.temperature_c === 'number') {
         setWeather(w.data);
         setWeatherError(false);
@@ -189,6 +199,14 @@ export default function OverviewTab() {
       if (fo?.data) setFalseOnsetInfo(fo.data);
       if (mo?.data) setMultiOutlook(mo.data);
       if (ca?.data) setCropAdvisory(ca.data);
+      if (scr?.data?.recommendations?.length) {
+        setSmartCropRecs(scr.data.recommendations);
+      } else {
+        try {
+          const b = getInitialBaseline(loc);
+          if (b?.recommendations?.length) setSmartCropRecs(b.recommendations);
+        } catch {}
+      }
 
       setLastRefreshedAt(new Date());
       setLoading(false);
@@ -198,6 +216,50 @@ export default function OverviewTab() {
       setIsRefreshing(false);
     });
   };
+
+  const handleDetectGPS = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert(lang === 'hi' ? 'आपके डिवाइस में GPS उपलब्ध नहीं है।' : 'Geolocation is not supported by your browser.');
+      return;
+    }
+    setGpsDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        try {
+          const res = await api.resolveLocation({ lat, lon });
+          const d = res.data;
+          setLocation({
+            lat,
+            lon,
+            state: d.state || '',
+            district: d.district || '',
+            city: d.city || '',
+            village: d.village || '',
+            display_name: d.display_name || `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`,
+          });
+        } catch {
+          setLocation({
+            lat,
+            lon,
+            state: '',
+            district: '',
+            city: '',
+            village: '',
+            display_name: `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`,
+          });
+        }
+        setGpsDetecting(false);
+      },
+      (err) => {
+        console.warn('GPS location error:', err);
+        setGpsDetecting(false);
+        alert(lang === 'hi' ? 'GPS अनुमति अस्वीकृत हुई। कृपया ब्राउज़र सेटिंग्स में लोकेशन अनुमति दें।' : 'GPS permission denied. Please allow location access in your browser.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [lang, setLocation]);
 
   useEffect(() => {
     fetchAllData(false);
@@ -351,9 +413,34 @@ export default function OverviewTab() {
           <h2 style={{ color: '#047857', margin: 0, fontWeight: 800, fontSize: '1.45rem' }}>
             🌾 {lang === 'hi' ? 'VarshaNetra AI — किसान निर्णय सहायता प्रणाली' : 'VarshaNetra AI — Hyperlocal Monsoon Decision System'}
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem', fontWeight: 500 }}>
-            📍 {location.display_name} • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr} IST • UTC+05:30)
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, fontWeight: 500 }}>
+              📍 <strong style={{ color: '#38bdf8' }}>{location.display_name}</strong> • <span style={{ color: '#047857', fontWeight: 700 }}>{lang === 'hi' ? `आज ${liveDate.dayHi}, ${liveDate.fullDateHi}` : `Today is ${liveDate.day}, ${liveDate.fullDate}`}</span> ({liveDate.timeStr} IST • UTC+05:30)
+            </p>
+            <button
+              type="button"
+              onClick={handleDetectGPS}
+              disabled={gpsDetecting}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.65rem',
+                borderRadius: '999px',
+                background: gpsDetecting ? 'rgba(2, 132, 199, 0.2)' : 'rgba(2, 132, 199, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: gpsDetecting ? 'wait' : 'pointer',
+                transition: 'all 0.2s',
+              }}
+              title={lang === 'hi' ? 'लाइव GPS निर्देशांक खोजें और पूरे डैशबोर्ड को अपडेट करें' : 'Detect your exact GPS location and synchronize the full dashboard'}
+            >
+              <span>{gpsDetecting ? '⏳' : '📍'}</span>
+              <span>{gpsDetecting ? (lang === 'hi' ? 'GPS खोज रहे हैं...' : 'Detecting...') : (lang === 'hi' ? 'मेरा GPS लें' : 'Use My GPS')}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -366,6 +453,9 @@ export default function OverviewTab() {
         cropAdvisory={cropAdvisory}
         location={location}
         lang={lang}
+        cropRecommendations={smartCropRecs}
+        onGpsLocate={handleDetectGPS}
+        gpsLoading={gpsDetecting}
       />
 
       <div style={{

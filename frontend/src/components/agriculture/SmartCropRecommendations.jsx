@@ -12,6 +12,8 @@ export const getInitialBaseline = (loc) => {
   const dist = loc?.district || loc?.city || 'Lucknow';
   const isCentral = ['Maharashtra', 'Madhya Pradesh', 'Chhattisgarh'].includes(st);
   const isWestern = ['Gujarat', 'Rajasthan'].includes(st);
+  const isSouth = ['Karnataka', 'Andhra Pradesh', 'Telangana', 'Tamil Nadu', 'Kerala'].includes(st);
+  const isEast = ['West Bengal', 'Odisha', 'Assam', 'Jharkhand'].includes(st);
 
   let recs = [];
   if (isCentral) {
@@ -173,14 +175,14 @@ export const getInitialBaseline = (loc) => {
       {
         rank: 3,
         crop_id: 'cotton',
-        crop_name_en: 'Cotton (Bt / Desi)',
-        crop_name_hi: 'कपास',
+        crop_name_en: 'Cotton (Desi / Arboreum)',
+        crop_name_hi: 'कपास (देसी)',
         icon: '☁️',
         category: 'Fiber',
         season: 'KHARIF',
         suitability_score: 87.2,
-        recommended_variety: 'Phule Dhanwantary (Desi Arboreum)',
-        recommended_variety_hi: 'फुले धन्वंतरी (देसी कपास)',
+        recommended_variety: 'Phule Dhanwantary',
+        recommended_variety_hi: 'फुले धन्वंतरी',
         variety_score: 89.0,
         why_suitable_en: `Exceptional drought hardiness and sucking pest resistance without requiring high agrochemical inputs.`,
         why_suitable_hi: `कम वर्षा में भी उत्कृष्ट उपज; रस चूसक कीटों के प्रति अत्यधिक सहनशील।`,
@@ -201,8 +203,194 @@ export const getInitialBaseline = (loc) => {
         ]
       }
     ];
+  } else if (isSouth) {
+    recs = [
+      {
+        rank: 1,
+        crop_id: 'groundnut',
+        crop_name_en: 'Groundnut (Peanut)',
+        crop_name_hi: 'मूँगफली',
+        icon: '🥜',
+        category: 'Oilseed / Cash',
+        season: 'KHARIF',
+        suitability_score: 93.0,
+        recommended_variety: 'Kadiri-6 (K-6)',
+        recommended_variety_hi: 'कादिरी-6 (के-6)',
+        variety_score: 94.5,
+        why_suitable_en: `Drought-hardy Spanish bunch variety extensively proven in red sandy loam soils of Southern peninsula. High shelling recovery.`,
+        why_suitable_hi: `दक्षिण भारत की लाल बलुई दोमट मिट्टी में कादिरी-6 सूखा सहनशील व उच्च फली भराव देने वाली प्रमुख किस्म है।`,
+        key_risks_en: 'Protect during dry breaks at flowering; maintain loose topsoil for easy pegging.',
+        key_risks_hi: 'फूल आते समय नमी बनाए रखें और पेगिंग हेतु मिट्टी भुरभुरी रखें।',
+        expected_water_need: '400–500 mm',
+        sowing_window: 'Jun 15 – Jul 25',
+        sowing_window_hi: '15 जून – 25 जुलाई',
+        duration_days: 105,
+        confidence: 'High (95%) - ANGRAU / UAS Bangalore Verified',
+        source: 'ANGRAU & ICAR-DGR',
+        source_url: 'https://dgr.icar.gov.in',
+        intercrop_options: 'Groundnut + Redgram (7:1)',
+        market_price_inr_qtl: 6783,
+        factor_scores: { season_fit: 94, regional_fit: 96, temperature_fit: 92, soil_fit: 94, water_fit: 90, rainfall_fit: 88 },
+        all_evaluated_varieties: [
+          { name: 'Kadiri-6 (K-6)', score: 94.5, duration: 105, tolerance: 'Drought Escape & Rust Tolerant' }
+        ]
+      },
+      {
+        rank: 2,
+        crop_id: 'ragi',
+        crop_name_en: 'Ragi (Finger Millet)',
+        crop_name_hi: 'रागी (मडुआ)',
+        icon: '🌾',
+        category: 'Nutri-Cereal',
+        season: 'KHARIF',
+        suitability_score: 91.2,
+        recommended_variety: 'GPU-28 / MR-1',
+        recommended_variety_hi: 'जीपीयू-28 / एमआर-1',
+        variety_score: 93.0,
+        why_suitable_en: `High-tillering blast-resistant finger millet ideal for rainfed alfisols with low fertilizer inputs.`,
+        why_suitable_hi: `कम उर्वरक व वर्षा आधारित लाल मिट्टी में ब्लास्ट रोग प्रतिरोधी बंपर रागी फसल।`,
+        key_risks_en: 'Ensure good surface drainage during heavy downpours in early vegetative phase.',
+        key_risks_hi: 'आरंभिक बढ़वार में भारी बारिश पर खेत में पानी न भरने दें।',
+        expected_water_need: '350–450 mm',
+        sowing_window: 'Jul 1 – Aug 10',
+        sowing_window_hi: '1 जुलाई – 10 अगस्त',
+        duration_days: 110,
+        confidence: 'High (96%) - UAS Bengaluru Standard',
+        source: 'ICAR-IIMR & UAS Bangalore',
+        source_url: 'https://millets.res.in',
+        intercrop_options: 'Ragi + Field Bean (8:2)',
+        market_price_inr_qtl: 4290,
+        factor_scores: { season_fit: 92, regional_fit: 95, temperature_fit: 90, soil_fit: 92, water_fit: 90, rainfall_fit: 88 },
+        all_evaluated_varieties: [
+          { name: 'GPU-28', score: 93.0, duration: 110, tolerance: 'Blast Resistant & High Calcium' }
+        ]
+      },
+      {
+        rank: 3,
+        crop_id: 'cotton',
+        crop_name_en: 'Bt Cotton',
+        crop_name_hi: 'कपास (बी.टी.)',
+        icon: '☁️',
+        category: 'Commercial Fiber',
+        season: 'KHARIF',
+        suitability_score: 87.5,
+        recommended_variety: 'Mallika BG-II',
+        recommended_variety_hi: 'मल्लिका बीजी-II',
+        variety_score: 89.0,
+        why_suitable_en: `Tall erect hybrid suited for Southern plateau black and mixed red soils with high boll weight.`,
+        why_suitable_hi: `दक्षिण भारत की मिश्रित लाल व काली मिट्टी में बड़े टिंडे और सुंडी सहनशीलता।`,
+        key_risks_en: 'Sucking pest monitoring required; avoid water stagnation.',
+        key_risks_hi: 'रस चूसक कीटों की निगरानी रखें और जल निकास सुनिश्चित करें।',
+        expected_water_need: '600–750 mm',
+        sowing_window: 'Jun 1 – Jul 10',
+        sowing_window_hi: '1 जून – 10 जुलाई',
+        duration_days: 155,
+        confidence: 'High (92%) - CICR Regional Station',
+        source: 'ICAR-CICR Coimbatore',
+        source_url: 'https://cicr.icar.gov.in',
+        intercrop_options: 'Cotton + Blackgram (1:2)',
+        market_price_inr_qtl: 7122,
+        factor_scores: { season_fit: 90, regional_fit: 92, temperature_fit: 88, soil_fit: 88, water_fit: 84, rainfall_fit: 82 },
+        all_evaluated_varieties: [
+          { name: 'Mallika BG-II', score: 89.0, duration: 155, tolerance: 'High Boll Load' }
+        ]
+      }
+    ];
+  } else if (isEast) {
+    recs = [
+      {
+        rank: 1,
+        crop_id: 'rice',
+        crop_name_en: 'Paddy (Submergence Tolerant)',
+        crop_name_hi: 'धान (जलप्लावन रोधी)',
+        icon: '🌾',
+        category: 'Cereal',
+        season: 'KHARIF',
+        suitability_score: 95.0,
+        recommended_variety: 'Swarna-Sub1',
+        recommended_variety_hi: 'स्वर्णा-सब1',
+        variety_score: 97.0,
+        why_suitable_en: `Withstands up to 14 days of complete water submergence during flash floods in Eastern river basins of ${dist}. High yield return.`,
+        why_suitable_hi: `${dist} के बाढ़ संभावित क्षेत्रों में 14 दिन तक जलमग्न रहने पर भी नष्ट नहीं होती और बंपर उपज देती है।`,
+        key_risks_en: 'Bacterial leaf blight in warm stagnant water; spray copper hydroxide if needed.',
+        key_risks_hi: 'गर्म रुके हुए पानी में झुलसा रोग की संभावना; खेत में जल प्रवाह बनाए रखें।',
+        expected_water_need: '1200–1400 mm',
+        sowing_window: 'Jun 1 – Jul 20',
+        sowing_window_hi: '1 जून – 20 जुलाई',
+        duration_days: 142,
+        confidence: 'High (98%) - NRRI Cuttack Benchmark',
+        source: 'ICAR - National Rice Research Institute (NRRI), Cuttack',
+        source_url: 'https://nrri.icar.gov.in',
+        intercrop_options: 'Bund planting with Arhar',
+        market_price_inr_qtl: 2300,
+        factor_scores: { season_fit: 98, regional_fit: 98, temperature_fit: 95, soil_fit: 96, water_fit: 96, rainfall_fit: 94 },
+        all_evaluated_varieties: [
+          { name: 'Swarna-Sub1', score: 97.0, duration: 142, tolerance: 'Submergence 14 Days & Lodging Resistant' }
+        ]
+      },
+      {
+        rank: 2,
+        crop_id: 'jute',
+        crop_name_en: 'Jute (Golden Fiber)',
+        crop_name_hi: 'जूट (पटसन)',
+        icon: '🌿',
+        category: 'Commercial Fiber',
+        season: 'KHARIF',
+        suitability_score: 91.5,
+        recommended_variety: 'JRO-524 (Navin)',
+        recommended_variety_hi: 'जेआरओ-524 (नवीन)',
+        variety_score: 93.5,
+        why_suitable_en: `Exceptional fiber strength and tolerance to heavy rainfall and waterlogged alluvial plains of Eastern India.`,
+        why_suitable_hi: `पूर्वी भारत की जलोढ़ मिट्टी व भारी वर्षा में सर्वोत्तम रेशा गुणवत्ता और उच्च बाजार मूल्य।`,
+        key_risks_en: 'Requires clean retting water bodies at harvesting stage.',
+        key_risks_hi: 'कटाई के समय रेशे की सड़न (रेडिंग) हेतु स्वच्छ जल आवश्यक है।',
+        expected_water_need: '1000–1200 mm',
+        sowing_window: 'Mar 15 – May 30',
+        sowing_window_hi: '15 मार्च – 30 मई',
+        duration_days: 120,
+        confidence: 'High (95%) - ICAR-CRIJAF Barrackpore',
+        source: 'ICAR - Central Research Institute for Jute and Allied Fibres (CRIJAF)',
+        source_url: 'https://crijaf.icar.gov.in',
+        intercrop_options: 'Jute + Red Amaranth',
+        market_price_inr_qtl: 5050,
+        factor_scores: { season_fit: 94, regional_fit: 96, temperature_fit: 92, soil_fit: 94, water_fit: 94, rainfall_fit: 90 },
+        all_evaluated_varieties: [
+          { name: 'JRO-524 (Navin)', score: 93.5, duration: 120, tolerance: 'Fine Fiber & High Strength' }
+        ]
+      },
+      {
+        rank: 3,
+        crop_id: 'maize',
+        crop_name_en: 'Maize (Hybrid)',
+        crop_name_hi: 'मक्का',
+        icon: '🌽',
+        category: 'Cereal / Feed',
+        season: 'KHARIF',
+        suitability_score: 88.0,
+        recommended_variety: 'Shaktiman-1 / QPM',
+        recommended_variety_hi: 'शक्तिमान-1',
+        variety_score: 90.0,
+        why_suitable_en: `High protein maize variety tailored for upland soils of Eastern plains with short vegetative cycle.`,
+        why_suitable_hi: `ऊंचे खेतों में कम समय में तैयार होने वाली उच्च प्रोटीन मक्का किस्म।`,
+        key_risks_en: 'Requires furrow drainage during monsoon peak downpours.',
+        key_risks_hi: 'भारी बारिश में खेत में जल निकास नालियां खुली रखें।',
+        expected_water_need: '500–600 mm',
+        sowing_window: 'Jun 10 – Jul 15',
+        sowing_window_hi: '10 जून – 15 जुलाई',
+        duration_days: 95,
+        confidence: 'High (93%) - ICAR-RCER Patna',
+        source: 'ICAR Research Complex for Eastern Region, Patna',
+        source_url: 'https://icarrcer.in',
+        intercrop_options: 'Maize + Cowpea (2:2)',
+        market_price_inr_qtl: 2225,
+        factor_scores: { season_fit: 90, regional_fit: 92, temperature_fit: 88, soil_fit: 88, water_fit: 85, rainfall_fit: 82 },
+        all_evaluated_varieties: [
+          { name: 'Shaktiman-1', score: 90.0, duration: 95, tolerance: 'Quality Protein & Stalk Strength' }
+        ]
+      }
+    ];
   } else {
-    // Gangetic / Northern & Eastern Plains (UP, Bihar, Punjab, etc.)
+    // Gangetic / Northern Plains (UP, Bihar, Punjab, Haryana, etc.)
     recs = [
       {
         rank: 1,

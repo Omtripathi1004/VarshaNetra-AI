@@ -274,11 +274,79 @@ async function directOpenMeteoForecast(lat = 26.8467, lon = 80.9462, days = 7) {
 export const api = {
   // Location
   resolveLocation: async (loc) => {
+    // 1. If lat & lon coordinates are provided without names (GPS geolocation)
+    if (typeof loc?.lat === 'number' && typeof loc?.lon === 'number' && !loc?.district && !loc?.state) {
+      try {
+        const nomRes = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+          params: { format: 'json', lat: loc.lat, lon: loc.lon },
+          headers: { 'Accept': 'application/json' },
+          timeout: 4000,
+        });
+        if (nomRes?.data?.address) {
+          const addr = nomRes.data.address;
+          const state = addr.state || '';
+          const district = addr.state_district || addr.district || addr.county || addr.city || '';
+          const city = addr.city || addr.town || addr.municipality || addr.suburb || district || '';
+          const village = addr.village || addr.hamlet || '';
+          const primary = village || city || district || `${loc.lat.toFixed(4)}°N, ${loc.lon.toFixed(4)}°E`;
+          const disp = [primary, district && district !== primary ? district : '', state, 'India'].filter(Boolean).join(', ');
+          return {
+            data: {
+              latitude: loc.lat,
+              longitude: loc.lon,
+              lat: loc.lat,
+              lon: loc.lon,
+              display_name: disp,
+              state,
+              district,
+              city,
+              village,
+              is_gps: true,
+            }
+          };
+        }
+      } catch (e) {
+        console.warn('Nominatim reverse geocode fallback:', e);
+      }
+
+      // Secondary reverse geocoding via BigDataCloud
+      try {
+        const bdcRes = await axios.get('https://api.bigdatacloud.net/data/reverse-geocode-client', {
+          params: { latitude: loc.lat, longitude: loc.lon, localityLanguage: 'en' },
+          timeout: 3500,
+        });
+        if (bdcRes?.data) {
+          const bData = bdcRes.data;
+          const state = bData.principalSubdivision || '';
+          const district = bData.localityInfo?.administrative?.[2]?.name || bData.city || '';
+          const city = bData.city || bData.locality || district || '';
+          const primary = city || district || `${loc.lat.toFixed(4)}°N, ${loc.lon.toFixed(4)}°E`;
+          const disp = [primary, district && district !== primary ? district : '', state, 'India'].filter(Boolean).join(', ');
+          return {
+            data: {
+              latitude: loc.lat,
+              longitude: loc.lon,
+              lat: loc.lat,
+              lon: loc.lon,
+              display_name: disp,
+              state,
+              district,
+              city,
+              village: '',
+              is_gps: true,
+            }
+          };
+        }
+      } catch (e) {
+        console.warn('BigDataCloud reverse geocode fallback:', e);
+      }
+    }
+
     try {
       return await axios.get(`${BASE}/location/resolve`, { params: locParams(loc), timeout: 3000 });
     } catch {
       // Vercel fallback geocode
-      const query = loc?.village || loc?.city || loc?.district || loc?.state || 'Lucknow';
+      const query = loc?.village || loc?.city || loc?.district || loc?.state || (loc?.lat ? `${loc.lat}, ${loc.lon}` : 'Lucknow');
       try {
         const r = await axios.get(OPEN_METEO_GEO, { params: { name: query, count: 1, language: 'en', format: 'json' } });
         if (r.data?.results?.[0]) {
@@ -287,6 +355,8 @@ export const api = {
             data: {
               latitude: item.latitude,
               longitude: item.longitude,
+              lat: item.latitude,
+              lon: item.longitude,
               display_name: `${query}, ${item.admin1 || ''}, India`,
               state: item.admin1 || loc?.state || '',
               district: item.admin2 || loc?.district || '',
@@ -300,7 +370,9 @@ export const api = {
         data: {
           latitude: loc?.lat ?? 26.8467,
           longitude: loc?.lon ?? 80.9462,
-          display_name: `${loc?.village ? loc.village + ', ' : ''}${loc?.district || 'Lucknow'}, ${loc?.state || 'Uttar Pradesh'}`,
+          lat: loc?.lat ?? 26.8467,
+          lon: loc?.lon ?? 80.9462,
+          display_name: `${loc?.village ? loc.village + ', ' : ''}${loc?.district || (loc?.lat ? `${loc.lat.toFixed(2)}°N, ${loc.lon.toFixed(2)}°E` : 'Lucknow')}, ${loc?.state || 'Uttar Pradesh'}`,
           state: loc?.state || 'Uttar Pradesh',
           district: loc?.district || 'Lucknow',
           city: loc?.city || 'Lucknow',
