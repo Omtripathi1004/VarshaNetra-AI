@@ -299,13 +299,26 @@ export default function FloatingChatWidget() {
       </div>
 
       {/* Suggested Quick Question Tabs */}
-      <div style={{ padding: '0.5rem 0.8rem', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '0.4rem' }}>
+      <div
+        style={{
+          padding: '0.5rem 0.8rem',
+          background: 'rgba(0,0,0,0.2)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex',
+          gap: '0.4rem',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          scrollbarWidth: 'none',
+        }}
+      >
         {Object.entries(QUESTION_CATEGORIES).map(([catKey, cat]) => (
           <button
             key={catKey}
             type="button"
             onClick={() => setActiveCategory(catKey)}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               background: activeCategory === catKey ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
               border: activeCategory === catKey ? '1px solid #38bdf8' : '1px solid transparent',
               borderRadius: '999px',
@@ -322,7 +335,20 @@ export default function FloatingChatWidget() {
       </div>
 
       {/* Suggested Questions Horizontal Carousel */}
-      <div style={{ padding: '0.4rem 0.8rem', display: 'flex', gap: '0.4rem', overflowX: 'auto', background: 'rgba(0,0,0,0.15)', scrollbarWidth: 'none' }}>
+      <div
+        style={{
+          padding: '0.45rem 0.8rem',
+          display: 'flex',
+          gap: '0.5rem',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          alignItems: 'center',
+          background: 'rgba(0,0,0,0.25)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {(lang === 'hi' ? QUESTION_CATEGORIES[activeCategory].questions_hi : QUESTION_CATEGORIES[activeCategory].questions_en).map((q, i) => (
           <button
             key={i}
@@ -330,14 +356,29 @@ export default function FloatingChatWidget() {
             onClick={() => send(q)}
             disabled={loading}
             style={{
+              flexShrink: 0,
               whiteSpace: 'nowrap',
-              fontSize: '0.68rem',
-              padding: '0.25rem 0.6rem',
+              fontSize: '0.7rem',
+              lineHeight: 1.2,
+              padding: '0.28rem 0.72rem',
               borderRadius: '999px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: '#cbd5e1',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#e2e8f0',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.18)';
+              e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+              e.currentTarget.style.color = '#38bdf8';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+              e.currentTarget.style.color = '#e2e8f0';
             }}
           >
             {q}
