@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../common/AppContext';
 import { api } from '../../api/client';
+import { getUserSessions, deleteUserSession, cleanUserKey } from '../../utils/chatStorage';
 
 const ACTION_LABELS = {
   PAGE_VIEW: { icon: '👁️', color: '#38bdf8', label_en: 'Page View', label_hi: 'पेज देखा' },
@@ -43,30 +44,76 @@ export default function ChatStoreTab() {
   const [activeView, setActiveView] = useState('sessions'); // 'sessions' | 'activity'
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const userId = user?.userId || user?.email || 'anonymous';
+  const userId = user?.userId || user?.email || 'farmer@varshanetra.ai';
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    // 1. Load sandboxed local storage sessions for this authenticated user immediately
+    const localSess = getUserSessions(userId);
+    setSessions(localSess);
+
+    // 2. Fetch server-persisted sessions and user activity for this specific user
     try {
       const [sessRes, actRes] = await Promise.allSettled([
-        api.getChatSessions(100),
-        api.getUserActivity(50),
+        api.getChatSessions(100, userId),
+        api.getUserActivity(50, userId),
       ]);
-      if (sessRes.status === 'fulfilled') {
-        setSessions(sessRes.value?.data?.sessions || []);
+
+      if (sessRes.status === 'fulfilled' && Array.isArray(sessRes.value?.data?.sessions)) {
+        const remoteSessions = sessRes.value.data.sessions;
+        // Merge without duplicating IDs, prioritizing local detailed messages
+        const mergedMap = new Map();
+        localSess.forEach(s => mergedMap.set(s.id, s));
+        remoteSessions.forEach(rs => {
+          if (!mergedMap.has(rs.id)) {
+            mergedMap.set(rs.id, rs);
+          }
+        });
+        const combined = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+        );
+        setSessions(combined);
       }
+
       if (actRes.status === 'fulfilled') {
         setActivity(actRes.value?.data?.activity || []);
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Remote chat sync fallback:', err);
+    }
     setLoading(false);
-  }, []);
+  }, [userId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // When user switches or logs in, immediately reset selected session and reload user data
+  useEffect(() => {
+    setSelectedSession(null);
+    setSessionMessages([]);
+    loadData();
+  }, [userId, loadData]);
+
+  // Listen for real-time chat storage changes from FloatingChatWidget or ChatBotTab
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.detail?.userId && e.detail.userId.includes(cleanUserKey(userId))) {
+        loadData();
+      }
+    };
+    window.addEventListener('varshanetra_chat_storage_change', handleStorageChange);
+    return () => window.removeEventListener('varshanetra_chat_storage_change', handleStorageChange);
+  }, [userId, loadData]);
 
   const openSession = async (session) => {
     setSelectedSession(session);
     setMsgLoading(true);
+
+    // If session has cached messages locally, render them immediately
+    if (Array.isArray(session.messages) && session.messages.length > 0) {
+      setSessionMessages(session.messages);
+      setMsgLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from backend API
     try {
       const res = await api.getChatSessionMessages(session.id);
       setSessionMessages(res?.data?.messages || []);
@@ -77,7 +124,14 @@ export default function ChatStoreTab() {
   };
 
   const deleteSession = async (sessionId) => {
-    await api.deleteChatSession(sessionId);
+    // Delete from local persistent storage
+    deleteUserSession(userId, sessionId);
+
+    // Delete from backend database
+    try {
+      await api.deleteChatSession(sessionId);
+    } catch {}
+
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (selectedSession?.id === sessionId) {
       setSelectedSession(null);
@@ -107,13 +161,13 @@ export default function ChatStoreTab() {
               margin: 0, fontSize: '1.35rem', fontWeight: 800,
               background: 'linear-gradient(135deg, #a855f7, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
-              {lang === 'hi' ? 'चैट स्टोर' : 'Chat Store'}
+              {lang === 'hi' ? 'चैट स्टोर एवं वार्तालाप संग्रह' : 'Chat Store & Confidential History'}
             </h2>
           </div>
           <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.83rem' }}>
-            {lang === 'hi'
-              ? `${userId} की बातचीत का संग्रह — प्रत्येक उपयोगकर्ता का डेटा सुरक्षित रूप से अलग है`
-              : `Conversation history for ${userId} — strictly user-isolated per authenticated identity`}
+            🔒 {lang === 'hi'
+              ? `उपयोगकर्ता खाता: ${user?.name || userId} (${userId}) — पूर्ण गोपनीयता, कोई अन्य खाता आपकी चैट नहीं देख सकता`
+              : `Authenticated Account: ${user?.name || userId} (${userId}) — strictly isolated per user; zero data leakage`}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -194,48 +248,56 @@ export default function ChatStoreTab() {
               }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>💬</div>
                 <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: '0.3rem', color: '#94a3b8' }}>
-                  {lang === 'hi' ? 'कोई बातचीत नहीं मिली' : 'No conversations found'}
+                  {lang === 'hi' ? `कोई बातचीत नहीं मिली (${user?.name || userId})` : `No conversations found for ${user?.name || userId}`}
                 </div>
                 <div style={{ fontSize: '0.78rem' }}>
-                  {lang === 'hi' ? 'AI निर्णय सलाहकार में जाकर एक नई बातचीत शुरू करें।' : 'Start a new conversation in the AI Decision Advisor.'}
+                  {lang === 'hi' ? 'नीचे दाएँ कोने में AI सहायक से प्रश्न पूछें, यह यहाँ हमेशा सुरक्षित रहेगा।' : 'Ask questions using the floating assistant widget at the bottom right. Your chats are permanently preserved here.'}
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {filteredSessions.map(s => {
-                  const isActive = selectedSession?.id === s.id;
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {filteredSessions.map(sess => {
+                  const isSelected = selectedSession?.id === sess.id;
                   return (
                     <div
-                      key={s.id}
+                      key={sess.id}
+                      onClick={() => openSession(sess)}
                       style={{
-                        background: isActive ? 'rgba(168,85,247,0.12)' : 'rgba(18,14,40,0.72)',
-                        border: `1px solid ${isActive ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        background: isSelected ? 'rgba(168,85,247,0.18)' : 'rgba(18,14,40,0.65)',
+                        border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '12px', padding: '0.85rem 1rem', cursor: 'pointer',
-                        transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                        transition: 'all 0.2s ease', position: 'relative',
                       }}
-                      onClick={() => openSession(s)}
                     >
-                      <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>💬</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontWeight: 700, fontSize: '0.83rem', color: '#f1f5f9',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
-                          {s.session_title || 'Chat'}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? '#c084fc' : '#f1f5f9', lineHeight: 1.3 }}>
+                          💬 {sess.session_title || (lang === 'hi' ? 'वार्तालाप' : 'Conversation')}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          {s.message_count || 0} {lang === 'hi' ? 'संदेश' : 'messages'} • {timeAgo(s.updated_at)}
-                        </div>
+                        <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                          {timeAgo(sess.updated_at || sess.created_at)}
+                        </span>
                       </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); setDeleteConfirm(s.id); }}
-                        style={{
-                          background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer',
-                          fontSize: '0.85rem', padding: '0.2rem 0.3rem', borderRadius: '4px',
-                          flexShrink: 0, transition: 'color 0.15s',
-                        }}
-                        title="Delete session"
-                      >🗑️</button>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          {sess.message_count || sess.messages?.length || 0} {lang === 'hi' ? 'संदेश' : 'messages'} • {formatDate(sess.created_at)}
+                        </span>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSession(sess.id);
+                          }}
+                          style={{
+                            background: 'transparent', border: 'none', color: '#ef4444',
+                            fontSize: '0.72rem', cursor: 'pointer', padding: '0.1rem 0.3rem',
+                            opacity: 0.7,
+                          }}
+                          title={lang === 'hi' ? 'सत्र हटाएं' : 'Delete session'}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -243,67 +305,69 @@ export default function ChatStoreTab() {
             )}
           </div>
 
-          {/* Session Messages Panel */}
+          {/* Selected Session Message Detail */}
           {selectedSession && (
             <div style={{
-              background: 'rgba(13,9,28,0.94)', border: '1px solid rgba(255,255,255,0.09)',
-              borderRadius: '14px', display: 'flex', flexDirection: 'column', maxHeight: '70vh', overflow: 'hidden',
+              background: 'rgba(18,14,40,0.85)', border: '1px solid rgba(168,85,247,0.3)',
+              borderRadius: '14px', padding: '1.2rem', display: 'flex', flexDirection: 'column',
+              maxHeight: '600px',
             }}>
-              {/* Panel header */}
-              <div style={{
-                padding: '0.85rem 1.1rem', borderBottom: '1px solid rgba(255,255,255,0.07)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f1f5f9' }}>{selectedSession.session_title}</div>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{formatDate(selectedSession.created_at)}</div>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#c084fc', fontWeight: 800 }}>
+                    {selectedSession.session_title}
+                  </h4>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                    {selectedSession.id} • {formatDate(selectedSession.created_at)}
+                  </span>
                 </div>
                 <button
-                  onClick={() => { setSelectedSession(null); setSessionMessages([]); }}
-                  style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.1rem', padding: '0.2rem' }}
-                >✕</button>
+                  onClick={() => setSelectedSession(null)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem' }}
+                >
+                  ✕
+                </button>
               </div>
 
-              {/* Messages */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Messages Body */}
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem', paddingRight: '0.3rem' }}>
                 {msgLoading ? (
                   <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>⏳ Loading messages...</div>
                 ) : sessionMessages.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No messages found.</div>
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No messages in this conversation.</div>
                 ) : (
-                  sessionMessages.map(msg => (
-                    <div key={msg.id}>
-                      {/* User question */}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.4rem' }}>
-                        <div style={{
-                          background: 'linear-gradient(135deg, #059669, #0284c7)',
-                          color: '#fff', padding: '0.55rem 0.85rem', borderRadius: '12px 12px 2px 12px',
-                          fontSize: '0.8rem', maxWidth: '80%', wordBreak: 'break-word',
-                        }}>
-                          {msg.message}
-                        </div>
+                  sessionMessages.map((m, idx) => (
+                    <div
+                      key={m.id || idx}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: '90%',
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: m.role === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
+                          background: m.role === 'user'
+                            ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                            : 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          color: '#f8fafc',
+                          fontSize: '0.8rem',
+                          lineHeight: 1.45,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {m.text || m.message || m.response}
                       </div>
-                      {/* Bot response */}
-                      {msg.response && (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                          <span style={{ fontSize: '1rem', flexShrink: 0 }}>🤖</span>
-                          <div style={{
-                            background: 'rgba(18,14,40,0.9)', border: '1px solid rgba(255,255,255,0.07)',
-                            color: '#cbd5e1', padding: '0.55rem 0.85rem', borderRadius: '12px 12px 12px 2px',
-                            fontSize: '0.78rem', maxWidth: '88%', wordBreak: 'break-word', lineHeight: 1.55,
-                          }}>
-                            {msg.response.length > 300 ? msg.response.substring(0, 300) + '...' : msg.response}
-                          </div>
-                        </div>
+                      {m.timestamp && (
+                        <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.2rem', padding: '0 0.3rem' }}>
+                          {formatDate(m.timestamp)}
+                        </span>
                       )}
-                      {/* Intent + crop tags */}
-                      {(msg.intent || msg.crop) && (
-                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem', paddingLeft: '1.5rem', flexWrap: 'wrap' }}>
-                          {msg.intent && <span style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.62rem', background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>{msg.intent}</span>}
-                          {msg.crop && <span style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.62rem', background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>{msg.crop}</span>}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '0.62rem', color: '#475569', textAlign: 'right', marginTop: '0.1rem' }}>{timeAgo(msg.timestamp)}</div>
                     </div>
                   ))
                 )}
@@ -313,76 +377,49 @@ export default function ChatStoreTab() {
         </div>
       ) : (
         /* ── Activity View ───────────────────────────────────────────────────── */
-        <div>
+        <div style={{
+          background: 'rgba(18,14,40,0.72)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '14px', padding: '1.2rem',
+        }}>
           {activity.length === 0 ? (
-            <div style={{
-              background: 'rgba(18,14,40,0.72)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '14px', padding: '2.5rem', textAlign: 'center', color: '#64748b',
-            }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚡</div>
-              <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#94a3b8' }}>
-                {lang === 'hi' ? 'कोई गतिविधि नहीं मिली' : 'No activity recorded yet'}
-              </div>
+            <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚡</div>
+              <div>No recent activity recorded for this user.</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {activity.map(ev => {
-                const info = ACTION_LABELS[ev.action] || { icon: '⚡', color: '#94a3b8', label_en: ev.action };
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {activity.map((act, i) => {
+                const meta = ACTION_LABELS[act.action] || { icon: '📌', color: '#94a3b8', label_en: act.action, label_hi: act.action };
                 return (
-                  <div key={ev.id} style={{
-                    background: 'rgba(18,14,40,0.72)', border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: '10px', padding: '0.7rem 1rem',
-                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  }}>
-                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{info.icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.8rem', color: info.color }}>
-                        {lang === 'hi' ? (info.label_hi || info.label_en) : info.label_en}
-                      </span>
-                      {ev.page && <span style={{ color: '#64748b', fontSize: '0.75rem' }}> — {ev.page}</span>}
+                  <div
+                    key={act.id || i}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0.6rem 0.9rem', borderRadius: '10px',
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <span style={{ fontSize: '1.1rem' }}>{meta.icon}</span>
+                      <div>
+                        <strong style={{ fontSize: '0.8rem', color: meta.color }}>
+                          {lang === 'hi' ? meta.label_hi : meta.label_en}
+                        </strong>
+                        {act.page && (
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '0.5rem' }}>
+                            ({act.page})
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span style={{ color: '#475569', fontSize: '0.7rem', flexShrink: 0 }}>{timeAgo(ev.timestamp)}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      {timeAgo(act.timestamp)}
+                    </span>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(5,3,12,0.8)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
-        }}>
-          <div style={{
-            background: 'rgba(18,14,40,0.98)', border: '1px solid rgba(239,68,68,0.4)',
-            borderRadius: '16px', padding: '1.75rem', maxWidth: 360, width: '100%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
-          }}>
-            <div style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '0.75rem' }}>🗑️</div>
-            <h3 style={{ margin: '0 0 0.5rem', textAlign: 'center', fontSize: '1rem', fontWeight: 800, color: '#f1f5f9' }}>
-              {lang === 'hi' ? 'बातचीत हटाएं?' : 'Delete this conversation?'}
-            </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', marginBottom: '1.25rem' }}>
-              {lang === 'hi' ? 'यह क्रिया पूर्ववत नहीं की जा सकती।' : 'This action cannot be undone.'}
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{
-                flex: 1, padding: '0.6rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.83rem',
-                background: 'rgba(255,255,255,0.06)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
-              }}>
-                {lang === 'hi' ? 'रद्द करें' : 'Cancel'}
-              </button>
-              <button onClick={() => deleteSession(deleteConfirm)} style={{
-                flex: 1, padding: '0.6rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.83rem',
-                background: 'linear-gradient(135deg, #dc2626, #ef4444)', color: '#fff', border: 'none', cursor: 'pointer',
-              }}>
-                {lang === 'hi' ? 'हटाएं' : 'Delete'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

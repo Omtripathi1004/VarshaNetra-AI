@@ -873,7 +873,14 @@ export default function OverviewTab() {
       </div>
 
       {/* 🌟 PROMINENT SMART CROP & VARIETY RECOMMENDATIONS (TOP 2–3 CROPS YOU CAN GROW) */}
-      <SmartCropRecommendations onCropSelect={(cropId) => handleCropStageChange(cropId, 'sowing')} />
+      <SmartCropRecommendations
+        onCropSelect={(cropId) => handleCropStageChange(cropId, 'sowing')}
+        onRecommendationsChange={(recs) => {
+          if (Array.isArray(recs) && recs.length > 0) {
+            setSmartCropRecs(recs);
+          }
+        }}
+      />
 
       {/* 🌟 5 KEY INDIAN AGRO-CLIMATIC HUBS REGIONAL RAIN PREDICTIONS */}
       <div className="card" style={{ marginBottom: '1.4rem' }}>

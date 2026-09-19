@@ -547,7 +547,7 @@ export const getInitialBaseline = (loc) => {
   };
 };
 
-export default function SmartCropRecommendations({ onCropSelect }) {
+export default function SmartCropRecommendations({ onCropSelect, onRecommendationsChange }) {
   const { lang, location } = useApp();
   // Pre-populate state immediately so 2-3 crops are ALWAYS visible on frame 1!
   const [data, setData] = useState(() => getInitialBaseline(location));
@@ -572,6 +572,7 @@ export default function SmartCropRecommendations({ onCropSelect }) {
       .then((res) => {
         if (res?.data?.recommendations?.length) {
           setData(res.data);
+          onRecommendationsChange?.(res.data.recommendations);
           setLastRefreshedAt(new Date());
         }
         setLoading(false);
@@ -583,8 +584,12 @@ export default function SmartCropRecommendations({ onCropSelect }) {
   };
 
   useEffect(() => {
-    // Instantly adapt baseline to new location
-    setData(getInitialBaseline(location));
+    // Instantly adapt baseline to new location and synchronize with parent / voice assistant
+    const baseline = getInitialBaseline(location);
+    setData(baseline);
+    if (baseline?.recommendations?.length) {
+      onRecommendationsChange?.(baseline.recommendations);
+    }
     fetchRecommendations();
   }, [location.lat, location.lon, location.district, location.state]);
 
