@@ -1303,27 +1303,31 @@ table {
 }
 
 /* ── Judge Tour Mobile Layout ────────────────────────────── */
+.judge-tour-dialog {
+  max-height: calc(100dvh - 75px);
+}
+
+.judge-tour-footer {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 14, 32, 0.98);
+  box-sizing: border-box;
+}
+
 @media (max-width: 640px) {
   .judge-tour-dialog {
-    top: 52px !important;
-    width: 96% !important;
+    top: 50px !important;
+    width: 95% !important;
+    max-height: calc(100dvh - 65px) !important;
   }
 
   .judge-tour-body {
-    padding: 0.95rem 1rem !important;
-    max-height: calc(100vh - 140px) !important;
+    padding: 0.85rem 1rem !important;
   }
 
   .judge-tour-footer {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.65rem !important;
-  }
-
-  .judge-tour-footer-actions {
-    display: flex !important;
-    justify-content: space-between !important;
-    width: 100% !important;
+    padding: 0.55rem 0.8rem !important;
+    gap: 0.45rem !important;
   }
 }
 

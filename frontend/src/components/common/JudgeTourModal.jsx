@@ -348,29 +348,32 @@ export default function JudgeTourModal({
       className="judge-tour-dialog"
       style={{
         position: 'fixed',
-        top: '65px',
+        top: '55px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 99990,
         width: '94%',
         maxWidth: '860px',
+        maxHeight: 'calc(100dvh - 75px)',
         pointerEvents: 'none',
         animation: 'slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       <div
         style={{
           pointerEvents: 'auto',
-          background: 'linear-gradient(135deg, rgba(8, 14, 30, 0.97) 0%, rgba(10, 18, 42, 0.98) 100%)',
+          background: 'linear-gradient(135deg, rgba(8, 14, 30, 0.98) 0%, rgba(10, 18, 42, 0.99) 100%)',
           border: '1px solid rgba(56, 189, 248, 0.4)',
           borderRadius: '18px',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(2, 132, 199, 0.3)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(2, 132, 199, 0.3)',
           backdropFilter: 'blur(20px)',
           overflow: 'hidden',
           transition: 'all 0.3s ease',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: 'calc(100vh - 75px)',
+          maxHeight: isMinimized ? 'auto' : 'calc(100dvh - 75px)',
         }}
       >
         {/* Top Header Bar */}
@@ -478,149 +481,169 @@ export default function JudgeTourModal({
           </div>
         </div>
 
-        {/* Slide Body (Hidden when Minimized) */}
+        {/* Modal Content & Footer (Hidden when Minimized) */}
         {!isMinimized && (
-          <div
-            className="judge-tour-body"
-            style={{
-              padding: '1.15rem 1.35rem',
-              overflowY: 'auto',
-              maxHeight: 'calc(100vh - 145px)',
-              WebkitOverflowScrolling: 'touch',
-            }}
-          >
-            {/* Title & Icon Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.9rem', marginBottom: '1rem' }}>
+          <>
+            {/* Scrollable Slide Body */}
+            <div
+              className="judge-tour-body"
+              style={{
+                padding: '1rem 1.25rem',
+                overflowY: 'auto',
+                flex: 1,
+                minHeight: 0,
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              {/* Title & Icon Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.9rem', marginBottom: '0.9rem' }}>
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: 'rgba(2, 132, 199, 0.25)',
+                    border: '1px solid rgba(56, 189, 248, 0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    flexShrink: 0,
+                    boxShadow: '0 0 18px rgba(56, 189, 248, 0.3)',
+                  }}
+                >
+                  {currentSlide.icon}
+                </div>
+
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    {isHindi ? currentSlide.title_hi : currentSlide.title_en}
+                  </h3>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.84rem', color: '#38bdf8', fontWeight: 600 }}>
+                    {isHindi ? currentSlide.subtitle_hi : currentSlide.subtitle_en}
+                  </p>
+                </div>
+              </div>
+
+              {/* Bullet Points Container */}
               <div
                 style={{
-                  width: '46px',
-                  height: '46px',
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '12px',
-                  background: 'rgba(2, 132, 199, 0.25)',
-                  border: '1px solid rgba(56, 189, 248, 0.45)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.45rem',
-                  flexShrink: 0,
-                  boxShadow: '0 0 18px rgba(56, 189, 248, 0.3)',
+                  padding: '0.85rem 1.1rem',
+                  marginBottom: '0.8rem',
                 }}
               >
-                {currentSlide.icon}
+                <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {(isHindi ? currentSlide.bullets_hi : currentSlide.bullets_en).map((bullet, idx) => (
+                    <li key={idx} style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-                  {isHindi ? currentSlide.title_hi : currentSlide.title_en}
-                </h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.84rem', color: '#38bdf8', fontWeight: 600 }}>
-                  {isHindi ? currentSlide.subtitle_hi : currentSlide.subtitle_en}
-                </p>
+              {/* Look At Callout Box */}
+              <div
+                style={{
+                  background: 'rgba(2, 132, 199, 0.14)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '10px',
+                  padding: '0.6rem 0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  marginBottom: '0.4rem',
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>👁️</span>
+                <span style={{ fontSize: '0.82rem', color: '#38bdf8', fontWeight: 600 }}>
+                  {isHindi ? currentSlide.callout_hi : currentSlide.callout_en}
+                </span>
               </div>
             </div>
 
-            {/* Bullet Points Container */}
-            <div
-              style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
-                padding: '0.9rem 1.15rem',
-                marginBottom: '0.85rem',
-              }}
-            >
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                {(isHindi ? currentSlide.bullets_hi : currentSlide.bullets_en).map((bullet, idx) => (
-                  <li key={idx} style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                    {bullet}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Look At Callout Box */}
-            <div
-              style={{
-                background: 'rgba(2, 132, 199, 0.14)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                borderRadius: '10px',
-                padding: '0.65rem 0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                marginBottom: '1rem',
-              }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>👁️</span>
-              <span style={{ fontSize: '0.82rem', color: '#38bdf8', fontWeight: 600 }}>
-                {isHindi ? currentSlide.callout_hi : currentSlide.callout_en}
-              </span>
-            </div>
-
-            {/* Navigation & PPT Controller Footer */}
+            {/* Pinned Navigation & PPT Controller Footer (Always 100% visible at bottom) */}
             <div
               className="judge-tour-footer"
               style={{
+                flexShrink: 0,
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(10, 14, 32, 0.98)',
+                padding: '0.65rem 1rem',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.8rem',
-                paddingTop: '0.4rem',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                boxSizing: 'border-box',
+                width: '100%',
               }}
             >
-              {/* Previous Button */}
-              <button
-                type="button"
-                onClick={() => applySlide(currentStepIndex - 1)}
-                disabled={currentStepIndex === 0}
+              {/* Row 1: Prev, Dot Pagination (1-10), Next */}
+              <div
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.45rem 1rem',
-                  borderRadius: '10px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: currentStepIndex === 0 ? 'not-allowed' : 'pointer',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: currentStepIndex === 0 ? '#475569' : '#cbd5e1',
-                  transition: 'all 0.2s',
-                  flexShrink: 0,
+                  justifyContent: 'space-between',
+                  gap: '0.45rem',
+                  width: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
-                {isHindi ? '← पिछला' : '← Previous'}
-              </button>
+                {/* Previous Button */}
+                <button
+                  type="button"
+                  onClick={() => applySlide(currentStepIndex - 1)}
+                  disabled={currentStepIndex === 0}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.3rem',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: currentStepIndex === 0 ? 'not-allowed' : 'pointer',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: currentStepIndex === 0 ? '#475569' : '#cbd5e1',
+                    transition: 'all 0.2s',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {isHindi ? '← पिछला' : '← Prev'}
+                </button>
 
-              {/* Dot Pagination (1-10) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                {JUDGE_SLIDES.map((slide, idx) => {
-                  const isActive = idx === currentStepIndex;
-                  return (
-                    <button
-                      key={slide.step}
-                      type="button"
-                      onClick={() => applySlide(idx)}
-                      style={{
-                        width: isActive ? '24px' : '9px',
-                        height: '9px',
-                        borderRadius: '999px',
-                        border: 'none',
-                        background: isActive ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)',
-                        cursor: 'pointer',
-                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: isActive ? '0 0 10px rgba(56, 189, 248, 0.7)' : 'none',
-                        padding: 0,
-                      }}
-                      title={isHindi ? `स्लाइड ${slide.step}: ${slide.title_hi}` : `Slide ${slide.step}: ${slide.title_en}`}
-                    />
-                  );
-                })}
-              </div>
+                {/* Dot Pagination (1-10) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', flexShrink: 0 }}>
+                  {JUDGE_SLIDES.map((slide, idx) => {
+                    const isActive = idx === currentStepIndex;
+                    return (
+                      <button
+                        key={slide.step}
+                        type="button"
+                        onClick={() => applySlide(idx)}
+                        style={{
+                          width: isActive ? '18px' : '7px',
+                          height: '7px',
+                          borderRadius: '999px',
+                          border: 'none',
+                          background: isActive ? '#38bdf8' : 'rgba(255, 255, 255, 0.22)',
+                          cursor: 'pointer',
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                          boxShadow: isActive ? '0 0 8px rgba(56, 189, 248, 0.8)' : 'none',
+                          padding: 0,
+                          flexShrink: 0,
+                        }}
+                        title={isHindi ? `स्लाइड ${slide.step}: ${slide.title_hi}` : `Slide ${slide.step}: ${slide.title_en}`}
+                      />
+                    );
+                  })}
+                </div>
 
-              {/* Right Controls: Next & Ask VarshaNetra AI */}
-              <div className="judge-tour-footer-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
+                {/* Next Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -633,10 +656,11 @@ export default function JudgeTourModal({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.45rem 1.15rem',
-                    borderRadius: '10px',
-                    fontSize: '0.82rem',
+                    justifyContent: 'center',
+                    gap: '0.3rem',
+                    padding: '0.45rem 1.05rem',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
@@ -645,41 +669,45 @@ export default function JudgeTourModal({
                     boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
                     transition: 'all 0.2s',
                     whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   {currentStepIndex < JUDGE_SLIDES.length - 1
                     ? (isHindi ? 'अगला →' : 'Next →')
-                    : (isHindi ? 'टूर समाप्त करें ✓' : 'Finish Tour ✓')}
+                    : (isHindi ? 'समाप्त ✓' : 'Finish ✓')}
                 </button>
-
-                {onOpenChat && (
-                  <button
-                    type="button"
-                    onClick={onOpenChat}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      padding: '0.45rem 1rem',
-                      borderRadius: '10px',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      border: '1px solid rgba(5, 150, 105, 0.4)',
-                      background: 'linear-gradient(135deg, #059669 0%, #0284c7 100%)',
-                      color: '#ffffff',
-                      boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)',
-                      transition: 'all 0.2s',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={isHindi ? 'वर्षानेत्र AI कृषि सलाहकार खोलें' : 'Open VarshaNetra AI Agricultural Decision Advisor'}
-                  >
-                    <span>{isHindi ? '🤖 AI से पूछें' : '🤖 Ask AI'}</span>
-                  </button>
-                )}
               </div>
+
+              {/* Row 2: Ask VarshaNetra AI (Full Width) */}
+              {onOpenChat && (
+                <button
+                  type="button"
+                  onClick={onOpenChat}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    width: '100%',
+                    padding: '0.48rem 0.9rem',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: '1px solid rgba(5, 150, 105, 0.5)',
+                    background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.85) 0%, rgba(2, 132, 199, 0.85) 100%)',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={isHindi ? 'वर्षानेत्र AI कृषि सलाहकार खोलें' : 'Open VarshaNetra AI Agricultural Decision Advisor'}
+                >
+                  <span>🤖 {isHindi ? 'वर्षानेत्र AI सलाहकार से पूछें' : 'Ask VarshaNetra AI Advisor'}</span>
+                </button>
+              )}
             </div>
-          </div>
+          </>
         )}
       </div>
 
