@@ -84,7 +84,7 @@ export default function TechnicalStackModal({ isOpen, onClose, lang = 'en' }) {
                 boxShadow: '0 0 16px rgba(56, 189, 248, 0.25)',
               }}
             >
-              🥞
+              💻
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>

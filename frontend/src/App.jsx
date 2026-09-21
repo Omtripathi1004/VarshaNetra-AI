@@ -307,7 +307,7 @@ function AppInner() {
             <span>{lang === 'hi' ? 'जज टूर' : 'Judge Tour'}</span>
           </button>
 
-          {/* 🥞 Tech Stack (System Architecture & Provenance Modal) */}
+          {/* 💻 Tech Stack (System Architecture & Provenance Modal) */}
           <button
             id="tech-stack-btn"
             onClick={() => setIsTechStackOpen(true)}
@@ -328,7 +328,7 @@ function AppInner() {
               transition: 'all 0.2s',
             }}
           >
-            <span style={{ fontSize: '0.92rem' }}>🥞</span>
+            <span style={{ fontSize: '0.92rem' }}>💻</span>
             <span>{lang === 'hi' ? 'तकनीकी स्टैक' : 'Tech Stack'}</span>
           </button>
 
@@ -512,7 +512,7 @@ function AppInner() {
                 color: '#cbd5e1', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer'
               }}
             >
-              <span style={{ fontSize: '1.05rem' }}>🥞</span>
+              <span style={{ fontSize: '1.05rem' }}>💻</span>
               <span>{lang === 'hi' ? 'सिस्टम तकनीकी स्टैक एवं डेटा स्रोत' : 'System Tech Stack & Provenance'}</span>
             </button>
           </div>
