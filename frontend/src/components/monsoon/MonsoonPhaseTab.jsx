@@ -5,11 +5,11 @@ import { api } from '../../api/client';
 function SubEngineCard({ title, icon, badgeText, badgeType = 'info', children }) {
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div className="card-header">
+      <div className="card-header" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <span>{icon}</span> {title}
         </span>
-        {badgeText && <span className={`badge badge-${badgeType}`}>{badgeText}</span>}
+        {badgeText && <span className={`badge badge-${badgeType}`} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{badgeText}</span>}
       </div>
       {children}
     </div>
@@ -188,9 +188,9 @@ export default function MonsoonPhaseTab() {
           {/* CRITERIA MET BADGES */}
           {data.criteria_met?.length > 0 && (
             <div className="card">
-              <div className="card-header">
+              <div className="card-header" style={{ flexWrap: 'wrap', gap: '0.6rem' }}>
                 <span className="card-title">🔬 {lang === 'hi' ? 'सक्रिय वायुमंडलीय व स्थानिक मापदंड' : 'Active Meteorological Criteria Satisfied'}</span>
-                <span className="badge badge-success">Open-Meteo Verified</span>
+                <span className="badge badge-success" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>Open-Meteo Verified</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.6rem' }}>
                 {data.criteria_met.map((c, i) => (

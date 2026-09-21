@@ -77,7 +77,7 @@ export default function SystemControlTab() {
   };
 
   return (
-    <div className="main-content" style={{ paddingBottom: '3rem' }}>
+    <div className="main-content">
       {/* Header Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(18, 14, 40, 0.95), rgba(10, 7, 24, 0.95))',

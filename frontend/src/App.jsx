@@ -602,6 +602,9 @@ function AppInner() {
         <ActiveComponent />
       </ErrorBoundary>
 
+      {/* Global Scroll Clearance Spacer: Ensures bottom lines on all mobile devices are 100% visible */}
+      <div className="bottom-scroll-spacer" aria-hidden="true" />
+
       {/* Global Floating AI Assistant Widget */}
       <FloatingChatWidget />
 

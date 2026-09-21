@@ -161,7 +161,7 @@ export default function ChatStoreTab() {
   const groupedSessions = groupSessionsByDate(filteredSessions, lang);
 
   return (
-    <div className="main-content" style={{ paddingBottom: '3rem' }}>
+    <div className="main-content">
       {/* Header */}
       <div
         style={{

@@ -345,6 +345,7 @@ export default function JudgeTourModal({
 
   return (
     <div
+      className="judge-tour-dialog"
       style={{
         position: 'fixed',
         top: '65px',
@@ -367,33 +368,40 @@ export default function JudgeTourModal({
           backdropFilter: 'blur(20px)',
           overflow: 'hidden',
           transition: 'all 0.3s ease',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'calc(100vh - 75px)',
         }}
       >
         {/* Top Header Bar */}
         <div
           style={{
-            padding: '0.85rem 1.25rem',
+            padding: '0.65rem 1rem',
             borderBottom: isMinimized ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             background: 'rgba(255, 255, 255, 0.02)',
+            gap: '0.5rem',
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.8rem',
+                gap: '0.35rem',
+                fontSize: '0.78rem',
                 fontWeight: 800,
-                padding: '0.3rem 0.8rem',
+                padding: '0.25rem 0.65rem',
                 borderRadius: '999px',
                 background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.45) 0%, rgba(56, 189, 248, 0.25) 100%)',
                 border: '1px solid rgba(56, 189, 248, 0.65)',
                 color: '#38bdf8',
                 boxShadow: '0 0 14px rgba(56, 189, 248, 0.35)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               <span>{isHindi ? '⚖️ वर्षानेत्र जज फ्लो' : '⚖️ VarshaNetra Judge Flow'}</span>
@@ -403,7 +411,7 @@ export default function JudgeTourModal({
 
             <span
               style={{
-                fontSize: '0.66rem',
+                fontSize: '0.64rem',
                 fontWeight: 800,
                 letterSpacing: '0.05em',
                 padding: '0.2rem 0.55rem',
@@ -411,28 +419,33 @@ export default function JudgeTourModal({
                 border: '1px solid rgba(16, 185, 129, 0.5)',
                 background: 'rgba(16, 185, 129, 0.12)',
                 color: '#34d399',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {isHindi ? currentSlide.badge_hi : currentSlide.badge_en}
             </span>
 
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+            <span className="desktop-only" style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>
               {isHindi ? '(वेबसाइट नियंत्रित करने हेतु ← / → कुंजियों का उपयोग करें)' : '(Use ← / → Arrow Keys to Steer Web App)'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setIsMinimized(!isMinimized)}
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.16)',
                 borderRadius: '6px',
-                padding: '0.2rem 0.55rem',
+                padding: '0.25rem 0.6rem',
                 color: '#cbd5e1',
-                fontSize: '0.75rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
               title={isMinimized ? (isHindi ? 'स्लाइड विस्तार करें' : 'Expand Slide') : (isHindi ? 'स्लाइड छोटा करें' : 'Minimize Slide')}
             >
@@ -443,17 +456,20 @@ export default function JudgeTourModal({
               type="button"
               onClick={onClose}
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.16)',
                 borderRadius: '50%',
-                width: '28px',
-                height: '28px',
+                width: '30px',
+                height: '30px',
+                minWidth: '30px',
+                minHeight: '30px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#cbd5e1',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
+                flexShrink: 0,
               }}
               title={isHindi ? 'गाइड बंद करें (Esc)' : 'Close Guide (Esc)'}
             >
@@ -464,7 +480,15 @@ export default function JudgeTourModal({
 
         {/* Slide Body (Hidden when Minimized) */}
         {!isMinimized && (
-          <div style={{ padding: '1.25rem 1.4rem' }}>
+          <div
+            className="judge-tour-body"
+            style={{
+              padding: '1.15rem 1.35rem',
+              overflowY: 'auto',
+              maxHeight: 'calc(100vh - 145px)',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
             {/* Title & Icon Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.9rem', marginBottom: '1rem' }}>
               <div
@@ -486,10 +510,10 @@ export default function JudgeTourModal({
               </div>
 
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
                   {isHindi ? currentSlide.title_hi : currentSlide.title_en}
                 </h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.86rem', color: '#38bdf8', fontWeight: 600 }}>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.84rem', color: '#38bdf8', fontWeight: 600 }}>
                   {isHindi ? currentSlide.subtitle_hi : currentSlide.subtitle_en}
                 </p>
               </div>
@@ -501,13 +525,13 @@ export default function JudgeTourModal({
                 background: 'rgba(15, 23, 42, 0.65)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '12px',
-                padding: '1rem 1.2rem',
-                marginBottom: '0.9rem',
+                padding: '0.9rem 1.15rem',
+                marginBottom: '0.85rem',
               }}
             >
               <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                 {(isHindi ? currentSlide.bullets_hi : currentSlide.bullets_en).map((bullet, idx) => (
-                  <li key={idx} style={{ fontSize: '0.83rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                  <li key={idx} style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: '1.5' }}>
                     {bullet}
                   </li>
                 ))}
@@ -535,6 +559,7 @@ export default function JudgeTourModal({
 
             {/* Navigation & PPT Controller Footer */}
             <div
+              className="judge-tour-footer"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -562,13 +587,14 @@ export default function JudgeTourModal({
                   background: 'rgba(255, 255, 255, 0.05)',
                   color: currentStepIndex === 0 ? '#475569' : '#cbd5e1',
                   transition: 'all 0.2s',
+                  flexShrink: 0,
                 }}
               >
                 {isHindi ? '← पिछला' : '← Previous'}
               </button>
 
               {/* Dot Pagination (1-10) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 {JUDGE_SLIDES.map((slide, idx) => {
                   const isActive = idx === currentStepIndex;
                   return (
@@ -594,7 +620,7 @@ export default function JudgeTourModal({
               </div>
 
               {/* Right Controls: Next & Ask VarshaNetra AI */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+              <div className="judge-tour-footer-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -618,6 +644,7 @@ export default function JudgeTourModal({
                     color: '#ffffff',
                     boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
                     transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {currentStepIndex < JUDGE_SLIDES.length - 1
@@ -643,10 +670,11 @@ export default function JudgeTourModal({
                       color: '#ffffff',
                       boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)',
                       transition: 'all 0.2s',
+                      whiteSpace: 'nowrap',
                     }}
                     title={isHindi ? 'वर्षानेत्र AI कृषि सलाहकार खोलें' : 'Open VarshaNetra AI Agricultural Decision Advisor'}
                   >
-                    <span>{isHindi ? '🤖 वर्षानेत्र AI से पूछें' : '🤖 Ask VarshaNetra AI'}</span>
+                    <span>{isHindi ? '🤖 AI से पूछें' : '🤖 Ask AI'}</span>
                   </button>
                 )}
               </div>

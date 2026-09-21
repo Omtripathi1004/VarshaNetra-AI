@@ -107,7 +107,7 @@ export default function AboutTab() {
   const [expandedTech, setExpandedTech] = useState(null);
 
   return (
-    <div className="main-content" style={{ paddingBottom: '3rem' }}>
+    <div className="main-content">
       {/* Hero Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(18,14,40,0.98) 0%, rgba(10,7,28,0.98) 100%)',

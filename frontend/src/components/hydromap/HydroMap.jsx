@@ -421,6 +421,11 @@ export default function HydroMap() {
         duration: 1200,
         essential: true,
       });
+
+      // On mobile screens (<= 900px), smoothly scroll map container into view
+      if (typeof window !== 'undefined' && window.innerWidth <= 900 && mapContainerRef.current) {
+        mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   }, []);
 
@@ -615,7 +620,12 @@ export default function HydroMap() {
     const handleResize = () => map.resize();
     window.addEventListener('resize', handleResize);
 
+    const mobileResizeTimer = setTimeout(() => {
+      if (mapInstanceRef.current) mapInstanceRef.current.resize();
+    }, 300);
+
     return () => {
+      clearTimeout(mobileResizeTimer);
       window.removeEventListener('resize', handleResize);
       if (mapInstanceRef.current) {
         try { mapInstanceRef.current.remove(); } catch {}
@@ -654,7 +664,7 @@ export default function HydroMap() {
   const mapplsPortalUrl = `https://www.mappls.com/@${activeHub.lat.toFixed(4)},${activeHub.lng.toFixed(4)},7z`;
 
   return (
-    <div className="main-content" style={{ paddingBottom: '3rem' }}>
+    <div className="main-content">
       {/* PAGE HEADER */}
       <div style={{ marginBottom: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
@@ -707,21 +717,9 @@ export default function HydroMap() {
       </div>
 
       {/* TWO-COLUMN LAYOUT: SIDEBAR (CONTROLS & POPUPS MOVED HERE) + CLEAN MAP CANVAS */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(340px, 380px) 1fr',
-        gap: '1.25rem',
-        alignItems: 'stretch',
-      }}>
+      <div className="hydromap-layout">
         {/* ── LEFT SIDEBAR PANEL (Zero obstruction on map) ──────────────────────── */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          maxHeight: '740px',
-          overflowY: 'auto',
-          paddingRight: '4px',
-        }}>
+        <div className="hydromap-sidebar">
           {/* 1. Official Survey of India Certification Card */}
           <div style={{
             background: 'rgba(13, 9, 28, 0.94)',
@@ -1022,17 +1020,7 @@ export default function HydroMap() {
         </div>
 
         {/* ── RIGHT MAP CANVAS (100% Clean, Zero Popups Overlapping) ─────────────── */}
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          height: '740px',
-          minHeight: '740px',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-          background: '#070512',
-        }}>
+        <div className="hydromap-map-container">
           {/* Map canvas container */}
           <div
             ref={mapContainerRef}
